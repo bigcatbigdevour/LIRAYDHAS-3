@@ -125,6 +125,28 @@ export default function PolarityPage() {
               </li>
             ))}
           </ul>
+          <button
+            className="btn-ghost mt-3"
+            onClick={async () => {
+              if (!blueprint) return;
+              const res = await fetch('/api/calendar', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ blueprint }),
+              });
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'liraydhas-returns.ics';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }}
+          >
+            download calendar (.ics)
+          </button>
         </section>
       )}
 
