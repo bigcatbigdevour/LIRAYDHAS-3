@@ -8,9 +8,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  let body: { blueprint?: Blueprint };
+  let body: { blueprint?: Blueprint; localDate?: string };
   try {
-    body = (await req.json()) as { blueprint?: Blueprint };
+    body = (await req.json()) as { blueprint?: Blueprint; localDate?: string };
   } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 });
   }
@@ -20,7 +20,9 @@ export async function POST(req: Request) {
   }
 
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  // Use the client's local date when provided so the daily caches align with
+  // what the user calls "today" in their timezone.
+  const today = body.localDate ?? now.toISOString().slice(0, 10);
   const { aspects } = todaysTransits(bp.natal);
   const top = pickTopAspects(aspects, 3);
   const hd = userTransits(bp, now);

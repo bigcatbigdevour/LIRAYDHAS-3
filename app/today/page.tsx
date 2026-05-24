@@ -69,8 +69,7 @@ export default function TodayPage() {
 
   useEffect(() => {
     if (!blueprint) return;
-    const today = new Date().toISOString().slice(0, 10);
-    if (daily && daily.date === today) return;
+    if (daily && daily.date === localDateStr()) return;
     void fetchDaily();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blueprint]);
@@ -83,7 +82,7 @@ export default function TodayPage() {
       const res = await fetch('/api/daily', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ blueprint }),
+        body: JSON.stringify({ blueprint, localDate: localDateStr() }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -386,4 +385,11 @@ const SIGNS = [
 function signFromLon(lon: number): string {
   const n = ((lon % 360) + 360) % 360;
   return SIGNS[Math.floor(n / 30)];
+}
+
+function localDateStr(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
