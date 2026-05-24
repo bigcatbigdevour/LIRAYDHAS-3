@@ -132,6 +132,29 @@ export default function ChartPage() {
         <ActivationColumns blueprint={blueprint} />
       </section>
 
+      {(() => {
+        const counts = new Map<number, number>();
+        for (const g of hd.activeGates) counts.set(g.gate, (counts.get(g.gate) ?? 0) + 1);
+        const strongest = [...counts.entries()]
+          .filter(([, n]) => n >= 2)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        if (strongest.length === 0) return null;
+        return (
+          <section className="mt-6 mb-8">
+            <p className="small-label caps mb-2">most-activated gates</p>
+            <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[13px]">
+              {strongest.map(([gate, count]) => (
+                <li key={gate} className="text-ink-dim">
+                  <span className="text-ink tabular-nums">{gate}</span>
+                  <span className="text-ink-faint"> ×{count}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
+
       <dl className="mt-8 border-t border-hairline text-[13px]">
         <ExpandRow
           k="Type" v={hd.type}

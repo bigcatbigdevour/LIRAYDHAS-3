@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Blueprint, PlanetName } from '@/lib/types';
-import { todaysTransits } from '@/lib/astrology/transits';
+import { todaysTransits, currentRetrogrades } from '@/lib/astrology/transits';
 import { houseOfLongitude } from '@/lib/astrology/houses';
 
 const SIGNS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
@@ -18,9 +18,10 @@ const ORDER: PlanetName[] = [
 ];
 
 export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
-  const { transits } = useMemo(() => {
+  const { transits, retros } = useMemo(() => {
     const t = todaysTransits(blueprint.natal);
-    return { transits: t };
+    const r = new Set(currentRetrogrades());
+    return { transits: t, retros: r };
   }, [blueprint]);
 
   const size = 320;
@@ -164,10 +165,12 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
           const signIdx = Math.floor(lon / 30);
           const deg = lon % 30;
           const house = houseOfLongitude(lon, blueprint.natal.houses);
+          const isRetro = retros.has(p);
           return (
             <li key={p} className="flex justify-between border-b border-hairline py-0.5">
               <span className="text-ink-dim">
                 <span className="serif text-ink mr-1.5">{GLYPH[p]}</span>{p}
+                {isRetro && <span className="text-accent ml-1">℞</span>}
               </span>
               <span className="tabular-nums text-ink-dim">
                 {SIGNS[signIdx]} {deg.toFixed(1)}°
