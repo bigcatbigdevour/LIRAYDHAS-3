@@ -180,6 +180,7 @@ export default function TodayPage() {
           <ul className="space-y-0">
             {daily.transits.map((t, i) => {
               const open = expandedAspect === i;
+              const isExact = t.orb < 0.5;
               return (
                 <li key={i} className="border-b border-hairline">
                   <button
@@ -190,8 +191,9 @@ export default function TodayPage() {
                       <span className="text-ink">{t.transitPlanet}</span>{' '}
                       {PRETTY_ASPECT[t.aspect]}{' '}
                       natal <span className="text-ink">{t.natalPlanet}</span>
+                      {isExact && <span className="text-accent ml-1.5 caps small-label">exact</span>}
                     </span>
-                    <span className="tabular-nums">{t.orb.toFixed(1)}°</span>
+                    <span className={`tabular-nums ${isExact ? 'text-accent' : ''}`}>{t.orb.toFixed(1)}°</span>
                   </button>
                   {open && (
                     <p className="text-[12.5px] text-ink-dim pb-2 serif italic">
