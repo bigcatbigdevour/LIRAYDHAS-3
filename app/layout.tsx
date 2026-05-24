@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, DM_Serif_Display } from 'next/font/google';
 import './globals.css';
 import TabBar from '@/components/TabBar';
+import AddToHomeScreen from '@/components/AddToHomeScreen';
 
 const sans = Inter({
   subsets: ['latin'],
@@ -55,6 +56,7 @@ export default function RootLayout({
         <div className="grain" aria-hidden />
         {children}
         <TabBar />
+        <AddToHomeScreen />
       </body>
     </html>
   );
