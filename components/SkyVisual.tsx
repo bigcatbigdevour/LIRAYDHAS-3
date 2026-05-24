@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { Blueprint, PlanetName } from '@/lib/types';
 import { todaysTransits } from '@/lib/astrology/transits';
+import { houseOfLongitude } from '@/lib/astrology/houses';
 
 const SIGNS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
 const GLYPH: Record<PlanetName, string> = {
@@ -155,6 +156,27 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
         <span className="text-ink-faint">● your natal</span>
         <span style={{ color: '#8b3a3a' }}>| natal sun</span>
       </div>
+
+      <ul className="mt-5 grid grid-cols-2 gap-x-3 gap-y-1 text-[11.5px]">
+        {ORDER.map((p) => {
+          const lon = transits.positions[p];
+          if (lon === undefined || lon < 0) return null;
+          const signIdx = Math.floor(lon / 30);
+          const deg = lon % 30;
+          const house = houseOfLongitude(lon, blueprint.natal.houses);
+          return (
+            <li key={p} className="flex justify-between border-b border-hairline py-0.5">
+              <span className="text-ink-dim">
+                <span className="serif text-ink mr-1.5">{GLYPH[p]}</span>{p}
+              </span>
+              <span className="tabular-nums text-ink-dim">
+                {SIGNS[signIdx]} {deg.toFixed(1)}°
+                {house ? <span className="text-ink-faint"> · H{house}</span> : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

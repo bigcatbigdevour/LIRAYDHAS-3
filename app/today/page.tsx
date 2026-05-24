@@ -286,10 +286,11 @@ export default function TodayPage() {
         )}
       </section>
 
-      <section className="mt-8 mb-2">
+      <section className="mt-8 mb-2 flex items-center justify-between">
         <button className="btn-ghost" onClick={fetchDaily} disabled={loading}>
           {loading ? 'refreshing…' : 'refresh report'}
         </button>
+        <a href="/about" className="btn-ghost">about →</a>
       </section>
     </main>
   );
