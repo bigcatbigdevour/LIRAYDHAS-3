@@ -99,6 +99,12 @@ export default function ChartPage() {
 
       <section className="my-6">
         <BodyGraph blueprint={blueprint} />
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3 text-[10px] caps" style={{ letterSpacing: '0.16em' }}>
+          <span className="text-ink">— defined channel</span>
+          <span className="text-ink-faint">— undefined</span>
+          <span className="text-ink">white = personality</span>
+          <span style={{ color: '#b22a2a' }}>red = design</span>
+        </div>
       </section>
 
       <section className="mt-4 mb-10">
