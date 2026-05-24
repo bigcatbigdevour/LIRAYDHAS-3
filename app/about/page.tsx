@@ -25,8 +25,8 @@ export default function AboutPage() {
         <p>
           The math runs on your phone. The daily paragraph is written by a
           language model fed your tightest current transits and the bare
-          outline of your design. Nothing about you is stored on any server.
-          Erase the app and your blueprint is gone.
+          outline of your design — sent over once per day. Your blueprint
+          itself lives only in this browser. Erase the app and it's gone.
         </p>
       </section>
 

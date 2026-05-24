@@ -97,13 +97,20 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
               stroke="#333" strokeWidth="0.4" />
           );
         })}
-        {/* natal sun marker on outer ring */}
+        {/* natal sun marker on outer ring — slow opacity pulse */}
         {(() => {
           const a = point(n.sun.longitude, ring);
           const b = point(n.sun.longitude, outer);
           return (
             <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-              stroke="#8b3a3a" strokeWidth="1.6" />
+              stroke="#8b3a3a" strokeWidth="1.6">
+              <animate
+                attributeName="opacity"
+                values="1;0.55;1"
+                dur="4.5s"
+                repeatCount="indefinite"
+              />
+            </line>
           );
         })()}
         {/* faint natal planet ghosts on inner dashed ring */}
