@@ -32,6 +32,11 @@ export default function ChartPage() {
         <p className="text-ink-dim text-[13px] mt-2 italic">
           Born {new Date(blueprint.birth.iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: blueprint.birth.timeUnknown ? undefined : 'short' })} · {blueprint.birth.place}
         </p>
+        {blueprint.birth.timeUnknown && (
+          <p className="text-accent text-[11px] mt-2 caps" style={{ letterSpacing: '0.18em' }}>
+            Birth time unknown — profile and houses are soft
+          </p>
+        )}
       </header>
 
       <section className="my-6">

@@ -21,16 +21,14 @@ export default function TodayPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (!blueprint) router.replace('/onboarding');
-    }, 60);
+    const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
     return () => clearTimeout(t);
   }, [blueprint, router]);
 
   useEffect(() => {
     if (!blueprint) return;
     const today = new Date().toISOString().slice(0, 10);
-    if (daily && daily.date === today) return; // already fresh
+    if (daily && daily.date === today) return;
     void fetchDaily();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blueprint]);
@@ -64,31 +62,35 @@ export default function TodayPage() {
     weekday: 'long', month: 'long', day: 'numeric',
   });
 
+  const hd = blueprint.humanDesign;
+  const n = blueprint.natal;
+
   return (
     <main className="page max-w-md mx-auto fade-in">
-      <header className="pb-6">
+      <header className="pb-8">
         <p className="small-label caps">{today}</p>
       </header>
 
-      {loading && !daily && (
-        <p className="text-ink-dim italic">reading the sky…</p>
-      )}
-      {error && (
-        <div className="border border-hairline p-4 mb-4">
-          <p className="text-accent text-[13px]">{error}</p>
-          <button className="btn-ghost mt-3" onClick={fetchDaily}>retry</button>
-        </div>
-      )}
-
-      {daily?.paragraph && (
-        <p className="body-prose serif text-ink">
-          {daily.paragraph}
-        </p>
-      )}
+      <section className="min-h-[180px]">
+        {loading && !daily && (
+          <p className="text-ink-dim italic">reading the sky…</p>
+        )}
+        {error && (
+          <div className="border border-hairline p-4 mb-4">
+            <p className="text-accent text-[13px]">{error}</p>
+            <button className="btn-ghost mt-3" onClick={fetchDaily}>retry</button>
+          </div>
+        )}
+        {daily?.paragraph && (
+          <p className="body-prose serif text-ink">
+            {daily.paragraph}
+          </p>
+        )}
+      </section>
 
       {daily?.transits && daily.transits.length > 0 && (
-        <section className="mt-10">
-          <p className="small-label caps mb-3">transits today</p>
+        <section className="mt-12">
+          <p className="small-label caps mb-3">today's transits</p>
           <ul className="space-y-2">
             {daily.transits.map((t, i) => (
               <li key={i} className="flex justify-between text-[13px] text-ink-dim border-b border-hairline pb-2">
@@ -104,16 +106,47 @@ export default function TodayPage() {
         </section>
       )}
 
-      <section className="mt-12">
+      <section className="mt-14">
         <p className="small-label caps mb-2">current sky</p>
         <SkyVisual blueprint={blueprint} />
       </section>
 
-      <section className="mt-10">
+      <section className="mt-14 border-t border-hairline pt-6">
+        <p className="small-label caps mb-3">you</p>
+        <ul className="grid grid-cols-2 gap-y-1 text-[13px]">
+          <Mini k="Sun" v={`${n.sun.sign} ${n.sun.degree.toFixed(0)}°`} />
+          <Mini k="Moon" v={n.moon.sign} />
+          {n.asc !== null && <Mini k="Rising" v={signFromLon(n.asc)} />}
+          <Mini k="Type" v={hd.type} />
+          <Mini k="Profile" v={hd.profile} />
+          <Mini k="Authority" v={hd.authority} />
+        </ul>
+      </section>
+
+      <section className="mt-8 mb-2">
         <button className="btn-ghost" onClick={fetchDaily} disabled={loading}>
           {loading ? 'refreshing…' : 'refresh report'}
         </button>
       </section>
     </main>
   );
+}
+
+function Mini({ k, v }: { k: string; v: string }) {
+  return (
+    <li className="flex justify-between border-b border-hairline py-1">
+      <span className="text-ink-dim">{k}</span>
+      <span className="text-ink">{v}</span>
+    </li>
+  );
+}
+
+const SIGNS = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer',
+  'Leo', 'Virgo', 'Libra', 'Scorpio',
+  'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
+];
+function signFromLon(lon: number): string {
+  const n = ((lon % 360) + 360) % 360;
+  return SIGNS[Math.floor(n / 30)];
 }

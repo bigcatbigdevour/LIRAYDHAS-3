@@ -1,14 +1,22 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
 import { ageInYears, positionInCycles } from '@/lib/cycles';
+import type { PolarityReading } from '@/lib/types';
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default function PolarityPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
+  const polarity = useStore((s) => s.polarity);
+  const setPolarity = useStore((s) => s.setPolarity);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
@@ -20,6 +28,40 @@ export default function PolarityPage() {
     const age = ageInYears(blueprint.birth.iso);
     return positionInCycles(age);
   }, [blueprint]);
+
+  const fresh = useMemo(() => {
+    if (!polarity) return false;
+    return Date.now() - new Date(polarity.generatedAt).getTime() < WEEK_MS;
+  }, [polarity]);
+
+  useEffect(() => {
+    if (!blueprint || fresh) return;
+    void fetchPolarity();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blueprint, fresh]);
+
+  async function fetchPolarity() {
+    if (!blueprint) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/polarity', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ blueprint }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
+      }
+      const data = (await res.json()) as PolarityReading;
+      setPolarity(data);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'failed');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (!blueprint) return null;
 
@@ -47,12 +89,24 @@ export default function PolarityPage() {
       </section>
 
       <section className="mt-10 border-t border-hairline pt-6">
-        <p className="body-prose serif text-ink-dim">
-          A rising bar means you’re in the first half of that cycle — the part
-          that builds, accumulates, opens. A descending bar means you’re in the
-          second half — the part that releases, completes, lets go. Read the
-          stack as a whole.
-        </p>
+        {loading && !polarity?.paragraph && (
+          <p className="text-ink-dim italic">reading the stack…</p>
+        )}
+        {error && (
+          <div>
+            <p className="text-accent text-[13px]">{error}</p>
+            <button className="btn-ghost mt-2" onClick={fetchPolarity}>retry</button>
+          </div>
+        )}
+        {polarity?.paragraph && (
+          <p className="body-prose serif text-ink">{polarity.paragraph}</p>
+        )}
+      </section>
+
+      <section className="mt-6">
+        <button className="btn-ghost" onClick={fetchPolarity} disabled={loading}>
+          {loading ? 'refreshing…' : 'refresh interpretation'}
+        </button>
       </section>
     </main>
   );

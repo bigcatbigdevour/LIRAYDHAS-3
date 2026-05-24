@@ -107,6 +107,13 @@ export interface DailyReport {
   transits: TransitAspect[];
 }
 
+export interface PolarityReading {
+  paragraph: string;
+  rising: number;
+  descending: number;
+  generatedAt: string;
+}
+
 export interface GeocodeResult {
   name: string;
   country?: string;

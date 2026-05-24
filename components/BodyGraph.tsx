@@ -2,82 +2,127 @@
 
 import type { Blueprint, CenterName } from '@/lib/types';
 import { ALL_CHANNELS } from '@/lib/humandesign/channels';
-import { CENTER_GATES } from '@/lib/humandesign/centers';
 
-// Pixel layout for a vertical bodygraph, 280 wide × 460 tall.
-// Coordinates are the (cx, cy) centers of each shape.
-interface CenterLayout {
-  cx: number; cy: number;
+// A vertical bodygraph with the canonical positions and shapes.
+// All coordinates are in the SVG viewBox; the consumer sizes us via CSS.
+
+const W = 300;
+const H = 540;
+
+interface CenterDef {
+  cx: number;
+  cy: number;
   shape: 'triangle-up' | 'triangle-down' | 'square' | 'diamond';
   size: number;
   fill: string;
-  label: string;
-  /** gate → (x, y) inside or just outside the shape, anchor side */
-  gates: Record<number, { x: number; y: number; side: 'in' | 'out' }>;
 }
 
-const W = 280;
-const H = 480;
-
-const COLORS: Record<CenterName, string> = {
-  Head:        '#9c8a3a',
-  Ajna:        '#9c8a3a',
-  Throat:      '#6e553a',
-  G:           '#9c8a3a',
-  Heart:       '#8b3a3a',
-  Sacral:      '#8b3a3a',
-  SolarPlexus: '#6e553a',
-  Spleen:      '#6e553a',
-  Root:        '#6e553a',
+const CENTERS: Record<CenterName, CenterDef> = {
+  Head:        { cx: 150, cy: 50,  shape: 'triangle-up',   size: 64, fill: '#a89a3a' },
+  Ajna:        { cx: 150, cy: 120, shape: 'triangle-down', size: 64, fill: '#a89a3a' },
+  Throat:      { cx: 150, cy: 200, shape: 'square',        size: 70, fill: '#6e553a' },
+  G:           { cx: 150, cy: 290, shape: 'diamond',       size: 80, fill: '#a89a3a' },
+  Heart:       { cx: 215, cy: 282, shape: 'triangle-up',   size: 52, fill: '#8b3a3a' },
+  Sacral:      { cx: 150, cy: 380, shape: 'square',        size: 78, fill: '#8b3a3a' },
+  SolarPlexus: { cx: 250, cy: 380, shape: 'triangle-down', size: 64, fill: '#6e553a' },
+  Spleen:      { cx: 50,  cy: 380, shape: 'triangle-down', size: 64, fill: '#6e553a' },
+  Root:        { cx: 150, cy: 475, shape: 'square',        size: 78, fill: '#6e553a' },
 };
 
-// Approximate canonical positions: head at top, root at bottom, vertical axis.
-function buildLayout(): Record<CenterName, CenterLayout> {
-  const midX = W / 2;
-  return {
-    Head:        { cx: midX, cy: 50,  shape: 'triangle-up',   size: 60, fill: COLORS.Head,        label: 'Head', gates: {} },
-    Ajna:        { cx: midX, cy: 110, shape: 'triangle-down', size: 60, fill: COLORS.Ajna,        label: 'Ajna', gates: {} },
-    Throat:      { cx: midX, cy: 175, shape: 'square',        size: 64, fill: COLORS.Throat,      label: 'Throat', gates: {} },
-    G:           { cx: midX, cy: 250, shape: 'diamond',       size: 70, fill: COLORS.G,           label: 'G', gates: {} },
-    Heart:       { cx: midX + 60, cy: 248, shape: 'triangle-up', size: 50, fill: COLORS.Heart, label: 'Heart', gates: {} },
-    Sacral:      { cx: midX, cy: 335, shape: 'square',        size: 70, fill: COLORS.Sacral,      label: 'Sacral', gates: {} },
-    SolarPlexus: { cx: midX + 95, cy: 335, shape: 'triangle-down', size: 60, fill: COLORS.SolarPlexus, label: 'Solar Plexus', gates: {} },
-    Spleen:      { cx: midX - 95, cy: 335, shape: 'triangle-down', size: 60, fill: COLORS.Spleen, label: 'Spleen', gates: {} },
-    Root:        { cx: midX, cy: 425, shape: 'square',        size: 70, fill: COLORS.Root,        label: 'Root', gates: {} },
-  };
+// Per-gate connection anchor points relative to each center's center.
+// Each gate is anchored on the edge of its center, oriented toward the
+// other center it canonically connects to. Distances are inside the
+// shape so the channel line visibly enters/exits the shape.
+const GATE_ANCHORS: Record<number, { x: number; y: number }> = {
+  // ===== HEAD (3) =====
+  64: pt('Head', -22, 10),
+  61: pt('Head',   0, 14),
+  63: pt('Head',  22, 10),
+  // ===== AJNA (6) =====
+  47: pt('Ajna', -22, -10),
+  24: pt('Ajna',   0, -14),
+  4:  pt('Ajna',  22, -10),
+  17: pt('Ajna', -22, 10),
+  43: pt('Ajna',   0, 14),
+  11: pt('Ajna',  22, 10),
+  // ===== THROAT (11) — gates around its rectangle =====
+  62: pt('Throat', -28, -16),
+  23: pt('Throat',  -8, -16),
+  56: pt('Throat',  12, -16),
+  35: pt('Throat',  28, -8),
+  12: pt('Throat',  28,  6),
+  45: pt('Throat',  20, 16),
+  33: pt('Throat',   4, 16),
+  8:  pt('Throat', -10, 16),
+  31: pt('Throat', -22, 16),
+  20: pt('Throat', -28,  6),
+  16: pt('Throat', -28, -4),
+  // ===== G (8) — diamond, 8 corners-ish =====
+  7:  pt('G',   0, -28),
+  1:  pt('G', -12, -18),
+  13: pt('G',  12, -18),
+  25: pt('G',  28,   0),
+  10: pt('G', -28,   0),
+  15: pt('G', -12,  18),
+  2:  pt('G',  12,  18),
+  46: pt('G',   0,  28),
+  // ===== HEART (4) =====
+  21: pt('Heart', -8, -20),
+  26: pt('Heart',  8, -20),
+  40: pt('Heart', 14, 12),
+  51: pt('Heart', -14, 12),
+  // ===== SACRAL (9) =====
+  34: pt('Sacral', -32, -10),
+  5:  pt('Sacral', -20, -22),
+  14: pt('Sacral',  -6, -22),
+  29: pt('Sacral',   8, -22),
+  9:  pt('Sacral',  20, -22),
+  3:  pt('Sacral',  32, -10),
+  42: pt('Sacral',  32,  6),
+  27: pt('Sacral',   0, 22),
+  59: pt('Sacral',  32, 22),
+  // ===== SOLAR PLEXUS (7) =====
+  6:  pt('SolarPlexus',  -22, -16),
+  37: pt('SolarPlexus',  -8, -16),
+  22: pt('SolarPlexus',  -22, 4),
+  36: pt('SolarPlexus',  -8, 14),
+  49: pt('SolarPlexus',  10, 14),
+  55: pt('SolarPlexus',  18, -4),
+  30: pt('SolarPlexus',  18, 6),
+  // ===== SPLEEN (7) =====
+  48: pt('Spleen',  22, -8),
+  57: pt('Spleen',  22, 4),
+  44: pt('Spleen',   2, -16),
+  50: pt('Spleen',  -16, -8),
+  32: pt('Spleen',  -16, 6),
+  28: pt('Spleen',   2, 16),
+  18: pt('Spleen',  16, 14),
+  // ===== ROOT (9) =====
+  41: pt('Root',  -32, -10),
+  19: pt('Root',  -20, -22),
+  39: pt('Root',  -6, -22),
+  53: pt('Root',   8, -22),
+  60: pt('Root',  20, -22),
+  52: pt('Root',  32, -10),
+  58: pt('Root', -32, 14),
+  38: pt('Root',  -10, 22),
+  54: pt('Root',  24, 14),
+};
+
+function pt(name: CenterName, dx: number, dy: number) {
+  const c = CENTERS[name];
+  return { x: c.cx + dx, y: c.cy + dy };
 }
 
-// Pre-compute the position of each gate along the perimeter of its center,
-// placed deterministically so each appears near the channel(s) it belongs to.
-// For drawing channels we just connect center → center; we use gate positions
-// only for the small numbers.
-function gateLabelPositions(layout: Record<CenterName, CenterLayout>) {
-  const out: Record<number, { x: number; y: number; center: CenterName }> = {};
-  for (const [center, gates] of Object.entries(CENTER_GATES) as [CenterName, number[]][]) {
-    const c = layout[center];
-    const n = gates.length;
-    // distribute on a small ring outside the shape
-    gates.forEach((g, i) => {
-      const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-      const r = c.size / 2 + 14;
-      out[g] = {
-        x: c.cx + r * Math.cos(angle),
-        y: c.cy + r * Math.sin(angle),
-        center,
-      };
-    });
-  }
-  return out;
-}
-
-function shapePath(c: CenterLayout): string {
+function shapePath(name: CenterName): string {
+  const c = CENTERS[name];
   const { cx, cy, size, shape } = c;
   const s = size / 2;
   switch (shape) {
     case 'triangle-up':
-      return `M ${cx} ${cy - s} L ${cx + s} ${cy + s} L ${cx - s} ${cy + s} Z`;
+      return `M ${cx} ${cy - s} L ${cx + s} ${cy + s * 0.65} L ${cx - s} ${cy + s * 0.65} Z`;
     case 'triangle-down':
-      return `M ${cx - s} ${cy - s} L ${cx + s} ${cy - s} L ${cx} ${cy + s} Z`;
+      return `M ${cx - s} ${cy - s * 0.65} L ${cx + s} ${cy - s * 0.65} L ${cx} ${cy + s} Z`;
     case 'square':
       return `M ${cx - s} ${cy - s} L ${cx + s} ${cy - s} L ${cx + s} ${cy + s} L ${cx - s} ${cy + s} Z`;
     case 'diamond':
@@ -86,68 +131,94 @@ function shapePath(c: CenterLayout): string {
 }
 
 export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
-  const layout = buildLayout();
-  const gatePos = gateLabelPositions(layout);
   const defined = new Set(blueprint.humanDesign.definedCenters);
   const activeGates = new Set(blueprint.humanDesign.activeGates.map((g) => g.gate));
-  const activeChannels = new Set(
-    blueprint.humanDesign.activeChannels.map((p) => p.slice().sort((a, b) => a - b).join('-')),
+  // Track personality vs design separately to half-color hanging gates.
+  const persGates = new Set(
+    blueprint.humanDesign.activeGates.filter((g) => g.chart === 'personality').map((g) => g.gate),
+  );
+  const desGates = new Set(
+    blueprint.humanDesign.activeGates.filter((g) => g.chart === 'design').map((g) => g.gate),
+  );
+
+  const activeChannelKeys = new Set(
+    blueprint.humanDesign.activeChannels.map((p) => [...p].sort((a, b) => a - b).join('-')),
   );
 
   return (
-    <div className="flex flex-col items-center">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[300px]">
-        {/* channels first (under shapes) */}
-        {ALL_CHANNELS.map((ch) => {
-          const [a, b] = ch.gates;
-          const key = [a, b].sort((x, y) => x - y).join('-');
-          const isActive = activeChannels.has(key);
-          const ca = layout[ch.centers[0]];
-          const cb = layout[ch.centers[1]];
-          return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[320px] mx-auto block">
+      {/* channel lines first — each channel is two half-segments anchored at each gate. */}
+      {ALL_CHANNELS.map((ch) => {
+        const [a, b] = ch.gates;
+        const key = [a, b].sort((x, y) => x - y).join('-');
+        const isActive = activeChannelKeys.has(key);
+        const A = GATE_ANCHORS[a];
+        const B = GATE_ANCHORS[b];
+        if (!A || !B) return null;
+        const aActive = activeGates.has(a);
+        const bActive = activeGates.has(b);
+        const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+        return (
+          <g key={key}>
             <line
-              key={key}
-              x1={ca.cx} y1={ca.cy}
-              x2={cb.cx} y2={cb.cy}
-              stroke={isActive ? '#f4f1ea' : '#1c1c1c'}
-              strokeWidth={isActive ? 1.4 : 0.8}
+              x1={A.x} y1={A.y} x2={mid.x} y2={mid.y}
+              stroke={isActive ? '#f4f1ea' : aActive ? '#888' : '#1c1c1c'}
+              strokeWidth={isActive ? 1.4 : aActive ? 1 : 0.8}
             />
-          );
-        })}
-        {/* center shapes */}
-        {(Object.entries(layout) as [CenterName, CenterLayout][]).map(([name, c]) => {
-          const isDefined = defined.has(name);
-          return (
-            <g key={name}>
-              <path
-                d={shapePath(c)}
-                fill={isDefined ? c.fill : 'transparent'}
-                fillOpacity={isDefined ? 0.85 : 0}
-                stroke={isDefined ? c.fill : '#333'}
-                strokeWidth={isDefined ? 0 : 0.8}
-              />
-            </g>
-          );
-        })}
-        {/* gate numbers — small, near each center's perimeter */}
-        {Object.entries(gatePos).map(([gateStr, p]) => {
-          const gate = Number(gateStr);
-          const active = activeGates.has(gate);
-          return (
-            <text
-              key={gate}
-              x={p.x}
-              y={p.y + 3}
-              textAnchor="middle"
-              fontSize="7"
-              fill={active ? '#f4f1ea' : '#444'}
-              fontFamily="var(--font-sans), Inter, sans-serif"
-            >
-              {gate}
-            </text>
-          );
-        })}
-      </svg>
-    </div>
+            <line
+              x1={mid.x} y1={mid.y} x2={B.x} y2={B.y}
+              stroke={isActive ? '#f4f1ea' : bActive ? '#888' : '#1c1c1c'}
+              strokeWidth={isActive ? 1.4 : bActive ? 1 : 0.8}
+            />
+          </g>
+        );
+      })}
+
+      {/* center shapes */}
+      {(Object.keys(CENTERS) as CenterName[]).map((name) => {
+        const c = CENTERS[name];
+        const isDefined = defined.has(name);
+        return (
+          <path
+            key={name}
+            d={shapePath(name)}
+            fill={isDefined ? c.fill : 'transparent'}
+            fillOpacity={isDefined ? 0.9 : 0}
+            stroke={isDefined ? c.fill : '#2a2a2a'}
+            strokeWidth={isDefined ? 0 : 0.9}
+          />
+        );
+      })}
+
+      {/* gate numbers */}
+      {Object.entries(GATE_ANCHORS).map(([gateStr, p]) => {
+        const gate = Number(gateStr);
+        const isP = persGates.has(gate);
+        const isD = desGates.has(gate);
+        const color = isP && isD ? '#f4f1ea' : isP ? '#f4f1ea' : isD ? '#b22a2a' : '#3a3a3a';
+        return (
+          <text
+            key={gate}
+            x={p.x}
+            y={p.y + 2.4}
+            textAnchor="middle"
+            fontSize="7"
+            fill={color}
+            fontFamily="var(--font-sans), Inter, sans-serif"
+          >
+            {gate}
+          </text>
+        );
+      })}
+
+      <text x={4} y={H - 6} fontSize="8" fill="#666" fontFamily="var(--font-sans), Inter, sans-serif"
+            style={{ letterSpacing: '0.15em' }}>
+        DESIGN
+      </text>
+      <text x={W - 4} y={H - 6} fontSize="8" fill="#666" textAnchor="end" fontFamily="var(--font-sans), Inter, sans-serif"
+            style={{ letterSpacing: '0.15em' }}>
+        PERSONALITY
+      </text>
+    </svg>
   );
 }

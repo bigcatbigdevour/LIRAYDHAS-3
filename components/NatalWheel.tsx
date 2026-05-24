@@ -28,19 +28,18 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
   ];
   if (n.chiron) bodies.push({ name: 'Chiron', lon: n.chiron.longitude });
 
-  const size = 320;
+  const size = 340;
   const cx = size / 2;
   const cy = size / 2;
-  const rOuter = 150;
-  const rRing = 132;
-  const rPlanet = 108;
-  const rInner = 60;
+  const rOuter = 158;
+  const rRing = 138;
+  const rPlanet = 112;
+  const rInner = 64;
 
-  // Houses are rotated so ASC is at the 9 o'clock (left) position.
+  const housesKnown = n.houses.every((h) => h != null);
   const ascOffset = n.asc ?? 0;
 
   function point(lon: number, r: number) {
-    // Rotate so ASC sits at left (theta = 180°)
     const rel = ((lon - ascOffset) + 360) % 360;
     const theta = ((180 - rel) * Math.PI) / 180;
     return { x: cx + r * Math.cos(theta), y: cy - r * Math.sin(theta) };
@@ -49,7 +48,7 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
   const placed = layout(bodies, 6);
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[360px]">
+    <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[380px] mx-auto block">
       <circle cx={cx} cy={cy} r={rOuter} fill="none" stroke="#222" strokeWidth="0.6" />
       <circle cx={cx} cy={cy} r={rRing}  fill="none" stroke="#222" strokeWidth="0.4" />
       <circle cx={cx} cy={cy} r={rInner} fill="none" stroke="#222" strokeWidth="0.4" />
@@ -66,19 +65,29 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
       {SIGNS.map((g, i) => {
         const mid = point(i * 30 + 15, (rOuter + rRing) / 2);
         return (
-          <text key={i} x={mid.x} y={mid.y + 3} textAnchor="middle" fontSize="9" fill="#666" fontFamily="serif">{g}</text>
+          <text key={i} x={mid.x} y={mid.y + 3} textAnchor="middle" fontSize="10" fill="#777" fontFamily="serif">{g}</text>
         );
       })}
 
-      {/* house cusps */}
-      {n.houses.every((h) => h != null) && (n.houses as number[]).map((cusp, i) => {
+      {/* house cusps + numbers */}
+      {housesKnown && (n.houses as number[]).map((cusp, i) => {
         const a = point(cusp, rInner);
         const b = point(cusp, rRing);
         const isAngle = i === 0 || i === 3 || i === 6 || i === 9;
+        const nextCusp = (n.houses as number[])[(i + 1) % 12];
+        // mid-house for number
+        let arc = (nextCusp - cusp + 360) % 360;
+        const houseMid = (cusp + arc / 2) % 360;
+        const numPos = point(houseMid, rInner + 12);
         return (
-          <line key={`h${i}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                stroke={isAngle ? '#555' : '#222'}
-                strokeWidth={isAngle ? 0.8 : 0.4} />
+          <g key={`h${i}`}>
+            <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                  stroke={isAngle ? '#666' : '#222'}
+                  strokeWidth={isAngle ? 0.9 : 0.4} />
+            <text x={numPos.x} y={numPos.y + 3} textAnchor="middle" fontSize="8" fill="#555">
+              {i + 1}
+            </text>
+          </g>
         );
       })}
 
@@ -87,13 +96,8 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
         const a = point(seg.aLon, rInner - 4);
         const b = point(seg.bLon, rInner - 4);
         return (
-          <line
-            key={`a${i}`}
-            x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-            stroke={seg.color}
-            strokeWidth="0.4"
-            opacity="0.7"
-          />
+          <line key={`a${i}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                stroke={seg.color} strokeWidth="0.4" opacity="0.75" />
         );
       })}
 
@@ -103,13 +107,9 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
         return (
           <g key={p.name}>
             <line
-              x1={point(p.lon, rRing - 4).x}
-              y1={point(p.lon, rRing - 4).y}
-              x2={point(p.lon, rRing - 12).x}
-              y2={point(p.lon, rRing - 12).y}
-              stroke="#3a3a3a"
-              strokeWidth="0.5"
-            />
+              x1={point(p.lon, rRing - 4).x} y1={point(p.lon, rRing - 4).y}
+              x2={point(p.lon, rRing - 12).x} y2={point(p.lon, rRing - 12).y}
+              stroke="#3a3a3a" strokeWidth="0.5" />
             <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="13" fill="#f4f1ea">
               {GLYPH[p.name] ?? '·'}
             </text>
@@ -117,13 +117,22 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
         );
       })}
 
-      {/* ASC marker */}
+      {/* angles: ASC, IC, DSC, MC */}
       {n.asc !== null && (
-        <text
-          x={point(n.asc, rOuter + 12).x}
-          y={point(n.asc, rOuter + 12).y + 3}
-          textAnchor="middle" fontSize="9" fill="#8b3a3a"
-        >ASC</text>
+        <text x={point(n.asc, rOuter + 12).x} y={point(n.asc, rOuter + 12).y + 3}
+              textAnchor="middle" fontSize="9" fill="#8b3a3a">ASC</text>
+      )}
+      {n.mc !== null && (
+        <text x={point(n.mc, rOuter + 12).x} y={point(n.mc, rOuter + 12).y + 3}
+              textAnchor="middle" fontSize="9" fill="#8b3a3a">MC</text>
+      )}
+      {n.asc !== null && (
+        <text x={point((n.asc + 180) % 360, rOuter + 12).x} y={point((n.asc + 180) % 360, rOuter + 12).y + 3}
+              textAnchor="middle" fontSize="9" fill="#555">DSC</text>
+      )}
+      {n.mc !== null && (
+        <text x={point((n.mc + 180) % 360, rOuter + 12).x} y={point((n.mc + 180) % 360, rOuter + 12).y + 3}
+              textAnchor="middle" fontSize="9" fill="#555">IC</text>
       )}
     </svg>
   );
