@@ -11,6 +11,7 @@ import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib
 import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
+import { aspectMeaning } from '@/lib/astrology/aspectMeanings';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -34,6 +35,7 @@ export default function TodayPage() {
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
+  const [expandedAspect, setExpandedAspect] = useState<number | null>(null);
 
   useEffect(() => {
     setMoon(currentMoon());
@@ -149,17 +151,30 @@ export default function TodayPage() {
       {daily?.transits && daily.transits.length > 0 && (
         <section className="mt-12">
           <p className="small-label caps mb-3">today's transits</p>
-          <ul className="space-y-2">
-            {daily.transits.map((t, i) => (
-              <li key={i} className="flex justify-between text-[13px] text-ink-dim border-b border-hairline pb-2">
-                <span>
-                  <span className="text-ink">{t.transitPlanet}</span>{' '}
-                  {PRETTY_ASPECT[t.aspect]}{' '}
-                  natal <span className="text-ink">{t.natalPlanet}</span>
-                </span>
-                <span className="tabular-nums">{t.orb.toFixed(1)}°</span>
-              </li>
-            ))}
+          <ul className="space-y-0">
+            {daily.transits.map((t, i) => {
+              const open = expandedAspect === i;
+              return (
+                <li key={i} className="border-b border-hairline">
+                  <button
+                    onClick={() => setExpandedAspect(open ? null : i)}
+                    className="w-full flex justify-between items-baseline text-[13px] text-ink-dim py-2 text-left"
+                  >
+                    <span>
+                      <span className="text-ink">{t.transitPlanet}</span>{' '}
+                      {PRETTY_ASPECT[t.aspect]}{' '}
+                      natal <span className="text-ink">{t.natalPlanet}</span>
+                    </span>
+                    <span className="tabular-nums">{t.orb.toFixed(1)}°</span>
+                  </button>
+                  {open && (
+                    <p className="text-[12.5px] text-ink-dim pb-2 serif italic">
+                      {aspectMeaning(t.transitPlanet, t.natalPlanet, t.aspect)}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

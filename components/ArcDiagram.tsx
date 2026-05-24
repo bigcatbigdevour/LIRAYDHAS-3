@@ -113,12 +113,17 @@ export default function ArcDiagram({ birthIso, maxAge = 85 }: Props) {
         setHover(null);
       });
 
-    // today's age marker
+    // today's age marker — with a slow opacity pulse to draw the eye
     const age = ageInYears(birthIso);
-    g.append('line')
+    const nowLine = g.append('line')
       .attr('x1', x(age)).attr('x2', x(age))
       .attr('y1', 0).attr('y2', innerH)
       .attr('stroke', '#f4f1ea').attr('stroke-width', 1);
+    nowLine.append('animate')
+      .attr('attributeName', 'opacity')
+      .attr('values', '1;0.55;1')
+      .attr('dur', '4.5s')
+      .attr('repeatCount', 'indefinite');
     g.append('text')
       .attr('x', x(age))
       .attr('y', -8)
