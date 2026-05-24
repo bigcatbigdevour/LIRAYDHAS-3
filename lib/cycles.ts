@@ -7,16 +7,25 @@ export interface Cycle {
   yearLength: number;
   /** Tailwind / hex color for the arcs view */
   color: string;
+  /** What the rising vs descending arc tends to mean. */
+  description: string;
 }
 
 export const CYCLES: Cycle[] = [
-  { key: 'solar',    label: 'Solar return',      yearLength: 1.000,  color: '#c2bea3' },
-  { key: 'mars',     label: 'Mars synodic',      yearLength: 2.135,  color: '#8b3a3a' },
-  { key: 'jupiter',  label: 'Jupiter return',    yearLength: 11.862, color: '#9c8a3a' },
-  { key: 'saturn',   label: 'Saturn return',     yearLength: 29.457, color: '#6e553a' },
-  { key: 'nodal',    label: 'Nodal return',      yearLength: 18.613, color: '#3a7a52' },
-  { key: 'chiron',   label: 'Chiron return',     yearLength: 50.42,  color: '#5a5a7a' },
-  { key: 'lunarPg',  label: 'Progressed lunar',  yearLength: 27.32 / 12, color: '#7a3a7a' },
+  { key: 'solar',    label: 'Solar return',      yearLength: 1.000,  color: '#c2bea3',
+    description: 'Annual reset. Rising = first six months after birthday, gathering. Descending = back half, releasing.' },
+  { key: 'mars',     label: 'Mars synodic',      yearLength: 2.135,  color: '#8b3a3a',
+    description: 'Action and friction. Rising = energy organising into a project. Descending = closing out the fight.' },
+  { key: 'jupiter',  label: 'Jupiter return',    yearLength: 11.862, color: '#9c8a3a',
+    description: 'Expansion and luck. Rising = doors opening. Descending = harvesting the season.' },
+  { key: 'saturn',   label: 'Saturn return',     yearLength: 29.457, color: '#6e553a',
+    description: 'Structure and consequence. Rising = building. Descending = pruning what won\'t hold.' },
+  { key: 'nodal',    label: 'Nodal return',      yearLength: 18.613, color: '#3a7a52',
+    description: 'Direction. Rising = pulled forward by purpose. Descending = settling into what was learned.' },
+  { key: 'chiron',   label: 'Chiron return',     yearLength: 50.42,  color: '#5a5a7a',
+    description: 'The wound and the teacher. Rising = excavation. Descending = integration.' },
+  { key: 'lunarPg',  label: 'Progressed lunar',  yearLength: 27.32 / 12, color: '#7a3a7a',
+    description: 'Emotional weather, slowed down. Rising = a mood building. Descending = letting it pass.' },
 ];
 
 export function ageInYears(birthIso: string, now = new Date()): number {
