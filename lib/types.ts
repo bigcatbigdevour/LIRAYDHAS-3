@@ -76,6 +76,8 @@ export interface HumanDesign {
   activeGates: ActiveGate[];
   activeChannels: [number, number][];
   incarnationCross: string;
+  /** Connected components of defined centers — shows split-definition structure. */
+  splits: CenterName[][];
 }
 
 export interface Blueprint {

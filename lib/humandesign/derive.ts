@@ -87,19 +87,26 @@ export function computeDefinition(activeGates: Set<number>): DefinitionState {
 
 /** Count connected components in the defined-centers graph. */
 export function definitionComponents(state: DefinitionState): number {
+  return definitionGroups(state).length;
+}
+
+/** Return the connected components of defined centers. Each component is the list of center names. */
+export function definitionGroups(state: DefinitionState): CenterName[][] {
   const seen = new Set<CenterName>();
-  let groups = 0;
+  const groups: CenterName[][] = [];
   for (const c of state.definedCenters) {
     if (seen.has(c)) continue;
-    groups++;
+    const group: CenterName[] = [];
     const queue: CenterName[] = [c];
     while (queue.length) {
       const x = queue.shift()!;
       if (seen.has(x)) continue;
       seen.add(x);
+      group.push(x);
       const neigh = state.adjacency.get(x);
       if (neigh) for (const n of neigh) if (!seen.has(n)) queue.push(n);
     }
+    groups.push(group);
   }
   return groups;
 }
@@ -227,6 +234,7 @@ export function deriveHumanDesign(
   const profile = deriveProfile(personality, design);
   const definition = definitionLabel(state);
   const strategy = strategyOfType(type);
+  const splits = definitionGroups(state);
 
   return {
     type,
@@ -238,6 +246,7 @@ export function deriveHumanDesign(
     activeGates: [...personality, ...design],
     activeChannels: state.activeChannels,
     incarnationCross: deriveIncarnationCross(personality, design),
+    splits,
   };
 }
 

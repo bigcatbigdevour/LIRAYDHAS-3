@@ -173,6 +173,15 @@ export default function ChartPage() {
         />
         <Row k="Strategy"    v={hd.strategy} />
         <Row k="Definition"  v={hd.definition} />
+        {hd.splits.length > 1 && (
+          <Row
+            k="Splits"
+            small
+            v={hd.splits
+              .map((g, i) => `[${i + 1}] ${g.map(humanize).join(' + ')}`)
+              .join(' · ')}
+          />
+        )}
         <Row k="Cross"       v={crossLabel} small />
         <Row k="Defined centers" v={hd.definedCenters.length > 0 ? hd.definedCenters.map(humanize).join(', ') : 'none'} small />
         <Row k="Channels" v={hd.activeChannels.length === 0 ? 'none' : hd.activeChannels.map(([a, b]) => `${a}-${b}`).join(' · ')} small />
