@@ -1,4 +1,4 @@
-import { Body, MakeTime, MoonPhase as ENGINE_MoonPhase, EclipticGeoMoon } from 'astronomy-engine';
+import { MakeTime, MoonPhase as ENGINE_MoonPhase, EclipticGeoMoon } from 'astronomy-engine';
 import { normDeg } from './natal';
 
 export type MoonPhaseName =
@@ -41,9 +41,6 @@ export function currentMoon(now = new Date()): MoonState {
 
   return { phaseDegrees: phase, illumination: illum, name, moonLongitude: moonLon, moonSign };
 }
-// Body import kept for parity even if not used directly (tree-shake safe)
-export { Body };
-
 /**
  * Days until the next time the moon-sun ecliptic separation reaches `targetPhase`.
  * 0 = new moon, 180 = full moon, 90/270 = quarters.

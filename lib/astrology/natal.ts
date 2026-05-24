@@ -12,7 +12,6 @@ import {
 import type {
   NatalChart,
   PlanetPos,
-  PlanetName,
   ZodiacSign,
 } from '../types';
 import { longitudeToGateLine } from '../humandesign/gateWheel';
@@ -338,16 +337,3 @@ export function computeActivations(utc: Date): DesignActivations {
   };
 }
 
-/** Lookup table mapping our PlanetName enum to astronomy-engine Body. */
-export const PLANET_TO_BODY: Partial<Record<PlanetName, Body>> = {
-  Sun: Body.Sun,
-  Moon: Body.Moon,
-  Mercury: Body.Mercury,
-  Venus: Body.Venus,
-  Mars: Body.Mars,
-  Jupiter: Body.Jupiter,
-  Saturn: Body.Saturn,
-  Uranus: Body.Uranus,
-  Neptune: Body.Neptune,
-  Pluto: Body.Pluto,
-};
