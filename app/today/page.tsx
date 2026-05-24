@@ -7,7 +7,8 @@ import SkyVisual from '@/components/SkyVisual';
 import MoonIcon from '@/components/MoonIcon';
 import { currentMoon, nextLunation, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
-import { upcomingForecast, type UpcomingAspect } from '@/lib/astrology/transits';
+import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
+import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 import type { DailyReport } from '@/lib/types';
@@ -31,11 +32,13 @@ export default function TodayPage() {
   const [solarReturnDays, setSolarReturnDays] = useState<number | null>(null);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
+  const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
 
   useEffect(() => {
     setMoon(currentMoon());
     setLunation(nextLunation());
+    setRetrogrades(currentRetrogrades());
   }, []);
 
   useEffect(() => {
@@ -119,6 +122,11 @@ export default function TodayPage() {
         {!isSolarReturnToday && lunation && lunation.daysUntil < 8 && (
           <p className="small-label caps text-ink-faint mt-2">
             {lunation.phase} moon in {Math.max(1, Math.round(lunation.daysUntil))} day{Math.round(lunation.daysUntil) === 1 ? '' : 's'}
+          </p>
+        )}
+        {retrogrades.length > 0 && (
+          <p className="small-label caps text-ink-faint mt-2">
+            ℞ {retrogrades.join(' · ')}
           </p>
         )}
       </header>

@@ -140,6 +140,33 @@ export interface UpcomingAspect {
 }
 
 /**
+ * Detect retrograde motion of the inner planets at `now`.
+ * Returns the set of planets currently retrograde (apparent geocentric motion).
+ */
+export function currentRetrogrades(now = new Date()): PlanetName[] {
+  const out: PlanetName[] = [];
+  const planets: [PlanetName, Body][] = [
+    ['Mercury', Body.Mercury],
+    ['Venus', Body.Venus],
+    ['Mars', Body.Mars],
+    ['Jupiter', Body.Jupiter],
+    ['Saturn', Body.Saturn],
+  ];
+  const dt = 86400 * 1000; // 1 day in ms
+  for (const [name, body] of planets) {
+    const a = geocentricLongitude(body, MakeTime(new Date(now.getTime() - dt)));
+    const b = geocentricLongitude(body, MakeTime(new Date(now.getTime() + dt)));
+    let delta = b - a;
+    while (delta > 180) delta -= 360;
+    while (delta < -180) delta += 360;
+    // Mercury/Venus retrograde when apparent motion is negative.
+    // Outer planets too, but we only flag the inner + Jupiter/Saturn here.
+    if (delta < 0) out.push(name);
+  }
+  return out;
+}
+
+/**
  * Sample transits for the next `days` days and pick the tightest non-duplicate
  * aspects per (transit planet, natal planet, aspect) triple, returning the
  * single tightest hit (closest to exact) per triple.
