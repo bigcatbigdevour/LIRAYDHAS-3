@@ -8,6 +8,8 @@ import MoonIcon from '@/components/MoonIcon';
 import { currentMoon, nextLunation, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
+import { ageInYears } from '@/lib/cycles';
+import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
 import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
@@ -34,6 +36,7 @@ export default function TodayPage() {
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
+  const [keyMoments, setKeyMoments] = useState<KeyMoment[]>([]);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
   const [expandedAspect, setExpandedAspect] = useState<number | null>(null);
 
@@ -47,6 +50,7 @@ export default function TodayPage() {
     if (!blueprint) return;
     setTodayHd(userTransits(blueprint));
     setForecast(upcomingForecast(blueprint.natal, 7));
+    setKeyMoments(imminentReturns(ageInYears(blueprint.birth.iso)));
   }, [blueprint]);
 
   useEffect(() => {
@@ -132,6 +136,22 @@ export default function TodayPage() {
           </p>
         )}
       </header>
+
+      {keyMoments.length > 0 && (
+        <section className="mb-8 border border-accent/40 p-3" style={{ borderColor: '#3a1a1a' }}>
+          {keyMoments.map((k) => (
+            <p key={k.cycle.key} className="text-[12px] text-accent caps" style={{ letterSpacing: '0.18em' }}>
+              {k.cycle.label} —{' '}
+              {k.direction === 'approaching'
+                ? `in ${Math.round(k.monthsAway)} month${Math.round(k.monthsAway) === 1 ? '' : 's'}`
+                : `${Math.round(-k.monthsAway)} month${Math.round(-k.monthsAway) === 1 ? '' : 's'} ago`}
+            </p>
+          ))}
+          <p className="text-[12px] text-ink-dim mt-1 italic serif">
+            A major chapter mark. The themes around you right now are not small.
+          </p>
+        </section>
+      )}
 
       <section className="min-h-[200px]">
         {loading && !daily && <DailyParagraphSkeleton />}
