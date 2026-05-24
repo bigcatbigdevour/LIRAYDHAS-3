@@ -85,6 +85,52 @@ export interface UpcomingLunation {
   daysUntil: number;
 }
 
+/**
+ * Hours until the Moon next enters a new zodiac sign. Bisection over the
+ * moon's geocentric ecliptic longitude (jumps from 359.9° → 0° at sign change).
+ */
+export function hoursUntilMoonSignChange(now = new Date()): { hours: number; nextSign: string } {
+  const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+  const startLon = normDeg(EclipticGeoMoon(MakeTime(now)).lon);
+  const startSign = Math.floor(startLon / 30);
+  const targetLon = ((startSign + 1) * 30) % 360;
+  // The moon moves ~13.2°/day, so the change happens within ~55 hours max.
+  function diff(d: Date): number {
+    let x = targetLon - normDeg(EclipticGeoMoon(MakeTime(d)).lon);
+    while (x > 180) x -= 360;
+    while (x < -180) x += 360;
+    return x;
+  }
+  // Bracket the zero
+  let lo = now;
+  let hi = new Date(now.getTime() + 55 * 3600 * 1000);
+  let vlo = diff(lo);
+  let vhi = diff(hi);
+  if (Math.sign(vlo) === Math.sign(vhi)) {
+    // unlikely; extend
+    hi = new Date(now.getTime() + 80 * 3600 * 1000);
+    vhi = diff(hi);
+  }
+  if (Math.sign(vlo) === Math.sign(vhi)) {
+    return { hours: 0, nextSign: SIGNS[(startSign + 1) % 12] };
+  }
+  for (let i = 0; i < 30; i++) {
+    const mid = new Date((lo.getTime() + hi.getTime()) / 2);
+    const vm = diff(mid);
+    if (Math.abs(vm) < 0.001) {
+      return {
+        hours: (mid.getTime() - now.getTime()) / 3600 / 1000,
+        nextSign: SIGNS[(startSign + 1) % 12],
+      };
+    }
+    if (Math.sign(vm) === Math.sign(vlo)) { lo = mid; vlo = vm; } else { hi = mid; vhi = vm; }
+  }
+  return {
+    hours: (lo.getTime() - now.getTime()) / 3600 / 1000,
+    nextSign: SIGNS[(startSign + 1) % 12],
+  };
+}
+
 /** Returns the next major lunation event soonest from `now`. */
 export function nextLunation(now = new Date()): UpcomingLunation {
   const candidates: { phase: UpcomingLunation['phase']; deg: number }[] = [

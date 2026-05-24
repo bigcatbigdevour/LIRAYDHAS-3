@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import SkyVisual from '@/components/SkyVisual';
 import MoonIcon from '@/components/MoonIcon';
-import { currentMoon, nextLunation, type UpcomingLunation } from '@/lib/astrology/moon';
+import { currentMoon, nextLunation, hoursUntilMoonSignChange, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
 import { dailyVibe } from '@/lib/astrology/vibe';
@@ -32,6 +32,7 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moon, setMoon] = useState<ReturnType<typeof currentMoon> | null>(null);
+  const [moonShift, setMoonShift] = useState<{ hours: number; nextSign: string } | null>(null);
   const [lunation, setLunation] = useState<UpcomingLunation | null>(null);
   const [solarReturnDays, setSolarReturnDays] = useState<number | null>(null);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
@@ -43,6 +44,7 @@ export default function TodayPage() {
 
   useEffect(() => {
     setMoon(currentMoon());
+    setMoonShift(hoursUntilMoonSignChange());
     setLunation(nextLunation());
     setRetrogrades(currentRetrogrades());
   }, []);
@@ -133,6 +135,11 @@ export default function TodayPage() {
         {!isSolarReturnToday && lunation && lunation.daysUntil < 8 && (
           <p className="small-label caps text-ink-faint mt-2">
             {lunation.phase} moon in {Math.max(1, Math.round(lunation.daysUntil))} day{Math.round(lunation.daysUntil) === 1 ? '' : 's'}
+          </p>
+        )}
+        {moonShift && moonShift.hours < 18 && (
+          <p className="small-label caps text-ink-faint mt-1">
+            moon enters {moonShift.nextSign.toLowerCase()} in {Math.max(1, Math.round(moonShift.hours))}h
           </p>
         )}
         {retrogrades.length > 0 && (

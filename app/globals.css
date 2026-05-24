@@ -128,7 +128,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   color: var(--ink-dim);
   padding: 8px 0;
 }
-.btn-ghost:hover { color: var(--ink); }
+.btn-ghost:hover:not(:disabled) { color: var(--ink); }
+.btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .divider { height: 1px; background: var(--hairline); border: 0; }
 
