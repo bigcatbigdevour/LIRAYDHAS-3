@@ -10,3 +10,5 @@ dist
 *.log
 .vercel
 next-env.d.ts.bak
+tsconfig.tsbuildinfo
+.tsbuildinfo

@@ -1,55 +1,116 @@
-// Shape of the data the app stores for each exchange.
-// Designed to support a future engagement-based reward system:
-//   - every answer is timestamped and themed
-//   - certainty scores quantify how absolute the user sounded
-//   - contradictions / resistance patterns track friction against deepening
-//   - sessionId groups a single contiguous questioning
+// Core data shapes for the app.
 
-export interface PsycheEntry {
-  id: string;
-  sessionId: string;
-  index: number; // 0-based position in the session
-  question: string;
-  answer: string;
-  timestamp: number; // epoch ms
-  themes: string[];
-  certaintyScore: number; // 0..1
-  contradictions: string[];
-  resistance: string[];
-  // Reward-system scaffolding (not consumed yet, but present in the record):
-  depthTier: number; // derived from index — simple ladder 0,1,2,3…
-  wordCount: number;
-  engagement: {
-    // Seconds the user spent typing the answer, populated when available.
-    dwellMs?: number;
-    // Whether the user used 'Back' to revise this answer.
-    revised: boolean;
+export type ZodiacSign =
+  | 'Aries' | 'Taurus' | 'Gemini' | 'Cancer'
+  | 'Leo' | 'Virgo' | 'Libra' | 'Scorpio'
+  | 'Sagittarius' | 'Capricorn' | 'Aquarius' | 'Pisces';
+
+export type Chart = 'personality' | 'design';
+
+export type CenterName =
+  | 'Head' | 'Ajna' | 'Throat' | 'G'
+  | 'Heart' | 'Sacral' | 'SolarPlexus' | 'Spleen' | 'Root';
+
+export type HDType =
+  | 'Manifestor' | 'Generator' | 'Manifesting Generator'
+  | 'Projector' | 'Reflector';
+
+export type HDAuthority =
+  | 'Emotional' | 'Sacral' | 'Splenic' | 'Ego'
+  | 'Self-projected' | 'Mental' | 'Lunar';
+
+export type HDDefinition =
+  | 'Single' | 'Split' | 'Triple Split' | 'Quadruple Split' | 'No Definition';
+
+export type ProfileDigit = 1 | 2 | 3 | 4 | 5 | 6;
+export type Profile = `${ProfileDigit}/${ProfileDigit}`;
+
+export interface PlanetPos {
+  longitude: number;   // ecliptic longitude, 0–360
+  sign: ZodiacSign;
+  degree: number;      // 0–30 inside the sign
+  gate: number;        // 1–64
+  line: number;        // 1–6
+}
+
+export type PlanetName =
+  | 'Sun' | 'Earth' | 'Moon'
+  | 'Mercury' | 'Venus' | 'Mars'
+  | 'Jupiter' | 'Saturn'
+  | 'Uranus' | 'Neptune' | 'Pluto'
+  | 'Chiron' | 'NorthNode' | 'SouthNode';
+
+export interface NatalChart {
+  sun: PlanetPos;
+  moon: PlanetPos;
+  mercury: PlanetPos;
+  venus: PlanetPos;
+  mars: PlanetPos;
+  jupiter: PlanetPos;
+  saturn: PlanetPos;
+  uranus: PlanetPos;
+  neptune: PlanetPos;
+  pluto: PlanetPos;
+  chiron: PlanetPos | null;
+  northNode: PlanetPos;
+  asc: number | null;
+  mc: number | null;
+  houses: (number | null)[]; // 12 cusps; nulls if time unknown
+}
+
+export interface ActiveGate {
+  gate: number;
+  line: number;
+  planet: PlanetName;
+  chart: Chart;
+  longitude: number;
+}
+
+export interface HumanDesign {
+  type: HDType;
+  strategy: string;
+  authority: HDAuthority;
+  profile: Profile;
+  definition: HDDefinition;
+  definedCenters: CenterName[];
+  activeGates: ActiveGate[];
+  activeChannels: [number, number][];
+  incarnationCross: string;
+}
+
+export interface Blueprint {
+  version: 1;
+  birth: {
+    iso: string;        // ISO 8601 local birth datetime
+    lat: number;
+    lon: number;
+    tz: string;         // IANA timezone, e.g. America/Los_Angeles
+    place: string;      // "San Francisco, California, United States"
+    timeUnknown: boolean;
   };
+  natal: NatalChart;
+  humanDesign: HumanDesign;
 }
 
-export interface PsycheSession {
-  sessionId: string;
-  startedAt: number;
-  entries: PsycheEntry[];
+export interface TransitAspect {
+  transitPlanet: PlanetName;
+  natalPlanet: PlanetName;
+  aspect: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+  orb: number;            // exact orb in degrees
+  transitLongitude: number;
+  natalLongitude: number;
 }
 
-export interface QuestionRequestBody {
-  history: Array<{ question: string; answer: string }>;
+export interface DailyReport {
+  paragraph: string;
+  date: string;           // YYYY-MM-DD
+  transits: TransitAspect[];
 }
 
-export interface QuestionResponseBody {
-  question: string;
-}
-
-export interface AnalyzeRequestBody {
-  question: string;
-  answer: string;
-  priorThemes?: string[];
-}
-
-export interface AnalyzeResponseBody {
-  themes: string[];
-  certaintyScore: number;
-  contradictions: string[];
-  resistance: string[];
+export interface GeocodeResult {
+  name: string;
+  country?: string;
+  admin1?: string;
+  latitude: number;
+  longitude: number;
 }
