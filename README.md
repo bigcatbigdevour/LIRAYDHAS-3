@@ -84,10 +84,21 @@ bar and a clean icon.
 - Tap-to-expand details for Type, Authority, Profile (with line names)
 - Incarnation Cross resolved to its named cross when recognised
 - Natal wheel with house numbers and all four angles (ASC/IC/DSC/MC),
-  major aspect lines
-- Planet-in-house readout (Sun · Pisces 5.4° · H10 · 55.6)
+  major aspect lines. Uses **equal houses** (each cusp at ASC + 30°·(i−1)).
+- Planet-in-house readout (Sun · Pisces 5.4° · H6 · 55.6)
 - Sun, Moon, Rising one-liners
 - Life-path numerology
+
+### Other small joys
+
+- A tiny pixel bunny and a tiny pixel bird hop into view every ~25
+  seconds, hop a few times, then vanish. Deliberately out of place.
+- Subtle pulse on the natal Sun tick (Sky Visual) and the "now" line
+  (Arcs).
+- Web Share API integration so iPhone users can share today's reading
+  to Messages/Notes etc.
+- Native "Add to Home Screen" banner for iPhone Safari first-time users
+  (dismissable).
 
 ### Arcs / Polarity
 
