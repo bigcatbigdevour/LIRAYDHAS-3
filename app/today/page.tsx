@@ -327,10 +327,28 @@ export default function TodayPage() {
         )}
       </section>
 
-      <section className="mt-8 mb-2 flex items-center justify-between">
+      <section className="mt-8 mb-2 flex flex-wrap items-center justify-between gap-2">
         <button className="btn-ghost" onClick={fetchDaily} disabled={loading}>
           {loading ? 'refreshing…' : 'refresh report'}
         </button>
+        {daily?.paragraph && typeof navigator !== 'undefined' && 'share' in navigator && (
+          <button
+            className="btn-ghost"
+            onClick={async () => {
+              try {
+                await (navigator as Navigator & { share: (data: ShareData) => Promise<void> })
+                  .share({
+                    title: 'Liraydhas — today',
+                    text: daily.paragraph,
+                  });
+              } catch {
+                // user cancelled; ignore
+              }
+            }}
+          >
+            share
+          </button>
+        )}
         <a href="/about" className="btn-ghost">about →</a>
       </section>
     </main>
