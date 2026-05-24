@@ -3,6 +3,7 @@ import { Inter, DM_Serif_Display } from 'next/font/google';
 import './globals.css';
 import TabBar from '@/components/TabBar';
 import AddToHomeScreen from '@/components/AddToHomeScreen';
+import PixelCreatures from '@/components/PixelCreatures';
 
 const sans = Inter({
   subsets: ['latin'],
@@ -55,6 +56,7 @@ export default function RootLayout({
       <body>
         <div className="grain" aria-hidden />
         {children}
+        <PixelCreatures />
         <TabBar />
         <AddToHomeScreen />
       </body>

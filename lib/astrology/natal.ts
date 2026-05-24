@@ -156,8 +156,11 @@ function ascendant(time: AstroTime, latDeg: number, lonDeg: number): number {
   const epsRad = (obliquity(time) * Math.PI) / 180;
   const lstRad = (localSiderealTime(time, lonDeg) * Math.PI) / 180;
   const latRad = (latDeg * Math.PI) / 180;
-  const y = -Math.cos(lstRad);
-  const x = Math.sin(lstRad) * Math.cos(epsRad) + Math.tan(latRad) * Math.sin(epsRad);
+  // λ_asc = atan2(cos(RAMC), -sin(RAMC)·cos(ε) - tan(φ)·sin(ε))
+  // (the other branch of atan2 gives the descendant; the version with all
+  // signs flipped here picks the *rising* ecliptic point.)
+  const y = Math.cos(lstRad);
+  const x = -Math.sin(lstRad) * Math.cos(epsRad) - Math.tan(latRad) * Math.sin(epsRad);
   const asc = Math.atan2(y, x);
   return normDeg((asc * 180) / Math.PI);
 }
@@ -171,86 +174,28 @@ function midheaven(time: AstroTime, lonDeg: number): number {
 }
 
 /**
- * Placidus house cusps. Returns the 12 cusps (cusp 1 = ASC, cusp 10 = MC).
+ * House cusps — equal-house system. Each cusp = ASC + 30°*(i-1).
+ * MC is NOT necessarily the 10th cusp here; we still report ASC and MC
+ * separately as angles.
  *
- * Standard semi-arc method. Above latitude ~66°, Placidus breaks down — we
- * return null cusps in that case (callers should hide the house display).
+ * Above latitude ~85° (true polar regions) we return null cusps.
  */
-export function placidusHouses(
+export function houseCusps(
   time: AstroTime,
   latDeg: number,
   lonDeg: number,
 ): (number | null)[] {
-  if (Math.abs(latDeg) > 66) return Array(12).fill(null);
-
-  const eps = obliquity(time);
-  const epsRad = (eps * Math.PI) / 180;
-  const ramcDeg = localSiderealTime(time, lonDeg);
-  const ramcRad = (ramcDeg * Math.PI) / 180;
-  const phi = (latDeg * Math.PI) / 180;
-
+  if (Math.abs(latDeg) > 85) return Array(12).fill(null);
   const asc = ascendant(time, latDeg, lonDeg);
-  const mc = midheaven(time, lonDeg);
-
-  // intermediate cusps (11, 12, 2, 3) by Placidus semi-arc.
-  function placidusCusp(houseNum: number): number {
-    // fractions of the diurnal/nocturnal semi-arc per house number
-    // House 11: ramc + 30° (1/3 from MC to ASC); House 12: ramc + 60°; House 2: ramc + 120°; House 3: ramc + 150°.
-    let f: number; // fraction of semi-arc traversed
-    let isNight: boolean;
-    let H: number; // hour angle in degrees from MC (positive = west of MC)
-    switch (houseNum) {
-      case 11: f = 1 / 3; H = 30; isNight = false; break;
-      case 12: f = 2 / 3; H = 60; isNight = false; break;
-      case 2: f = 2 / 3; H = 120; isNight = true; break;
-      case 3: f = 1 / 3; H = 150; isNight = true; break;
-      default: return NaN;
-    }
-    // Iterate: find declination δ such that the cusp's hour angle H equals f * semi-arc.
-    // Standard iteration:
-    let lambda = normDeg(ramcDeg + H); // initial guess (equal-house-like)
-    for (let i = 0; i < 16; i++) {
-      const lRad = (lambda * Math.PI) / 180;
-      const delta = Math.asin(Math.sin(epsRad) * Math.sin(lRad));
-      // semi-arc (in hour angle degrees)
-      const cosSA = -Math.tan(phi) * Math.tan(delta);
-      if (cosSA < -1 || cosSA > 1) return NaN; // circumpolar
-      const SA = (Math.acos(cosSA) * 180) / Math.PI;
-      // target hour angle
-      const targetHA = isNight ? f * (180 - SA) + SA : f * SA;
-      // For nocturnal houses the formula above is the offset past 90°. Use unified form:
-      const hourAngle = isNight ? 180 - f * SA : f * SA;
-      const haRad = (hourAngle * Math.PI) / 180;
-      // RA of the cusp:
-      const ra = normDeg(ramcDeg + (isNight ? 180 + hourAngle : hourAngle));
-      const raRad = (ra * Math.PI) / 180;
-      // ecliptic longitude from RA & dec via inverse rotation:
-      const tanLambda = (Math.sin(raRad) * Math.cos(epsRad) + Math.tan(delta) * Math.sin(epsRad)) / Math.cos(raRad);
-      const newLambda = normDeg((Math.atan(tanLambda) * 180) / Math.PI + (Math.cos(raRad) < 0 ? 180 : 0));
-      if (Math.abs(((newLambda - lambda + 540) % 360) - 180) < 1e-6) break;
-      lambda = newLambda;
-      // unused targetHA suppresses TS warning while preserving intent
-      void targetHA;
-    }
-    return lambda;
+  const cusps: number[] = [];
+  for (let i = 0; i < 12; i++) {
+    cusps.push(normDeg(asc + 30 * i));
   }
-
-  const c11 = placidusCusp(11);
-  const c12 = placidusCusp(12);
-  const c2 = placidusCusp(2);
-  const c3 = placidusCusp(3);
-
-  const c1 = asc;
-  const c10 = mc;
-  const c4 = normDeg(c10 + 180);
-  const c5 = normDeg(c11 + 180);
-  const c6 = normDeg(c12 + 180);
-  const c7 = normDeg(c1 + 180);
-  const c8 = normDeg(c2 + 180);
-  const c9 = normDeg(c3 + 180);
-
-  return [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12];
+  return cusps;
 }
+
+/** Backwards-compatible alias. */
+export const placidusHouses = houseCusps;
 
 export interface ComputeNatalArgs {
   utc: Date;
