@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import SkyVisual from '@/components/SkyVisual';
 import MoonIcon from '@/components/MoonIcon';
-import { currentMoon } from '@/lib/astrology/moon';
+import { currentMoon, nextLunation, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
+import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -25,11 +26,14 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moon, setMoon] = useState<ReturnType<typeof currentMoon> | null>(null);
+  const [lunation, setLunation] = useState<UpcomingLunation | null>(null);
   const [solarReturnDays, setSolarReturnDays] = useState<number | null>(null);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
+  const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
 
   useEffect(() => {
     setMoon(currentMoon());
+    setLunation(nextLunation());
   }, []);
 
   useEffect(() => {
@@ -91,13 +95,20 @@ export default function TodayPage() {
 
   return (
     <main className="page max-w-md mx-auto fade-in">
-      <header className="pb-8 flex items-baseline justify-between gap-3">
-        <p className="small-label caps">{today}</p>
-        {moon && (
-          <span className="flex items-center gap-1.5 small-label caps">
-            <MoonIcon phase={moon.phaseDegrees} size={16} />
-            <span>{moon.name.toLowerCase()} · {moon.moonSign}</span>
-          </span>
+      <header className="pb-8">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="small-label caps">{today}</p>
+          {moon && (
+            <span className="flex items-center gap-1.5 small-label caps">
+              <MoonIcon phase={moon.phaseDegrees} size={16} />
+              <span>{moon.name.toLowerCase()} · {moon.moonSign}</span>
+            </span>
+          )}
+        </div>
+        {lunation && lunation.daysUntil < 8 && (
+          <p className="small-label caps text-ink-faint mt-2">
+            {lunation.phase} moon in {Math.max(1, Math.round(lunation.daysUntil))} day{Math.round(lunation.daysUntil) === 1 ? '' : 's'}
+          </p>
         )}
       </header>
 
@@ -166,15 +177,32 @@ export default function TodayPage() {
               <p className="small-label caps text-ink-faint mb-1">
                 channels temporarily complete
               </p>
-              <ul className="space-y-1">
-                {todayHd.completes.map((c, i) => (
-                  <li key={i} className="flex justify-between text-[13px] border-b border-hairline py-1">
-                    <span className="text-ink-dim">
-                      <span className="text-ink">{c.transitPlanet}</span> in {c.transitGate} ↔ your {c.natalGate}
-                    </span>
-                    <span className="text-ink-faint italic">{c.name}</span>
-                  </li>
-                ))}
+              <ul className="space-y-0">
+                {todayHd.completes.map((c, i) => {
+                  const key = `${c.channel[0]}-${c.channel[1]}-${i}`;
+                  const isExpanded = expandedChannel === key;
+                  const meaning = channelMeaning(c.name, c.channel[0], c.channel[1]);
+                  return (
+                    <li key={key} className="border-b border-hairline py-1.5">
+                      <button
+                        className="w-full flex justify-between text-[13px] text-left"
+                        onClick={() => setExpandedChannel(isExpanded ? null : key)}
+                      >
+                        <span className="text-ink-dim">
+                          <span className="text-ink">{c.transitPlanet}</span> in {c.transitGate} ↔ your {c.natalGate}
+                        </span>
+                        <span className="text-ink-faint italic">
+                          {c.name} {meaning ? (isExpanded ? '−' : '+') : ''}
+                        </span>
+                      </button>
+                      {isExpanded && meaning && (
+                        <p className="text-[12.5px] text-ink-dim mt-1 serif italic">
+                          {meaning}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
