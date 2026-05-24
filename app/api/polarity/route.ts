@@ -51,7 +51,9 @@ The cycle that flipped most recently: ${mostRecentFlip?.cycle.label ?? 'none'} (
       : ''
   }).
 
-Write one paragraph, 80-120 words, addressing the person directly. Name what the overall stack tends to feel like, lean on the most recent flip, and end on a sentence that lands like a quiet observation. No "the universe wants you to". No emojis. No exclamation points. No bullet points. Output only the paragraph.`;
+Write one paragraph, 80-120 words, addressing the person directly. Name what the overall stack tends to feel like, lean on the most recent flip, and end on a sentence that lands like a quiet observation.
+
+Hard bans: no "the universe", no "embrace", no "manifest", no "abundance", no "lean into", no emojis, no exclamation points, no rhetorical questions, no bullet points. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
 
   try {
     const client = getClient();

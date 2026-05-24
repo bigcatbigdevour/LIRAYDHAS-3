@@ -54,7 +54,11 @@ Today's tightest transits to their natal chart:
 ${transitLines || '- (a quiet day for major aspects)'}
 
 ${litLines ? `Transits hitting their personal natal gates:\n${litLines}\n` : ''}${completeLines ? `Channels temporarily completing for them today:\n${completeLines}\n` : ''}${retros.length ? `Currently retrograde: ${retros.join(', ')}\n` : ''}
-Write one paragraph, 90–130 words. The voice is Co-Star: direct, slightly clinical, slightly mystical, dry. Speaks plainly. Anchor in at least one of the user-specific signals above (a tight transit OR a lit natal gate OR a temporarily-complete channel). Reference at most one piece of HD jargon (a channel or center, no more) and translate it plainly. No "the universe wants you to". No emojis. No exclamation points. No second-person pep talk. End with a sentence that lands like a quiet observation, not a command. Output only the paragraph — no preamble, no quotation marks.`;
+Write one paragraph, 90–130 words. The voice is Co-Star: direct, slightly clinical, slightly mystical, dry. Speaks plainly. Anchor in at least one of the user-specific signals above (a tight transit OR a lit natal gate OR a temporarily-complete channel). Reference at most one piece of HD jargon (a channel or center, no more) and translate it plainly.
+
+Hard bans: no "the universe wants you to", no "embrace", no "manifest", no "abundance", no "lean into", no "trust the process", no emojis, no exclamation points, no rhetorical questions. No phrase that could appear in an airport-bookstore self-help book.
+
+Naming one mundane, concrete thing they should pay attention to today is good. End with a sentence that lands like a quiet observation, not a command. Output only the paragraph — no preamble, no quotation marks.`;
 
   let paragraph: string;
   try {

@@ -36,7 +36,9 @@ ${n.asc !== null ? `- Rising sign in their personality` : '- (birth time unknown
 - Defined centers: ${centers}
 - Active channels: ${channels}
 
-Speak to them in second person. Name the texture this combination creates — not a list of attributes but the actual feel of being them. End with a sentence that lands like a quiet observation, not a command or pep talk. No emojis. No exclamation points. No "you are special". Output only the paragraph.`;
+Speak to them in second person. Name the texture this combination creates — not a list of attributes but the actual feel of being them. End with a sentence that lands like a quiet observation, not a command or pep talk.
+
+Hard bans: no "the universe", no "embrace", no "manifest", no "abundance", no "lean into", no "you are special", no "your gifts", no emojis, no exclamation points, no rhetorical questions. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
 
   try {
     const client = getClient();
