@@ -1,15 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import BodyGraph from '@/components/BodyGraph';
 import NatalWheel from '@/components/NatalWheel';
+import {
+  TYPE_DESCRIPTIONS,
+  AUTHORITY_DESCRIPTIONS,
+  profileName,
+  profileDescription,
+  crossName,
+} from '@/lib/humandesign/interpretations';
 
 export default function ChartPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
   const reset = useStore((s) => s.reset);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -21,6 +29,18 @@ export default function ChartPage() {
   if (!blueprint) return null;
   const hd = blueprint.humanDesign;
   const n = blueprint.natal;
+
+  // Parse cross gates from the "p1/p2 | d1/d2" string built in derive.ts
+  let crossLabel = hd.incarnationCross;
+  const m = hd.incarnationCross.match(/^(\d+)\/(\d+)\s*\|\s*(\d+)\/(\d+)$/);
+  if (m) {
+    const named = crossName(Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]));
+    if (named) crossLabel = `${named} (${hd.incarnationCross})`;
+  }
+
+  function toggle(key: string) {
+    setExpanded((cur) => (cur === key ? null : key));
+  }
 
   return (
     <main className="page max-w-md mx-auto fade-in">
@@ -43,13 +63,27 @@ export default function ChartPage() {
         <BodyGraph blueprint={blueprint} />
       </section>
 
-      <dl className="grid grid-cols-2 gap-y-3 gap-x-4 mt-8 border-t border-hairline pt-4 text-[13px]">
-        <Row k="Type"        v={hd.type} />
+      <dl className="mt-8 border-t border-hairline text-[13px]">
+        <ExpandRow
+          k="Type" v={hd.type}
+          expanded={expanded === 'type'} onClick={() => toggle('type')}
+          detail={`${hd.strategy}. ${TYPE_DESCRIPTIONS[hd.type]}`}
+        />
+        <ExpandRow
+          k="Authority" v={hd.authority}
+          expanded={expanded === 'authority'} onClick={() => toggle('authority')}
+          detail={AUTHORITY_DESCRIPTIONS[hd.authority]}
+        />
+        <ExpandRow
+          k="Profile" v={`${hd.profile} · ${profileName(hd.profile)}`}
+          expanded={expanded === 'profile'} onClick={() => toggle('profile')}
+          detail={profileDescription(hd.profile)}
+        />
         <Row k="Strategy"    v={hd.strategy} />
-        <Row k="Authority"   v={hd.authority} />
-        <Row k="Profile"     v={hd.profile} />
         <Row k="Definition"  v={hd.definition} />
-        <Row k="Cross"       v={hd.incarnationCross} />
+        <Row k="Cross"       v={crossLabel} small />
+        <Row k="Defined centers" v={hd.definedCenters.length > 0 ? hd.definedCenters.map(humanize).join(', ') : 'none'} small />
+        <Row k="Channels" v={hd.activeChannels.length === 0 ? 'none' : hd.activeChannels.map(([a, b]) => `${a}-${b}`).join(' · ')} small />
       </dl>
 
       <section className="mt-12">
@@ -89,12 +123,36 @@ export default function ChartPage() {
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
+function Row({ k, v, small }: { k: string; v: string; small?: boolean }) {
   return (
-    <>
+    <div className="grid grid-cols-2 gap-4 py-2 border-b border-hairline">
       <dt className="small-label caps">{k}</dt>
-      <dd className="text-right">{v}</dd>
-    </>
+      <dd className={`text-right ${small ? 'text-[12px]' : ''}`}>{v}</dd>
+    </div>
+  );
+}
+
+function ExpandRow({
+  k, v, detail, expanded, onClick,
+}: {
+  k: string; v: string; detail: string; expanded: boolean; onClick: () => void;
+}) {
+  return (
+    <div className="border-b border-hairline">
+      <button
+        onClick={onClick}
+        className="w-full grid grid-cols-2 gap-4 py-2 text-left"
+      >
+        <dt className="small-label caps flex items-center gap-1.5">
+          <span>{k}</span>
+          <span className="text-ink-faint">{expanded ? '−' : '+'}</span>
+        </dt>
+        <dd className="text-right">{v}</dd>
+      </button>
+      {expanded && (
+        <p className="pb-3 text-[13px] text-ink-dim serif leading-relaxed">{detail}</p>
+      )}
+    </div>
   );
 }
 
@@ -123,4 +181,7 @@ const SIGNS = [
 function signFromLon(lon: number): string {
   const n = ((lon % 360) + 360) % 360;
   return SIGNS[Math.floor(n / 30)];
+}
+function humanize(s: string): string {
+  return s === 'SolarPlexus' ? 'Solar Plexus' : s;
 }

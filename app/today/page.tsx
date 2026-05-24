@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import SkyVisual from '@/components/SkyVisual';
+import MoonIcon from '@/components/MoonIcon';
+import { currentMoon } from '@/lib/astrology/moon';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -15,10 +17,16 @@ export default function TodayPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
   const daily = useStore((s) => s.daily);
+  const history = useStore((s) => s.history);
   const setDaily = useStore((s) => s.setDaily);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moon, setMoon] = useState<ReturnType<typeof currentMoon> | null>(null);
+
+  useEffect(() => {
+    setMoon(currentMoon());
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
@@ -65,16 +73,22 @@ export default function TodayPage() {
   const hd = blueprint.humanDesign;
   const n = blueprint.natal;
 
+  const pastDays = history.filter((h) => h.date !== daily?.date).slice(0, 6);
+
   return (
     <main className="page max-w-md mx-auto fade-in">
-      <header className="pb-8">
+      <header className="pb-8 flex items-baseline justify-between gap-3">
         <p className="small-label caps">{today}</p>
+        {moon && (
+          <span className="flex items-center gap-1.5 small-label caps">
+            <MoonIcon phase={moon.phaseDegrees} size={16} />
+            <span>{moon.name.toLowerCase()} · {moon.moonSign}</span>
+          </span>
+        )}
       </header>
 
-      <section className="min-h-[180px]">
-        {loading && !daily && (
-          <p className="text-ink-dim italic">reading the sky…</p>
-        )}
+      <section className="min-h-[200px]">
+        {loading && !daily && <DailyParagraphSkeleton />}
         {error && (
           <div className="border border-hairline p-4 mb-4">
             <p className="text-accent text-[13px]">{error}</p>
@@ -111,6 +125,22 @@ export default function TodayPage() {
         <SkyVisual blueprint={blueprint} />
       </section>
 
+      {pastDays.length > 0 && (
+        <section className="mt-14">
+          <p className="small-label caps mb-3">the past week</p>
+          <ul className="space-y-4">
+            {pastDays.map((h) => (
+              <li key={h.date} className="border-b border-hairline pb-3">
+                <p className="small-label caps text-ink-faint mb-1">
+                  {new Date(h.date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                </p>
+                <p className="text-[13.5px] text-ink-dim line-clamp-3 serif">{h.paragraph}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="mt-14 border-t border-hairline pt-6">
         <p className="small-label caps mb-3">you</p>
         <ul className="grid grid-cols-2 gap-y-1 text-[13px]">
@@ -129,6 +159,18 @@ export default function TodayPage() {
         </button>
       </section>
     </main>
+  );
+}
+
+function DailyParagraphSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      <div className="h-5 bg-hairline w-11/12" />
+      <div className="h-5 bg-hairline w-full" />
+      <div className="h-5 bg-hairline w-10/12" />
+      <div className="h-5 bg-hairline w-9/12" />
+      <div className="h-5 bg-hairline w-8/12" />
+    </div>
   );
 }
 

@@ -138,3 +138,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fade-in 700ms ease both; }
+
+/* line clamp util */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* safe areas */
+.page { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
