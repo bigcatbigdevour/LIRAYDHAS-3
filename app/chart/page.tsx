@@ -14,6 +14,7 @@ import {
   profileDescription,
   crossName,
 } from '@/lib/humandesign/interpretations';
+import { lifePath, lifePathArchetype } from '@/lib/numerology';
 
 export default function ChartPage() {
   const router = useRouter();
@@ -163,6 +164,17 @@ export default function ChartPage() {
             </li>
           )}
         </ul>
+      </section>
+
+      <section className="mt-12 border-t border-hairline pt-6">
+        <p className="small-label caps mb-2">numerology</p>
+        <div className="flex items-baseline justify-between">
+          <span className="text-[13px] text-ink-dim">Life path</span>
+          <span className="text-[24px] serif">{lifePath(blueprint.birth.iso)}</span>
+        </div>
+        <p className="text-[12.5px] text-ink-dim mt-1 italic">
+          {lifePathArchetype(lifePath(blueprint.birth.iso))}
+        </p>
       </section>
 
       <section className="mt-12 space-y-2">
