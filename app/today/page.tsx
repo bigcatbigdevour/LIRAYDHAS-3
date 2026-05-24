@@ -6,6 +6,8 @@ import { useStore } from '@/lib/store';
 import SkyVisual from '@/components/SkyVisual';
 import MoonIcon from '@/components/MoonIcon';
 import { currentMoon } from '@/lib/astrology/moon';
+import { daysUntilSolarReturn } from '@/lib/astrology/returns';
+import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -23,10 +25,22 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moon, setMoon] = useState<ReturnType<typeof currentMoon> | null>(null);
+  const [solarReturnDays, setSolarReturnDays] = useState<number | null>(null);
+  const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
 
   useEffect(() => {
     setMoon(currentMoon());
   }, []);
+
+  useEffect(() => {
+    if (!blueprint) return;
+    setTodayHd(userTransits(blueprint));
+  }, [blueprint]);
+
+  useEffect(() => {
+    if (!blueprint) return;
+    setSolarReturnDays(daysUntilSolarReturn(blueprint.natal.sun.longitude));
+  }, [blueprint]);
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
@@ -120,6 +134,53 @@ export default function TodayPage() {
         </section>
       )}
 
+      {todayHd && (
+        <section className="mt-12">
+          <p className="small-label caps mb-3">today, on your chart</p>
+          {todayHd.lit.length === 0 && todayHd.completes.length === 0 && (
+            <p className="text-ink-dim italic text-[13px]">
+              No transit gates touching your natal design today.
+            </p>
+          )}
+          {todayHd.lit.length > 0 && (
+            <div className="mb-3">
+              <p className="small-label caps text-ink-faint mb-1">
+                your natal gates lit today
+              </p>
+              <ul className="space-y-1">
+                {todayHd.lit.map((l, i) => (
+                  <li key={i} className="flex justify-between text-[13px] border-b border-hairline py-1">
+                    <span className="text-ink-dim">
+                      transiting <span className="text-ink">{l.planet}</span> in
+                    </span>
+                    <span className="tabular-nums text-ink">
+                      gate {l.gate}.{l.line}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {todayHd.completes.length > 0 && (
+            <div className="mt-4">
+              <p className="small-label caps text-ink-faint mb-1">
+                channels temporarily complete
+              </p>
+              <ul className="space-y-1">
+                {todayHd.completes.map((c, i) => (
+                  <li key={i} className="flex justify-between text-[13px] border-b border-hairline py-1">
+                    <span className="text-ink-dim">
+                      <span className="text-ink">{c.transitPlanet}</span> in {c.transitGate} ↔ your {c.natalGate}
+                    </span>
+                    <span className="text-ink-faint italic">{c.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="mt-14">
         <p className="small-label caps mb-2">current sky</p>
         <SkyVisual blueprint={blueprint} />
@@ -151,6 +212,11 @@ export default function TodayPage() {
           <Mini k="Profile" v={hd.profile} />
           <Mini k="Authority" v={hd.authority} />
         </ul>
+        {solarReturnDays !== null && (
+          <p className="small-label caps mt-4 text-ink-faint">
+            solar return in {Math.round(solarReturnDays)} days
+          </p>
+        )}
       </section>
 
       <section className="mt-8 mb-2">

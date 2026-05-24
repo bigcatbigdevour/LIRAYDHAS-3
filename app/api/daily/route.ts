@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { todaysTransits, pickTopAspects } from '@/lib/astrology/transits';
+import { userTransits } from '@/lib/humandesign/transitGates';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
 import type { Blueprint, DailyReport } from '@/lib/types';
 
@@ -22,11 +23,23 @@ export async function POST(req: Request) {
   const today = now.toISOString().slice(0, 10);
   const { aspects } = todaysTransits(bp.natal);
   const top = pickTopAspects(aspects, 3);
+  const hd = userTransits(bp, now);
 
   const transitLines = top
     .map(
       (a) =>
         `- transiting ${a.transitPlanet} ${a.aspect} natal ${a.natalPlanet} (orb ${a.orb.toFixed(2)}°)`,
+    )
+    .join('\n');
+
+  const litLines = hd.lit
+    .map((l) => `- transiting ${l.planet} is back in your natal gate ${l.gate}.${l.line}`)
+    .join('\n');
+
+  const completeLines = hd.completes
+    .map(
+      (c) =>
+        `- the ${c.name} channel (gates ${c.channel[0]}–${c.channel[1]}) temporarily completes: ${c.transitPlanet} is in ${c.transitGate}, you have ${c.natalGate} natally`,
     )
     .join('\n');
 
@@ -39,7 +52,8 @@ ${bp.natal.asc != null ? `- Rising sign: ${signFromLon(bp.natal.asc)}` : '- (bir
 Today's tightest transits to their natal chart:
 ${transitLines || '- (a quiet day for major aspects)'}
 
-Write one paragraph, 90–130 words. The voice is Co-Star: direct, slightly clinical, slightly mystical, dry. Speaks plainly. Names one real thing they should pay attention to today, anchored in the transits above. No "the universe wants you to". No emojis. No exclamation points. No second-person pep talk. End with a sentence that lands like a quiet observation, not a command. Output only the paragraph — no preamble, no quotation marks.`;
+${litLines ? `Transits hitting their personal natal gates:\n${litLines}\n` : ''}${completeLines ? `Channels temporarily completing for them today:\n${completeLines}\n` : ''}
+Write one paragraph, 90–130 words. The voice is Co-Star: direct, slightly clinical, slightly mystical, dry. Speaks plainly. Anchor in at least one of the user-specific signals above (a tight transit OR a lit natal gate OR a temporarily-complete channel). Reference at most one piece of HD jargon (a channel or center, no more) and translate it plainly. No "the universe wants you to". No emojis. No exclamation points. No second-person pep talk. End with a sentence that lands like a quiet observation, not a command. Output only the paragraph — no preamble, no quotation marks.`;
 
   let paragraph: string;
   try {

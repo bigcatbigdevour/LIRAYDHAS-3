@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useStore } from '@/lib/store';
 import BodyGraph from '@/components/BodyGraph';
 import NatalWheel from '@/components/NatalWheel';
+import ActivationColumns from '@/components/ActivationColumns';
 import {
   TYPE_DESCRIPTIONS,
   AUTHORITY_DESCRIPTIONS,
@@ -16,8 +18,12 @@ import {
 export default function ChartPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
+  const narrative = useStore((s) => s.narrative);
+  const setNarrative = useStore((s) => s.setNarrative);
   const reset = useStore((s) => s.reset);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
+  const [narrativeError, setNarrativeError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -25,6 +31,34 @@ export default function ChartPage() {
     }, 60);
     return () => clearTimeout(t);
   }, [blueprint, router]);
+
+  useEffect(() => {
+    if (!blueprint || narrative) return;
+    void fetchNarrative();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blueprint, narrative]);
+
+  async function fetchNarrative() {
+    if (!blueprint) return;
+    setNarrativeLoading(true);
+    setNarrativeError(null);
+    try {
+      const res = await fetch('/api/narrative', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ blueprint }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
+      }
+      setNarrative(await res.json());
+    } catch (e: unknown) {
+      setNarrativeError(e instanceof Error ? e.message : 'failed');
+    } finally {
+      setNarrativeLoading(false);
+    }
+  }
 
   if (!blueprint) return null;
   const hd = blueprint.humanDesign;
@@ -61,6 +95,31 @@ export default function ChartPage() {
 
       <section className="my-6">
         <BodyGraph blueprint={blueprint} />
+      </section>
+
+      <section className="mt-4 mb-10">
+        {narrativeLoading && !narrative && (
+          <div className="space-y-2 animate-pulse">
+            <div className="h-4 bg-hairline w-11/12" />
+            <div className="h-4 bg-hairline w-10/12" />
+            <div className="h-4 bg-hairline w-9/12" />
+            <div className="h-4 bg-hairline w-8/12" />
+          </div>
+        )}
+        {narrativeError && (
+          <div>
+            <p className="text-accent text-[12px]">{narrativeError}</p>
+            <button className="btn-ghost mt-1" onClick={fetchNarrative}>retry</button>
+          </div>
+        )}
+        {narrative?.paragraph && (
+          <p className="body-prose serif text-ink">{narrative.paragraph}</p>
+        )}
+      </section>
+
+      <section className="mt-2 mb-8">
+        <p className="small-label caps mb-2">activations</p>
+        <ActivationColumns blueprint={blueprint} />
       </section>
 
       <dl className="mt-8 border-t border-hairline text-[13px]">
@@ -106,7 +165,8 @@ export default function ChartPage() {
         </ul>
       </section>
 
-      <section className="mt-12">
+      <section className="mt-12 space-y-2">
+        <Link href="/about" className="btn-ghost block">about this app →</Link>
         <button
           className="btn-ghost"
           onClick={() => {

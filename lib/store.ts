@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Blueprint, DailyReport, PolarityReading } from './types';
+import type { Blueprint, DailyReport, NarrativeReading, PolarityReading } from './types';
 
 interface StoreState {
   blueprint: Blueprint | null;
@@ -10,9 +10,11 @@ interface StoreState {
   /** rolling history of the last 30 daily reports, newest first */
   history: DailyReport[];
   polarity: PolarityReading | null;
+  narrative: NarrativeReading | null;
   setBlueprint: (b: Blueprint | null) => void;
   setDaily: (d: DailyReport | null) => void;
   setPolarity: (p: PolarityReading | null) => void;
+  setNarrative: (n: NarrativeReading | null) => void;
   reset: () => void;
 }
 
@@ -23,7 +25,8 @@ export const useStore = create<StoreState>()(
       daily: null,
       history: [],
       polarity: null,
-      setBlueprint: (blueprint) => set({ blueprint }),
+      narrative: null,
+      setBlueprint: (blueprint) => set({ blueprint, narrative: null }),
       setDaily: (daily) =>
         set((s) => {
           if (!daily) return { daily: null };
@@ -34,7 +37,8 @@ export const useStore = create<StoreState>()(
           };
         }),
       setPolarity: (polarity) => set({ polarity }),
-      reset: () => set({ blueprint: null, daily: null, polarity: null, history: [] }),
+      setNarrative: (narrative) => set({ narrative }),
+      reset: () => set({ blueprint: null, daily: null, polarity: null, history: [], narrative: null }),
     }),
     {
       name: 'liraydhas.v1',
