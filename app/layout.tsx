@@ -19,7 +19,10 @@ const serif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Liraydhas',
+  title: {
+    default: 'Liraydhas',
+    template: '%s · Liraydhas',
+  },
   description: 'A daily reading of the sky, and your design.',
   applicationName: 'Liraydhas',
   appleWebApp: {
