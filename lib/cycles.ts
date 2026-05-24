@@ -53,3 +53,21 @@ export function positionInCycles(age: number): CyclePosition[] {
     };
   });
 }
+
+export interface UpcomingReturn {
+  cycle: Cycle;
+  ageAtReturn: number;
+  date: Date;
+}
+
+/** Next return date for every cycle, given the user's birth ISO. */
+export function upcomingReturns(birthIso: string, now = new Date()): UpcomingReturn[] {
+  const birth = new Date(birthIso);
+  const age = (now.getTime() - birth.getTime()) / (365.2425 * 86400 * 1000);
+  return CYCLES.map((c) => {
+    const nextN = Math.ceil(age / c.yearLength);
+    const ageAt = nextN * c.yearLength;
+    const date = new Date(birth.getTime() + ageAt * 365.2425 * 86400 * 1000);
+    return { cycle: c, ageAtReturn: ageAt, date };
+  }).sort((a, b) => a.date.getTime() - b.date.getTime());
+}

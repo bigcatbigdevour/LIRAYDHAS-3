@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
-import { ageInYears, positionInCycles } from '@/lib/cycles';
+import { ageInYears, positionInCycles, upcomingReturns } from '@/lib/cycles';
 import type { PolarityReading } from '@/lib/types';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -27,6 +27,11 @@ export default function PolarityPage() {
     if (!blueprint) return [];
     const age = ageInYears(blueprint.birth.iso);
     return positionInCycles(age);
+  }, [blueprint]);
+
+  const upcoming = useMemo(() => {
+    if (!blueprint) return [];
+    return upcomingReturns(blueprint.birth.iso);
   }, [blueprint]);
 
   const fresh = useMemo(() => {
@@ -102,6 +107,26 @@ export default function PolarityPage() {
           <p className="body-prose serif text-ink">{polarity.paragraph}</p>
         )}
       </section>
+
+      {upcoming.length > 0 && (
+        <section className="mt-12 border-t border-hairline pt-6">
+          <p className="small-label caps mb-3">next returns</p>
+          <ul className="space-y-1">
+            {upcoming.map((u) => (
+              <li key={u.cycle.key} className="flex justify-between text-[13px] border-b border-hairline py-1">
+                <span className="text-ink-dim">
+                  <span className="inline-block w-2 h-px mr-2 align-middle" style={{ background: u.cycle.color }} />
+                  {u.cycle.label}
+                </span>
+                <span className="tabular-nums text-ink">
+                  {u.date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+                  <span className="text-ink-faint">· age {u.ageAtReturn.toFixed(1)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-6">
         <button className="btn-ghost" onClick={fetchPolarity} disabled={loading}>
