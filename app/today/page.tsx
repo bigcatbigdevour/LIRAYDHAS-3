@@ -15,6 +15,7 @@ import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 import { aspectMeaning } from '@/lib/astrology/aspectMeanings';
+import { readingStreak } from '@/lib/streak';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -317,6 +318,19 @@ export default function TodayPage() {
           </ul>
         </section>
       )}
+
+      {(() => {
+        const dates = history.map((h) => h.date);
+        const streak = readingStreak(dates, localDateStr());
+        if (streak < 2) return null;
+        return (
+          <section className="mt-10 text-center">
+            <p className="small-label caps text-ink-faint">
+              {streak} days in a row
+            </p>
+          </section>
+        );
+      })()}
 
       <section className="mt-14 border-t border-hairline pt-6">
         <p className="small-label caps mb-3">you</p>

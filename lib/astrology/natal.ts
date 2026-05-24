@@ -39,6 +39,20 @@ export function geocentricLongitude(body: Body, time: AstroTime): number {
   return normDeg(ecl.elon);
 }
 
+/** Compute geocentric ecliptic longitude for a named planet at a given date. Convenience for tests. */
+export function planetLongitudeAt(planet: 'Sun' | 'Moon' | 'Mercury' | 'Venus' | 'Mars' | 'Jupiter' | 'Saturn' | 'Uranus' | 'Neptune' | 'Pluto', date: Date): number {
+  const body: Record<string, Body> = {
+    Sun: Body.Sun, Moon: Body.Moon, Mercury: Body.Mercury, Venus: Body.Venus,
+    Mars: Body.Mars, Jupiter: Body.Jupiter, Saturn: Body.Saturn,
+    Uranus: Body.Uranus, Neptune: Body.Neptune, Pluto: Body.Pluto,
+  };
+  return geocentricLongitude(body[planet], MakeTime(date));
+}
+
+export function nodeAt(date: Date): number {
+  return meanNorthNode(MakeTime(date));
+}
+
 /** Mean lunar north node (Meeus / NASA). */
 export function meanNorthNode(time: AstroTime): number {
   // T = Julian centuries from J2000.0

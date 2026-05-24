@@ -17,6 +17,7 @@ import {
 import { lifePath, lifePathArchetype } from '@/lib/numerology';
 import { houseOfLongitude } from '@/lib/astrology/houses';
 import { SUN_BY_SIGN, MOON_BY_SIGN, RISING_BY_SIGN } from '@/lib/astrology/signMeanings';
+import { gateName } from '@/lib/humandesign/gateNames';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -143,11 +144,14 @@ export default function ChartPage() {
         return (
           <section className="mt-6 mb-8">
             <p className="small-label caps mb-2">most-activated gates</p>
-            <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[13px]">
+            <ul className="space-y-1 text-[13px]">
               {strongest.map(([gate, count]) => (
-                <li key={gate} className="text-ink-dim">
-                  <span className="text-ink tabular-nums">{gate}</span>
-                  <span className="text-ink-faint"> ×{count}</span>
+                <li key={gate} className="flex justify-between border-b border-hairline py-1">
+                  <span className="text-ink-dim">
+                    <span className="text-ink tabular-nums mr-2">{gate}</span>
+                    {gateName(gate)}
+                  </span>
+                  <span className="text-ink-faint">×{count}</span>
                 </li>
               ))}
             </ul>
