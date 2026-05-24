@@ -8,6 +8,7 @@ import MoonIcon from '@/components/MoonIcon';
 import { currentMoon, nextLunation, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
+import { dailyVibe } from '@/lib/astrology/vibe';
 import { ageInYears } from '@/lib/cycles';
 import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
 import type { PlanetName } from '@/lib/types';
@@ -120,6 +121,11 @@ export default function TodayPage() {
             </span>
           )}
         </div>
+        {daily?.transits && daily.transits.length > 0 && (
+          <p className="mt-3 serif text-ink-dim text-[15px] italic">
+            today is {dailyVibe(daily.transits)}.
+          </p>
+        )}
         {isSolarReturnToday && (
           <p className="text-accent text-[11px] mt-2 caps" style={{ letterSpacing: '0.2em' }}>
             ✦ solar return — your year begins
