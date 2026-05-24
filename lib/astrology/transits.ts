@@ -132,3 +132,37 @@ export function pickTopAspects(aspects: TransitAspect[], n = 3): TransitAspect[]
   }
   return out;
 }
+
+export interface UpcomingAspect {
+  daysAhead: number;
+  date: string;          // YYYY-MM-DD
+  aspect: TransitAspect;
+}
+
+/**
+ * Sample transits for the next `days` days and pick the tightest non-duplicate
+ * aspects per (transit planet, natal planet, aspect) triple, returning the
+ * single tightest hit (closest to exact) per triple.
+ */
+export function upcomingForecast(natal: NatalChart, days = 7): UpcomingAspect[] {
+  const tightest = new Map<string, UpcomingAspect>();
+  for (let d = 0; d <= days; d++) {
+    const day = new Date(Date.now() + d * 86400 * 1000);
+    const { aspects } = todaysTransits(natal, day);
+    for (const a of aspects) {
+      const key = `${a.transitPlanet}|${a.natalPlanet}|${a.aspect}`;
+      const cur = tightest.get(key);
+      if (!cur || a.orb < cur.aspect.orb) {
+        tightest.set(key, {
+          daysAhead: d,
+          date: day.toISOString().slice(0, 10),
+          aspect: a,
+        });
+      }
+    }
+  }
+  // Return tightest 4, sorted by orb
+  return [...tightest.values()]
+    .sort((a, b) => a.aspect.orb - b.aspect.orb)
+    .slice(0, 5);
+}

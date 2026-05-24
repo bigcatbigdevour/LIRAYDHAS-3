@@ -16,6 +16,8 @@ import {
 } from '@/lib/humandesign/interpretations';
 import { lifePath, lifePathArchetype } from '@/lib/numerology';
 import { houseOfLongitude } from '@/lib/astrology/houses';
+import { SUN_BY_SIGN, MOON_BY_SIGN, RISING_BY_SIGN } from '@/lib/astrology/signMeanings';
+import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
   const router = useRouter();
@@ -150,6 +152,18 @@ export default function ChartPage() {
       <section className="mt-12">
         <p className="small-label caps mb-2">natal sky</p>
         <NatalWheel blueprint={blueprint} />
+
+        <div className="mt-4 space-y-3 text-[13.5px] text-ink-dim">
+          <SignLine label="Sun" sign={n.sun.sign} meaning={SUN_BY_SIGN[n.sun.sign as ZodiacSign]} />
+          <SignLine label="Moon" sign={n.moon.sign} meaning={MOON_BY_SIGN[n.moon.sign as ZodiacSign]} />
+          {n.asc !== null && (
+            <SignLine
+              label="Rising"
+              sign={signFromLon(n.asc)}
+              meaning={RISING_BY_SIGN[signFromLon(n.asc) as ZodiacSign]}
+            />
+          )}
+        </div>
         <ul className="mt-4 grid grid-cols-2 gap-y-1 text-[13px] text-ink-dim">
           <Placement label="Sun" pos={n.sun} house={houseOfLongitude(n.sun.longitude, n.houses)} />
           <Placement label="Moon" pos={n.moon} house={houseOfLongitude(n.moon.longitude, n.houses)} />
@@ -225,6 +239,15 @@ function ExpandRow({
       {expanded && (
         <p className="pb-3 text-[13px] text-ink-dim serif leading-relaxed">{detail}</p>
       )}
+    </div>
+  );
+}
+
+function SignLine({ label, sign, meaning }: { label: string; sign: string; meaning: string }) {
+  return (
+    <div>
+      <p className="small-label caps">{label} in {sign}</p>
+      <p className="serif italic mt-0.5">{meaning}</p>
     </div>
   );
 }

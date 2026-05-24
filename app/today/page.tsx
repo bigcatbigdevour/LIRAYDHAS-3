@@ -7,6 +7,7 @@ import SkyVisual from '@/components/SkyVisual';
 import MoonIcon from '@/components/MoonIcon';
 import { currentMoon, nextLunation, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
+import { upcomingForecast, type UpcomingAspect } from '@/lib/astrology/transits';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 import type { DailyReport } from '@/lib/types';
@@ -29,6 +30,7 @@ export default function TodayPage() {
   const [lunation, setLunation] = useState<UpcomingLunation | null>(null);
   const [solarReturnDays, setSolarReturnDays] = useState<number | null>(null);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
+  const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function TodayPage() {
   useEffect(() => {
     if (!blueprint) return;
     setTodayHd(userTransits(blueprint));
+    setForecast(upcomingForecast(blueprint.natal, 7));
   }, [blueprint]);
 
   useEffect(() => {
@@ -221,6 +224,26 @@ export default function TodayPage() {
         <p className="small-label caps mb-2">current sky</p>
         <SkyVisual blueprint={blueprint} />
       </section>
+
+      {forecast && forecast.length > 0 && (
+        <section className="mt-14">
+          <p className="small-label caps mb-3">the week ahead</p>
+          <ul className="space-y-1">
+            {forecast.map((f, i) => (
+              <li key={i} className="flex justify-between items-baseline text-[13px] border-b border-hairline py-1.5">
+                <span className="text-ink-dim">
+                  <span className="text-ink">{f.aspect.transitPlanet}</span>{' '}
+                  {PRETTY_ASPECT[f.aspect.aspect]}{' '}
+                  natal <span className="text-ink">{f.aspect.natalPlanet}</span>
+                </span>
+                <span className="tabular-nums text-ink-faint text-[11px]">
+                  {f.daysAhead === 0 ? 'today' : `in ${f.daysAhead}d`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {pastDays.length > 0 && (
         <section className="mt-14">
