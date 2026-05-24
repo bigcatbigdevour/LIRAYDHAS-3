@@ -15,6 +15,7 @@ import {
   crossName,
 } from '@/lib/humandesign/interpretations';
 import { lifePath, lifePathArchetype } from '@/lib/numerology';
+import { houseOfLongitude } from '@/lib/astrology/houses';
 
 export default function ChartPage() {
   const router = useRouter();
@@ -150,13 +151,13 @@ export default function ChartPage() {
         <p className="small-label caps mb-2">natal sky</p>
         <NatalWheel blueprint={blueprint} />
         <ul className="mt-4 grid grid-cols-2 gap-y-1 text-[13px] text-ink-dim">
-          <Placement label="Sun" pos={n.sun} />
-          <Placement label="Moon" pos={n.moon} />
-          <Placement label="Mercury" pos={n.mercury} />
-          <Placement label="Venus" pos={n.venus} />
-          <Placement label="Mars" pos={n.mars} />
-          <Placement label="Jupiter" pos={n.jupiter} />
-          <Placement label="Saturn" pos={n.saturn} />
+          <Placement label="Sun" pos={n.sun} house={houseOfLongitude(n.sun.longitude, n.houses)} />
+          <Placement label="Moon" pos={n.moon} house={houseOfLongitude(n.moon.longitude, n.houses)} />
+          <Placement label="Mercury" pos={n.mercury} house={houseOfLongitude(n.mercury.longitude, n.houses)} />
+          <Placement label="Venus" pos={n.venus} house={houseOfLongitude(n.venus.longitude, n.houses)} />
+          <Placement label="Mars" pos={n.mars} house={houseOfLongitude(n.mars.longitude, n.houses)} />
+          <Placement label="Jupiter" pos={n.jupiter} house={houseOfLongitude(n.jupiter.longitude, n.houses)} />
+          <Placement label="Saturn" pos={n.saturn} house={houseOfLongitude(n.saturn.longitude, n.houses)} />
           {n.asc !== null && (
             <li className="flex justify-between border-b border-hairline py-1">
               <span className="text-ink">Rising</span>
@@ -231,15 +232,19 @@ function ExpandRow({
 function Placement({
   label,
   pos,
+  house,
 }: {
   label: string;
   pos: { sign: string; degree: number; gate: number; line: number };
+  house?: number | null;
 }) {
   return (
     <li className="flex justify-between border-b border-hairline py-1">
       <span className="text-ink">{label}</span>
       <span className="tabular-nums">
-        {pos.sign} {pos.degree.toFixed(1)}° · {pos.gate}.{pos.line}
+        {pos.sign} {pos.degree.toFixed(1)}°
+        {house ? ` · H${house}` : ''}
+        {` · ${pos.gate}.${pos.line}`}
       </span>
     </li>
   );

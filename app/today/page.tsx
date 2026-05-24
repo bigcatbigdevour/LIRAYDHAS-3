@@ -46,6 +46,9 @@ export default function TodayPage() {
     setSolarReturnDays(daysUntilSolarReturn(blueprint.natal.sun.longitude));
   }, [blueprint]);
 
+  const isSolarReturnToday =
+    solarReturnDays !== null && (solarReturnDays < 1 || solarReturnDays > 364.5);
+
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
     return () => clearTimeout(t);
@@ -105,7 +108,12 @@ export default function TodayPage() {
             </span>
           )}
         </div>
-        {lunation && lunation.daysUntil < 8 && (
+        {isSolarReturnToday && (
+          <p className="text-accent text-[11px] mt-2 caps" style={{ letterSpacing: '0.2em' }}>
+            ✦ solar return — your year begins
+          </p>
+        )}
+        {!isSolarReturnToday && lunation && lunation.daysUntil < 8 && (
           <p className="small-label caps text-ink-faint mt-2">
             {lunation.phase} moon in {Math.max(1, Math.round(lunation.daysUntil))} day{Math.round(lunation.daysUntil) === 1 ? '' : 's'}
           </p>
