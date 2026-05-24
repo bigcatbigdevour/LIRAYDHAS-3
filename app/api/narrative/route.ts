@@ -23,11 +23,13 @@ export async function POST(req: Request) {
     ? 'no defined centers (Reflector)'
     : hd.definedCenters.map((c) => c === 'SolarPlexus' ? 'Solar Plexus' : c).join(', ');
 
+  const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+  const ascSign = n.asc !== null ? SIGNS[Math.floor(((n.asc % 360) + 360) % 360 / 30)] : null;
   const prompt = `Write a 90-120 word standalone summary of this person's chart in the Co-Star voice — direct, dry, slightly clinical, slightly mystical. Anchor in the specific combination of:
 
 - Sun in ${n.sun.sign} (gate ${n.sun.gate}.${n.sun.line})
 - Moon in ${n.moon.sign}
-${n.asc !== null ? `- Rising sign in their personality` : '- (birth time unknown — soft profile)'}
+${ascSign ? `- Rising sign: ${ascSign}` : '- (birth time unknown — soft profile)'}
 - Human Design type: ${hd.type}
 - Strategy: ${hd.strategy}
 - Authority: ${hd.authority}

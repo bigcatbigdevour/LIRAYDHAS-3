@@ -29,7 +29,6 @@ function Creature({ kind, idleMs }: CreatureProps) {
 
   useEffect(() => {
     function pick() {
-      // Avoid the very top (status bar) and very bottom (tab bar)
       const w = window.innerWidth;
       const h = window.innerHeight;
       const x = Math.max(16, Math.min(w - 40, Math.random() * (w - 60) + 20));
@@ -42,9 +41,13 @@ function Creature({ kind, idleMs }: CreatureProps) {
       setHop(true);
       window.setTimeout(() => setHop(false), 600);
     }
-    pick();
+    // small initial delay so creatures don't compete with page load
+    const initial = window.setTimeout(pick, 3200 + Math.random() * 1500);
     const interval = window.setInterval(pick, idleMs);
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
   }, [idleMs]);
 
   if (!pos) return null;
