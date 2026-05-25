@@ -187,28 +187,132 @@ function midheaven(time: AstroTime, lonDeg: number): number {
 }
 
 /**
- * House cusps — equal-house system. Each cusp = ASC + 30°*(i-1).
- * MC is NOT necessarily the 10th cusp here; we still report ASC and MC
- * separately as angles.
+ * Placidus house cusps via iterative semi-arc method.
  *
- * Above latitude ~85° (true polar regions) we return null cusps.
+ * For each intermediate cusp (11, 12, 2, 3) we iterate on the hour angle
+ * until it matches F·SA (above horizon) or SA + (180−SA)·(1−F) (below
+ * horizon), where F is the cusp's fraction of its semi-arc and SA depends
+ * on the cusp's declination — which itself depends on the cusp's longitude.
+ *
+ * Cusps 5, 6, 8, 9 are the 180° opposites of 11, 12, 2, 3.
+ * Cusp 1 = ASC, cusp 7 = ASC+180°, cusp 10 = MC, cusp 4 = MC+180°.
+ *
+ * Above geographic latitude ~66° Placidus breaks down (circumpolar
+ * declinations) — we return all-null cusps for callers to fall back to
+ * equal house.
  */
-export function houseCusps(
+export function placidusHouses(
+  time: AstroTime,
+  latDeg: number,
+  lonDeg: number,
+): (number | null)[] {
+  if (Math.abs(latDeg) > 66) return Array(12).fill(null);
+
+  const RAD = Math.PI / 180;
+  const eps = obliquity(time);
+  const epsRad = eps * RAD;
+  const ramcDeg = localSiderealTime(time, lonDeg);
+  const phi = latDeg * RAD;
+  const asc = ascendant(time, latDeg, lonDeg);
+  const mc = midheaven(time, lonDeg);
+
+  function cuspIntermediate(houseNum: 11 | 12 | 2 | 3): number | null {
+    let F: number;
+    let isNight: boolean;
+    let initialHA: number;
+    switch (houseNum) {
+      case 11: F = 1 / 3; isNight = false; initialHA = 30;  break;
+      case 12: F = 2 / 3; isNight = false; initialHA = 60;  break;
+      case 2:  F = 2 / 3; isNight = true;  initialHA = 120; break;
+      case 3:  F = 1 / 3; isNight = true;  initialHA = 150; break;
+    }
+
+    let HA = initialHA;
+    for (let iter = 0; iter < 30; iter++) {
+      const RArad = (ramcDeg + HA) * RAD;
+      // On-ecliptic longitude for this RA (β=0): atan2(sin α, cos α · cos ε)
+      const lam = Math.atan2(Math.sin(RArad), Math.cos(RArad) * Math.cos(epsRad));
+      const dec = Math.asin(Math.sin(epsRad) * Math.sin(lam));
+      const cosSA = -Math.tan(phi) * Math.tan(dec);
+      if (cosSA < -1 || cosSA > 1) return null; // circumpolar
+      const SA = Math.acos(cosSA) / RAD;
+      // Above horizon: cusp 11 at F=1/3 of SA east of MC; cusp 12 at F=2/3
+      // Below horizon: cusp at SA + (180−SA)·(1−F') from MC, where F' is the
+      // fraction toward IC. For cusp 2 (F=2/3, closer to ASC), the formula
+      // simplifies to (180 + 2·SA)/3; for cusp 3 (F=1/3, closer to IC), to
+      // (SA + 360)/3.
+      let newHA: number;
+      if (!isNight) {
+        newHA = F * SA;
+      } else if (houseNum === 2) {
+        newHA = (180 + 2 * SA) / 3;
+      } else {
+        newHA = (SA + 360) / 3;
+      }
+      if (Math.abs(newHA - HA) < 1e-7) {
+        HA = newHA;
+        break;
+      }
+      HA = newHA;
+    }
+    const RArad = (ramcDeg + HA) * RAD;
+    const lam = Math.atan2(Math.sin(RArad), Math.cos(RArad) * Math.cos(epsRad));
+    return normDeg((lam * 180) / Math.PI);
+  }
+
+  const c11 = cuspIntermediate(11);
+  const c12 = cuspIntermediate(12);
+  const c2  = cuspIntermediate(2);
+  const c3  = cuspIntermediate(3);
+
+  if (c11 === null || c12 === null || c2 === null || c3 === null) {
+    return Array(12).fill(null);
+  }
+
+  // 12 cusps in zodiacal order: 1 .. 12
+  return [
+    asc,                  // 1
+    c2,                   // 2
+    c3,                   // 3
+    normDeg(mc + 180),    // 4 = IC
+    normDeg(c11 + 180),   // 5
+    normDeg(c12 + 180),   // 6
+    normDeg(asc + 180),   // 7 = DSC
+    normDeg(c2 + 180),    // 8
+    normDeg(c3 + 180),    // 9
+    mc,                   // 10
+    c11,                  // 11
+    c12,                  // 12
+  ];
+}
+
+/**
+ * Equal-house cusps. Used as a fallback when Placidus can't be computed
+ * (polar latitudes) or when the caller wants a simpler division.
+ */
+export function equalHouses(
   time: AstroTime,
   latDeg: number,
   lonDeg: number,
 ): (number | null)[] {
   if (Math.abs(latDeg) > 85) return Array(12).fill(null);
   const asc = ascendant(time, latDeg, lonDeg);
-  const cusps: number[] = [];
-  for (let i = 0; i < 12; i++) {
-    cusps.push(normDeg(asc + 30 * i));
-  }
-  return cusps;
+  return Array.from({ length: 12 }, (_, i) => normDeg(asc + 30 * i));
 }
 
-/** Backwards-compatible alias. */
-export const placidusHouses = houseCusps;
+/**
+ * Default cusps: Placidus when latitude < 66°, else equal as fallback.
+ * Used by computeNatal().
+ */
+export function houseCusps(
+  time: AstroTime,
+  latDeg: number,
+  lonDeg: number,
+): (number | null)[] {
+  const p = placidusHouses(time, latDeg, lonDeg);
+  if (p.every((c) => c !== null)) return p;
+  return equalHouses(time, latDeg, lonDeg);
+}
 
 export interface ComputeNatalArgs {
   utc: Date;
@@ -242,7 +346,7 @@ export function computeNatal(args: ComputeNatalArgs): NatalChart {
   if (!args.timeUnknown) {
     asc = ascendant(time, args.lat, args.lon);
     mc = midheaven(time, args.lon);
-    houses = placidusHouses(time, args.lat, args.lon);
+    houses = houseCusps(time, args.lat, args.lon);
   }
 
   return {

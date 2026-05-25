@@ -193,8 +193,32 @@ check('Sun degree near 5.4°', Math.abs(bp.natal.sun.degree - 5.4) < 0.6);
 check('Moon in Aries', bp.natal.moon.sign === 'Aries');
 check('ASC in Virgo (post-fix)', bp.natal.asc !== null && bp.natal.asc >= 150 && bp.natal.asc < 180);
 check('Houses present (12)', bp.natal.houses.length === 12 && bp.natal.houses.every(h => h !== null));
-check('Equal houses 30° apart',
-  Math.abs(((bp.natal.houses[1]! - bp.natal.houses[0]!) + 360) % 360 - 30) < 0.001);
+// Placidus cusps are NOT 30° apart (they vary with latitude).
+// Verify: H4 === MC+180°, H7 === ASC+180°, all cusps in [0, 360), spans sum to 360.
+{
+  const cusps = bp.natal.houses as number[];
+  check('H4 = MC + 180°',
+    Math.abs((cusps[3] - ((bp.natal.mc! + 180) % 360) + 540) % 360 - 180) < 0.01 ||
+    Math.abs(cusps[3] - ((bp.natal.mc! + 180) % 360)) < 0.01);
+  check('H7 = ASC + 180°',
+    Math.abs(cusps[6] - ((bp.natal.asc! + 180) % 360)) < 0.01);
+  let spanSum = 0;
+  for (let i = 0; i < 12; i++) {
+    const next = cusps[(i + 1) % 12];
+    let span = next - cusps[i];
+    if (span <= 0) span += 360;
+    spanSum += span;
+  }
+  check('12 Placidus house spans sum to 360°', Math.abs(spanSum - 360) < 0.01, `spanSum=${spanSum.toFixed(4)}`);
+  // At mid-latitudes, no individual span should be more than ~50°
+  const maxSpan = Math.max(...Array.from({length: 12}, (_, i) => {
+    const next = cusps[(i + 1) % 12];
+    let s = next - cusps[i];
+    if (s <= 0) s += 360;
+    return s;
+  }));
+  check('Largest Placidus house ≤ 50° at mid-latitude', maxSpan < 50, `max=${maxSpan.toFixed(2)}°`);
+}
 check('26 active gate activations', bp.humanDesign.activeGates.length === 26);
 check('Profile is x/y', /^[1-6]\/[1-6]$/.test(bp.humanDesign.profile));
 check('Type is valid', ['Manifestor','Generator','Manifesting Generator','Projector','Reflector'].includes(bp.humanDesign.type));
