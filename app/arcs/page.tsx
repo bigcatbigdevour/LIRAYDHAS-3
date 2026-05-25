@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import ArcDiagram from '@/components/ArcDiagram';
+import ArcDiagram, { type ArcSelection } from '@/components/ArcDiagram';
+import { CYCLES, ageInYears } from '@/lib/cycles';
+import { CYCLE_LENSES, arcDescription } from '@/lib/cycleLenses';
 
 export default function ArcsPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
+  const [selected, setSelected] = useState<ArcSelection | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
@@ -16,20 +19,121 @@ export default function ArcsPage() {
 
   if (!blueprint) return null;
 
+  const age = ageInYears(blueprint.birth.iso);
+
   return (
     <main className="page max-w-3xl mx-auto fade-in">
       <header className="pb-6">
         <p className="small-label caps">Arcs</p>
         <h1 className="h-display serif mt-3">Every cycle, drawn.</h1>
         <p className="text-ink-dim text-[13px] mt-2 max-w-md">
-          Each tick is a return of a cycle. Each thin arc connects two consecutive
-          returns. The white line is where you are right now.
+          Each tick is a return of a cycle. Each arc connects two consecutive
+          returns — one period of that cycle. The white line is where you are
+          right now. <span className="text-ink">Tap any arc</span> to read what
+          it holds for you.
         </p>
       </header>
 
       <section className="mt-6">
-        <ArcDiagram birthIso={blueprint.birth.iso} />
+        <ArcDiagram
+          birthIso={blueprint.birth.iso}
+          selected={selected}
+          onSelect={setSelected}
+        />
+      </section>
+
+      {/* Detail panel — what does the selected arc mean */}
+      {selected && (
+        <section className="mt-8 border border-hairline p-4 fade-in">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3" style={{ background: selected.color }} />
+              <span className="small-label caps">{selected.cycleLabel}</span>
+            </div>
+            <span className="small-label caps text-ink-faint">
+              ages {selected.ageStart.toFixed(1)} – {selected.ageEnd.toFixed(1)}
+            </span>
+          </div>
+          <p className="body-prose serif text-ink whitespace-pre-line mt-2">
+            {arcDescription({
+              cycle: CYCLES.find((c) => c.key === selected.cycleKey)!,
+              nthCycle: selected.nthCycle,
+              ageStart: selected.ageStart,
+              ageEnd: selected.ageEnd,
+            })}
+          </p>
+          {age >= selected.ageStart && age < selected.ageEnd && (
+            <p className="small-label caps mt-3 text-accent">you are inside this arc right now</p>
+          )}
+        </section>
+      )}
+
+      {/* Always-visible legend / key */}
+      <section className="mt-12">
+        <h2 className="h-display serif mb-3" style={{ fontSize: '1.5rem' }}>
+          How to read this chart.
+        </h2>
+        <ul className="space-y-2 text-[13.5px] text-ink-dim serif">
+          <li>
+            <span className="text-ink">The bottom line</span> is your life,
+            ages 0 to 85, left to right.
+          </li>
+          <li>
+            <span className="text-ink">Each tick</span> on the bottom line is
+            a moment when a cycle returns to where it started.
+          </li>
+          <li>
+            <span className="text-ink">Each curved arc</span> connects two
+            consecutive returns of the same cycle — one full period of that
+            cycle.
+          </li>
+          <li>
+            <span className="text-ink">Each color</span> is a different cycle.
+            The slower the cycle, the wider its arcs.
+          </li>
+          <li>
+            <span className="text-ink">The vertical white line</span> is today.
+            It is where you are inside every cycle at once.
+          </li>
+        </ul>
+      </section>
+
+      {/* Cycle-by-cycle multi-lens guide */}
+      <section className="mt-12 space-y-10">
+        <h2 className="h-display serif" style={{ fontSize: '1.5rem' }}>
+          Each cycle, four ways.
+        </h2>
+        {CYCLES.map((c) => {
+          const lens = CYCLE_LENSES[c.key];
+          if (!lens) return null;
+          return (
+            <article key={c.key}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-4 h-px" style={{ background: c.color }} />
+                <h3 className="serif text-[19px] text-ink">{c.label}</h3>
+                <span className="small-label caps text-ink-faint ml-1">
+                  every {c.yearLength.toFixed(2)}y
+                </span>
+              </div>
+              <dl className="space-y-3">
+                <Lens k="Astrologically" v={lens.astrological} />
+                <Lens k="Psychologically" v={lens.psychological} />
+                <Lens k="In mundane life" v={lens.mundane} />
+                <Lens k="As a story" v={lens.mythic} />
+              </dl>
+            </article>
+          );
+        })}
       </section>
     </main>
+  );
+}
+
+function Lens({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <dt className="small-label caps text-ink-faint">{k}</dt>
+      <dd className="serif text-[14px] text-ink-dim mt-0.5 leading-relaxed">{v}</dd>
+    </div>
   );
 }

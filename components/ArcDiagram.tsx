@@ -4,19 +4,29 @@ import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { CYCLES, ageInYears } from '@/lib/cycles';
 
+export interface ArcSelection {
+  cycleKey: string;
+  cycleLabel: string;
+  color: string;
+  /** which iteration of this cycle (1 = first, 2 = second, etc.) */
+  nthCycle: number;
+  ageStart: number;
+  ageEnd: number;
+}
+
 interface Props {
   birthIso: string;
   maxAge?: number;
+  selected?: ArcSelection | null;
+  onSelect?: (sel: ArcSelection | null) => void;
 }
 
-interface Arc {
-  cycleKey: string;
-  color: string;
-  a1: number;
-  a2: number;
+interface Arc extends ArcSelection {
+  /** index across all arcs, for unique React keys & DOM ids */
+  index: number;
 }
 
-export default function ArcDiagram({ birthIso, maxAge = 85 }: Props) {
+export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }: Props) {
   const ref = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Arc | null>(null);
 
@@ -33,7 +43,7 @@ export default function ArcDiagram({ birthIso, maxAge = 85 }: Props) {
     const x = d3.scaleLinear().domain([0, maxAge]).range([0, innerW]);
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // bottom timeline axis
+    // baseline
     g.append('line')
       .attr('x1', 0).attr('x2', innerW)
       .attr('y1', innerH).attr('y2', innerH)
@@ -52,14 +62,15 @@ export default function ArcDiagram({ birthIso, maxAge = 85 }: Props) {
       .attr('font-size', 9)
       .text((d) => `${d}`);
 
-    // collect arcs by cycle
+    // collect arcs
     const allArcs: Arc[] = [];
+    let idx = 0;
     for (const c of CYCLES) {
       const events: number[] = [];
       for (let n = 0; n * c.yearLength <= maxAge; n++) {
         events.push(n * c.yearLength);
       }
-      // Tick marks
+      // tick marks at each return event
       g.append('g')
         .selectAll('line')
         .data(events)
@@ -72,19 +83,53 @@ export default function ArcDiagram({ birthIso, maxAge = 85 }: Props) {
         .attr('stroke', c.color)
         .attr('stroke-width', 0.7)
         .attr('opacity', 0.7);
-      // arcs between every pair of consecutive events (and skip too-close pairs)
+
       for (let i = 0; i < events.length - 1; i++) {
         allArcs.push({
+          index: idx++,
           cycleKey: c.key,
+          cycleLabel: c.label,
           color: c.color,
-          a1: events[i],
-          a2: events[i + 1],
+          nthCycle: i + 1,
+          ageStart: events[i],
+          ageEnd: events[i + 1],
         });
       }
     }
 
-    // Group arcs by cycle for less visual chaos
     const arcG = g.append('g').attr('class', 'arcs');
+
+    function strokeFor(d: Arc): string {
+      if (selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle) return d.color;
+      if (selected) return d.color; // keep all visible
+      return d.color;
+    }
+    function opacityFor(d: Arc): number {
+      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
+      if (selected && !isSel) return 0.18;
+      return 0.55;
+    }
+    function widthFor(d: Arc): number {
+      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
+      if (isSel) return 2;
+      return 0.7;
+    }
+
+    function commit(d: Arc) {
+      // toggle off if already selected, else select
+      if (selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle) {
+        onSelect?.(null);
+      } else {
+        onSelect?.({
+          cycleKey: d.cycleKey,
+          cycleLabel: d.cycleLabel,
+          color: d.color,
+          nthCycle: d.nthCycle,
+          ageStart: d.ageStart,
+          ageEnd: d.ageEnd,
+        });
+      }
+    }
 
     arcG
       .selectAll('path.arc')
@@ -93,27 +138,30 @@ export default function ArcDiagram({ birthIso, maxAge = 85 }: Props) {
       .append('path')
       .attr('class', 'arc')
       .attr('fill', 'none')
-      .attr('stroke', (d) => d.color)
-      .attr('stroke-width', 0.6)
-      .attr('opacity', 0.55)
+      .attr('stroke', strokeFor)
+      .attr('stroke-width', widthFor)
+      .attr('opacity', opacityFor)
+      .attr('cursor', 'pointer')
       .attr('d', (d) => {
-        const x1 = x(d.a1);
-        const x2 = x(d.a2);
+        const x1 = x(d.ageStart);
+        const x2 = x(d.ageEnd);
         const cx = (x1 + x2) / 2;
         const r = (x2 - x1) / 2;
         const cy = innerH;
         return `M ${x1} ${cy} A ${r} ${r} 0 0 1 ${x2} ${cy}`;
       })
       .on('mouseover', function (_e, d) {
-        d3.select(this).attr('opacity', 1).attr('stroke-width', 1.4);
         setHover(d);
       })
       .on('mouseout', function () {
-        d3.select(this).attr('opacity', 0.55).attr('stroke-width', 0.6);
         setHover(null);
+      })
+      // pointer/touch — Safari fires "click" on tap so this works for iOS too
+      .on('click', function (_e, d) {
+        commit(d);
       });
 
-    // today's age marker — with a slow opacity pulse to draw the eye
+    // today's age marker — slow opacity pulse
     const age = ageInYears(birthIso);
     const nowLine = g.append('line')
       .attr('x1', x(age)).attr('x2', x(age))
@@ -135,24 +183,52 @@ export default function ArcDiagram({ birthIso, maxAge = 85 }: Props) {
     return () => {
       d3.select(ref.current).selectAll('*').remove();
     };
-  }, [birthIso, maxAge]);
+  }, [birthIso, maxAge, selected, onSelect]);
 
   return (
     <div className="relative">
       <svg ref={ref} viewBox="0 0 800 420" className="w-full" />
-      {hover && (
+      {hover && !selected && (
         <div className="absolute top-1 right-2 text-[11px] text-ink-dim bg-bg px-2 py-1 border border-hairline">
-          {hover.cycleKey} · {hover.a1.toFixed(1)} → {hover.a2.toFixed(1)} y
+          {hover.cycleLabel.toLowerCase()} · ages {hover.ageStart.toFixed(1)}–{hover.ageEnd.toFixed(1)}
         </div>
       )}
       <div className="mt-4 grid grid-cols-2 gap-y-1 text-[10px]">
         {CYCLES.map((c) => (
-          <div key={c.key} className="flex items-center gap-2">
+          <button
+            key={c.key}
+            type="button"
+            className="flex items-center gap-2 text-left"
+            onClick={() => {
+              // select the FIRST arc of this cycle as a way to scroll the
+              // detail panel to this cycle's most relevant section
+              const firstEnd = c.yearLength;
+              onSelect?.({
+                cycleKey: c.key,
+                cycleLabel: c.label,
+                color: c.color,
+                nthCycle: 1,
+                ageStart: 0,
+                ageEnd: firstEnd,
+              });
+            }}
+          >
             <span className="inline-block w-3 h-px" style={{ background: c.color }} />
-            <span className="text-ink-dim">{c.label}</span>
-          </div>
+            <span className={selected?.cycleKey === c.key ? 'text-ink' : 'text-ink-dim'}>
+              {c.label}
+            </span>
+          </button>
         ))}
       </div>
+      {selected && (
+        <button
+          type="button"
+          onClick={() => onSelect?.(null)}
+          className="mt-2 small-label caps text-ink-faint hover:text-ink"
+        >
+          clear selection
+        </button>
+      )}
     </div>
   );
 }
