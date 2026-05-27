@@ -95,26 +95,48 @@ export default function ArcsPage() {
         </div>
 
         {/* Scrub-result panel: what's active at the focused age */}
-        {focusAge !== null && (
-          <div className="mt-3 border border-hairline p-3 fade-in">
-            <p className="small-label caps text-ink-faint mb-1">
-              at age {focusAge.toFixed(1)} you are inside
-            </p>
-            <ul className="space-y-0.5 text-[12.5px]">
-              {positionInCycles(focusAge).map((p) => (
-                <li key={p.cycle.key} className="flex justify-between">
-                  <span className="flex items-center gap-2 text-ink-dim">
-                    <span className="inline-block w-2 h-px" style={{ background: p.cycle.color }} />
-                    <span className="text-ink">{p.cycle.label.toLowerCase()}</span>
-                  </span>
-                  <span className="tabular-nums text-ink-faint">
-                    {p.positive ? 'rising' : 'descending'} · {Math.round(p.fraction * 100)}%
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {focusAge !== null && (() => {
+          const focusPos = positionInCycles(focusAge);
+          const nowPos = positionInCycles(age);
+          const focusRising = focusPos.filter((p) => p.positive).length;
+          const nowRising = nowPos.filter((p) => p.positive).length;
+          return (
+            <div className="mt-3 border border-hairline p-3 fade-in">
+              <div className="flex items-baseline justify-between mb-2">
+                <p className="small-label caps text-ink-faint">
+                  at age {focusAge.toFixed(1)} vs now ({age.toFixed(1)})
+                </p>
+                <p className="small-label caps tabular-nums">
+                  <span className="text-accent">{focusRising}↑ {7 - focusRising}↓</span>
+                  <span className="text-ink-faint mx-2">·</span>
+                  <span className="text-ink-dim">{nowRising}↑ {7 - nowRising}↓ now</span>
+                </p>
+              </div>
+              <ul className="space-y-0.5 text-[12.5px]">
+                {focusPos.map((p, i) => {
+                  const now = nowPos[i];
+                  const flipped = now.positive !== p.positive;
+                  return (
+                    <li key={p.cycle.key} className="flex justify-between">
+                      <span className="flex items-center gap-2 text-ink-dim">
+                        <span className="inline-block w-2 h-px" style={{ background: p.cycle.color }} />
+                        <span className="text-ink">{p.cycle.label.toLowerCase()}</span>
+                        {flipped && (
+                          <span className="text-accent text-[10px]" style={{ letterSpacing: '0.1em' }}>
+                            ≠ now
+                          </span>
+                        )}
+                      </span>
+                      <span className="tabular-nums text-ink-faint">
+                        {p.positive ? 'rising' : 'descending'} · {Math.round(p.fraction * 100)}%
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })()}
 
         {!selected && focusAge === null && <ScrollHint label="tap · a diamond · scrub · or scroll" />}
       </section>
