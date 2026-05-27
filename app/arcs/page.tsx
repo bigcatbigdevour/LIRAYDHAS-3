@@ -213,28 +213,41 @@ export default function ArcsPage() {
           {LIFE_STATIONS.map((s) => {
             const isHere = Math.abs(age - s.age) < 2;
             const isPast = age > s.age + 1;
+            const isFocused = focusAge !== null && Math.abs(focusAge - s.age) < 0.2;
             return (
               <li
                 key={s.age}
                 id={`station-${String(s.age).replace('.', '_')}`}
-                className="border-l border-hairline pl-3"
+                className={`border-l pl-3 transition-colors ${isFocused ? 'border-accent' : 'border-hairline'}`}
               >
-                <div className="flex items-baseline justify-between">
-                  <p className="serif text-[16px] text-ink">
-                    {s.label}
+                <button
+                  type="button"
+                  className="w-full text-left"
+                  onClick={() => {
+                    // tap a station card → scrub the chart to this age and scroll up
+                    setFocusAge(s.age);
+                    document.querySelector('main')?.scrollTo?.({ top: 0, behavior: 'smooth' });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  <div className="flex items-baseline justify-between">
+                    <p className="serif text-[16px] text-ink">
+                      {s.label}
+                    </p>
+                    <span className={`small-label caps ${isHere ? 'text-accent' : isPast ? 'text-ink-faint' : 'text-ink-dim'}`}>
+                      age {s.age}
+                      {isHere && ' · you'}
+                      {isPast && ' · past'}
+                      {isFocused && !isHere && ' · scrubbed'}
+                    </span>
+                  </div>
+                  <p className="text-[11.5px] text-ink-faint caps mt-0.5" style={{ letterSpacing: '0.08em' }}>
+                    {s.convergence}
                   </p>
-                  <span className={`small-label caps ${isHere ? 'text-accent' : isPast ? 'text-ink-faint' : 'text-ink-dim'}`}>
-                    age {s.age}
-                    {isHere && ' · you'}
-                    {isPast && ' · past'}
-                  </span>
-                </div>
-                <p className="text-[11.5px] text-ink-faint caps mt-0.5" style={{ letterSpacing: '0.08em' }}>
-                  {s.convergence}
-                </p>
-                <p className="text-[14px] text-ink-dim serif mt-1 leading-relaxed">
-                  {s.description}
-                </p>
+                  <p className="text-[14px] text-ink-dim serif mt-1 leading-relaxed">
+                    {s.description}
+                  </p>
+                </button>
               </li>
             );
           })}
