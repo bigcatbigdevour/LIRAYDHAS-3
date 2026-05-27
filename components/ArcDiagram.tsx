@@ -304,6 +304,7 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
               });
             }}
           >
+            <span className="serif text-[11px] text-ink-dim" aria-hidden>{c.glyph}</span>
             <span className="inline-block w-3 h-px" style={{ background: c.color }} />
             <span className={selected?.cycleKey === c.key ? 'text-ink' : 'text-ink-dim'}>
               {c.label}

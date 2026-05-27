@@ -244,6 +244,7 @@ export default function PolarityPage() {
                 style={{ borderLeftColor: f.cycle.color }}
               >
                 <span className="text-ink-dim">
+                  <span className="serif text-[12px] text-ink-dim mr-1" aria-hidden>{f.cycle.glyph}</span>
                   <span className="text-ink">{f.cycle.label.toLowerCase()}</span>{' '}
                   flipped to <span className="text-ink">{f.positive ? 'rising' : 'descending'}</span>
                 </span>
@@ -259,6 +260,7 @@ export default function PolarityPage() {
                 style={{ borderLeftColor: f.cycle.color }}
               >
                 <span className="text-ink-dim">
+                  <span className="serif text-[12px] text-ink-dim mr-1" aria-hidden>{f.cycle.glyph}</span>
                   <span className="text-ink">{f.cycle.label.toLowerCase()}</span>{' '}
                   flips to <span className="text-ink">{f.positive ? 'descending' : 'rising'}</span>
                 </span>
@@ -391,6 +393,7 @@ export default function PolarityPage() {
             {upcoming.map((u) => (
               <li key={u.cycle.key} className="flex justify-between text-[13px] border-b border-hairline py-1">
                 <span className="text-ink-dim">
+                  <span className="serif text-[12px] text-ink-dim mr-1.5" aria-hidden>{u.cycle.glyph}</span>
                   <span className="inline-block w-2 h-px mr-2 align-middle" style={{ background: u.cycle.color }} />
                   {u.cycle.label}
                 </span>

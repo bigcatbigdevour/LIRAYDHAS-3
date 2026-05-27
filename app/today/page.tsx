@@ -166,6 +166,7 @@ export default function TodayPage() {
                 style={{ borderLeftColor: f.cycle.color }}
               >
                 <span className="text-ink-dim">
+                  <span className="serif text-[12px] text-ink-dim mr-1" aria-hidden>{f.cycle.glyph}</span>
                   <span className="text-ink">{f.cycle.label.toLowerCase()}</span>{' '}
                   flipped to <span className="text-ink">{f.positive ? 'rising' : 'descending'}</span>
                 </span>
