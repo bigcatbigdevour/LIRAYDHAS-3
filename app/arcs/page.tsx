@@ -14,6 +14,7 @@ export default function ArcsPage() {
   const blueprint = useStore((s) => s.blueprint);
   const [selected, setSelected] = useState<ArcSelection | null>(null);
   const [focusAge, _setFocusAge] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
 
   // Wrap setFocusAge so it also reflects the value in the URL — gives
   // shareable deep-links like /arcs?age=29
@@ -42,6 +43,33 @@ export default function ArcsPage() {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
     return () => clearTimeout(t);
   }, [blueprint, router]);
+
+  // Auto-scrub animation: when playing, advance focusAge from 0 → 92
+  // over ~25 seconds, then stop. Manual scrubbing interrupts.
+  useEffect(() => {
+    if (!playing) return;
+    const totalMs = 25_000;
+    const fps = 30;
+    const stepMs = 1000 / fps;
+    const totalSteps = totalMs / stepMs;
+    let step = 0;
+    // start from current focus or 0
+    const startAge = focusAge ?? 0;
+    const id = window.setInterval(() => {
+      step++;
+      const progress = step / totalSteps;
+      const a = startAge + (92 - startAge) * progress;
+      if (a >= 92 || step >= totalSteps) {
+        _setFocusAge(92);
+        setPlaying(false);
+        window.clearInterval(id);
+        return;
+      }
+      _setFocusAge(a);
+    }, stepMs);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing]);
 
   if (!blueprint) return null;
 
@@ -136,20 +164,39 @@ export default function ArcsPage() {
           >
             link copied
           </div>
-          <input
-            type="range"
-            min={0}
-            max={92}
-            step={0.1}
-            value={focusAge ?? age}
-            onChange={(e) => {
-              const v = parseFloat(e.currentTarget.value);
-              if (Math.abs(v - age) < 0.15) setFocusAge(null);
-              else setFocusAge(v);
-            }}
-            className="w-full age-scrubber"
-            aria-label="Scrub through your life to explore any age"
-          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (playing) {
+                  setPlaying(false);
+                } else {
+                  // start from age 0 to 92
+                  _setFocusAge(0);
+                  setPlaying(true);
+                }
+              }}
+              className="text-[14px] text-ink-faint hover:text-accent w-6 text-center"
+              aria-label={playing ? 'pause' : 'play life animation'}
+            >
+              {playing ? '❚❚' : '▶'}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={92}
+              step={0.1}
+              value={focusAge ?? age}
+              onChange={(e) => {
+                if (playing) setPlaying(false);
+                const v = parseFloat(e.currentTarget.value);
+                if (Math.abs(v - age) < 0.15) setFocusAge(null);
+                else setFocusAge(v);
+              }}
+              className="flex-1 age-scrubber"
+              aria-label="Scrub through your life to explore any age"
+            />
+          </div>
         </div>
 
         {/* Scrub-result panel: what's active at the focused age */}
