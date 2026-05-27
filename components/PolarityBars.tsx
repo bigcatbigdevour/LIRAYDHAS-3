@@ -53,6 +53,7 @@ export default function PolarityBars({ positions, flips }: Props) {
             >
               <div className="flex items-baseline justify-between mb-1">
                 <span className="small-label caps flex items-center gap-1.5">
+                  <span className="serif text-[13px] text-ink-dim" aria-hidden>{p.cycle.glyph}</span>
                   {p.cycle.label}
                   <span className="text-ink-faint">{isOpen ? '−' : '+'}</span>
                 </span>

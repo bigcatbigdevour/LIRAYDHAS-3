@@ -47,6 +47,7 @@ export default function PolarityForecast({ birthIso, months = 12 }: Props) {
           return (
             <div key={c.key} className="contents">
               <div className="flex items-center gap-1.5 text-[10.5px] text-ink-dim py-0.5">
+                <span className="serif text-[12px] text-ink-dim" aria-hidden>{c.glyph}</span>
                 <span className="inline-block w-2 h-px" style={{ background: c.color }} />
                 <span>{c.label}</span>
               </div>
