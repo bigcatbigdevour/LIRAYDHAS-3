@@ -7,6 +7,7 @@ import PolarityBars from '@/components/PolarityBars';
 import ScrollHint from '@/components/ScrollHint';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
 import { POLARITY_LENSES } from '@/lib/polarityLenses';
+import { LIFE_STATIONS } from '@/lib/lifeStations';
 import type { PolarityReading } from '@/lib/types';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -50,6 +51,20 @@ export default function PolarityPage() {
     if (flips.length === 0) return null;
     return [...flips].sort((a, b) => a.daysUntilEnd - b.daysUntilEnd)[0];
   }, [flips]);
+
+  const currentStation = useMemo(() => {
+    if (!blueprint) return null;
+    const age = ageInYears(blueprint.birth.iso);
+    // Find the nearest station within a 3-year window.
+    let best = null as null | typeof LIFE_STATIONS[number] & { distance: number };
+    for (const s of LIFE_STATIONS) {
+      const distance = Math.abs(age - s.age);
+      if (distance < 3 && (best === null || distance < best.distance)) {
+        best = { ...s, distance };
+      }
+    }
+    return best;
+  }, [blueprint]);
 
   const fresh = useMemo(() => {
     if (!polarity) return false;
@@ -135,6 +150,23 @@ export default function PolarityPage() {
           </div>
         )}
       </header>
+
+      {currentStation && (
+        <section className="mt-6 border border-accent/40 p-4" style={{ borderColor: '#3a1a1a' }}>
+          <div className="flex items-baseline justify-between mb-1">
+            <p className="small-label caps text-accent">life station · {currentStation.label.toLowerCase()}</p>
+            <p className="small-label caps text-ink-faint">
+              age {currentStation.age} · {currentStation.distance < 0.5 ? 'right on it' : `${currentStation.distance.toFixed(1)}y ${ageInYears(blueprint.birth.iso) > currentStation.age ? 'past' : 'ahead'}`}
+            </p>
+          </div>
+          <p className="text-[12px] text-ink-faint caps mb-2" style={{ letterSpacing: '0.08em' }}>
+            {currentStation.convergence}
+          </p>
+          <p className="serif text-[14px] text-ink-dim leading-relaxed">
+            {currentStation.description}
+          </p>
+        </section>
+      )}
 
       <section className="mt-6">
         <PolarityBars positions={positions} flips={flips} />
