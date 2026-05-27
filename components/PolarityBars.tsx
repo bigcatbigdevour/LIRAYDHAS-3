@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CyclePosition, PolarityFlip } from '@/lib/cycles';
 import { POLARITY_HALVES } from '@/lib/polarityHalves';
 
@@ -23,18 +23,28 @@ function humanDays(d: number): string {
 
 export default function PolarityBars({ positions, flips }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const flipByKey: Record<string, PolarityFlip> = {};
   for (const f of flips ?? []) flipByKey[f.cycle.key] = f;
 
+  useEffect(() => {
+    // next paint after mount: trigger fill animation
+    const id = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+
   return (
     <ul className="space-y-5">
-      {positions.map((p) => {
+      {positions.map((p, rowIdx) => {
         const isPos = p.positive;
         const pct = p.fraction * 100;
         const label = isPos ? 'rising' : 'descending';
         const isOpen = expanded === p.cycle.key;
         const flip = flipByKey[p.cycle.key];
         const halfText = POLARITY_HALVES[p.cycle.key];
+        const animDelayMs = rowIdx * 90;
+        const fillWidth = mounted ? Math.min(100, pct) : 0;
+        const markerLeft = mounted ? pct : 0;
         return (
           <li key={p.cycle.key}>
             <button
@@ -50,21 +60,25 @@ export default function PolarityBars({ positions, flips }: Props) {
                   {Math.round(pct)}% · {label}
                 </span>
               </div>
-              <div className="relative h-8 border border-hairline">
+              <div className="relative h-8 border border-hairline overflow-hidden">
                 <div className="absolute left-0 right-0 top-1/2 h-px bg-hairline" />
                 <div
                   className={`absolute ${isPos ? 'top-0' : 'bottom-0'}`}
                   style={{
                     left: 0,
-                    width: `${Math.min(100, pct)}%`,
+                    width: `${fillWidth}%`,
                     height: '50%',
                     background: p.cycle.color,
                     opacity: 0.65,
+                    transition: `width 900ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,
                   }}
                 />
                 <div
                   className="absolute top-0 bottom-0 w-px bg-ink"
-                  style={{ left: `${pct}%` }}
+                  style={{
+                    left: `${markerLeft}%`,
+                    transition: `left 900ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,
+                  }}
                 />
               </div>
               {flip && (

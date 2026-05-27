@@ -140,7 +140,7 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
       .attr('fill', 'none')
       .attr('stroke', strokeFor)
       .attr('stroke-width', widthFor)
-      .attr('opacity', opacityFor)
+      .attr('opacity', 0)
       .attr('cursor', 'pointer')
       .attr('d', (d) => {
         const x1 = x(d.ageStart);
@@ -149,6 +149,14 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
         const r = (x2 - x1) / 2;
         const cy = innerH;
         return `M ${x1} ${cy} A ${r} ${r} 0 0 1 ${x2} ${cy}`;
+      })
+      .each(function () {
+        // Set stroke-dasharray = path length so the "draw-in" animation
+        // can interpolate from 0 to full length.
+        const len = (this as SVGPathElement).getTotalLength?.() ?? 200;
+        d3.select(this)
+          .attr('stroke-dasharray', `${len} ${len}`)
+          .attr('stroke-dashoffset', len);
       })
       .on('mouseover', function (_e, d) {
         setHover(d);
@@ -161,24 +169,42 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
         commit(d);
       });
 
-    // today's age marker — slow opacity pulse
+    // Animate arcs in: draw-in by stroke-dashoffset, staggered slightly by
+    // age so the chart "writes itself" from left (birth) to right (now).
+    arcG
+      .selectAll<SVGPathElement, Arc>('path.arc')
+      .transition()
+      .duration(900)
+      .delay((d) => Math.min(800, d.ageStart * 9))
+      .ease(d3.easeCubicOut)
+      .attr('opacity', opacityFor)
+      .attr('stroke-dashoffset', 0);
+
+    // today's age marker — slow opacity pulse, animated entry
     const age = ageInYears(birthIso);
     const nowLine = g.append('line')
       .attr('x1', x(age)).attr('x2', x(age))
-      .attr('y1', 0).attr('y2', innerH)
+      .attr('y1', 0).attr('y2', 0)
       .attr('stroke', '#f4f1ea').attr('stroke-width', 1);
+    nowLine.transition()
+      .delay(900)
+      .duration(800)
+      .ease(d3.easeCubicOut)
+      .attr('y2', innerH);
     nowLine.append('animate')
       .attr('attributeName', 'opacity')
       .attr('values', '1;0.55;1')
       .attr('dur', '4.5s')
       .attr('repeatCount', 'indefinite');
-    g.append('text')
+    const nowText = g.append('text')
       .attr('x', x(age))
       .attr('y', -8)
       .attr('text-anchor', 'middle')
       .attr('fill', '#f4f1ea')
       .attr('font-size', 10)
+      .attr('opacity', 0)
       .text(`now · ${age.toFixed(1)}y`);
+    nowText.transition().delay(1300).duration(500).attr('opacity', 1);
 
     return () => {
       d3.select(ref.current).selectAll('*').remove();

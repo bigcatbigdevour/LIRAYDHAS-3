@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
+import ScrollHint from '@/components/ScrollHint';
 import { ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
 import type { PolarityReading } from '@/lib/types';
 
@@ -130,6 +131,7 @@ export default function PolarityPage() {
 
       <section className="mt-6">
         <PolarityBars positions={positions} flips={flips} />
+        <ScrollHint label="tap a bar · or scroll" />
       </section>
 
       <section className="mt-10 border-t border-hairline pt-6">

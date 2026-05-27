@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import ArcDiagram, { type ArcSelection } from '@/components/ArcDiagram';
+import ScrollHint from '@/components/ScrollHint';
 import { CYCLES, ageInYears } from '@/lib/cycles';
 import { CYCLE_LENSES, arcDescription } from '@/lib/cycleLenses';
 
@@ -40,6 +41,7 @@ export default function ArcsPage() {
           selected={selected}
           onSelect={setSelected}
         />
+        {!selected && <ScrollHint label="tap an arc · or scroll" />}
       </section>
 
       {/* Detail panel — what does the selected arc mean */}
