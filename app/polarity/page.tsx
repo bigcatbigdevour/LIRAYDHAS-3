@@ -138,9 +138,41 @@ export default function PolarityPage() {
           descending, completing, releasing. Most people live their whole
           lives inside these tides without knowing when they flip.
         </p>
-        <p className="text-ink-dim text-[13px] mt-3">
-          Right now: <span className="text-ink">{positive} cycles rising · {negative} descending</span> — {stack}.
-        </p>
+        <div className="text-ink-dim text-[13px] mt-3 flex items-baseline justify-between gap-3">
+          <p>
+            Right now: <span className="text-ink">{positive} cycles rising · {negative} descending</span> — {stack}.
+          </p>
+          <button
+            type="button"
+            className="small-label caps text-ink-faint hover:text-ink shrink-0"
+            onClick={async () => {
+              const age = ageInYears(blueprint.birth.iso).toFixed(1);
+              const lines = [
+                `My polarity at ${age}y: ${positive} rising · ${negative} descending.`,
+                ...positions.map((p) => `  ${p.cycle.glyph} ${p.cycle.label}: ${p.positive ? '↑ rising' : '↓ descending'} ${Math.round(p.fraction * 100)}%`),
+                mostRecentFlip ? `Last flip: ${mostRecentFlip.cycle.label.toLowerCase()} ${Math.round(mostRecentFlip.daysSinceStart)}d ago.` : '',
+                nextFlip ? `Next flip: ${nextFlip.cycle.label.toLowerCase()} in ${Math.round(nextFlip.daysUntilEnd)}d.` : '',
+              ].filter(Boolean).join('\n');
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: 'My polarity', text: lines });
+                } else {
+                  await navigator.clipboard.writeText(lines);
+                  const el = document.getElementById('polarity-share-toast');
+                  if (el) {
+                    el.style.opacity = '1';
+                    window.setTimeout(() => { el.style.opacity = '0'; }, 1500);
+                  }
+                }
+              } catch {/* user cancelled */}
+            }}
+          >
+            share
+          </button>
+        </div>
+        <div id="polarity-share-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>
+          copied
+        </div>
         {/* Live-stack glance: a row of dots, one per cycle. Tap to scroll
             to that cycle's full bar below. */}
         <div className="mt-4 flex items-center gap-2" aria-label="Current polarity stack">
