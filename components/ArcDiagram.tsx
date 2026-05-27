@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { CYCLES, ageInYears } from '@/lib/cycles';
+import { LIFE_STATIONS } from '@/lib/lifeStations';
 
 export interface ArcSelection {
   cycleKey: string;
@@ -195,6 +196,24 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
       .attr('values', '0.95;0.55;0.95')
       .attr('dur', '5.5s')
       .attr('repeatCount', 'indefinite');
+
+    // Life-station markers above the chart: small diamonds at each
+    // station age. Currently-active station (within 2y of `age`) is
+    // wine-accent; the rest are dim.
+    const stationY = -2;
+    const stationG = g.append('g').attr('class', 'stations');
+    stationG.selectAll('rect.station')
+      .data(LIFE_STATIONS)
+      .enter()
+      .append('rect')
+      .attr('class', 'station')
+      .attr('x', (s) => x(s.age) - 2)
+      .attr('y', stationY - 2)
+      .attr('width', 4)
+      .attr('height', 4)
+      .attr('transform', (s) => `rotate(45 ${x(s.age)} ${stationY})`)
+      .attr('fill', (s) => Math.abs(age - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
+      .attr('opacity', (s) => Math.abs(age - s.age) < 2 ? 0.95 : 0.7);
 
     // today's age marker — slow opacity pulse, animated entry
     const nowLine = g.append('line')
