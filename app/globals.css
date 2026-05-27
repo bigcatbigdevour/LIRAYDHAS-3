@@ -158,6 +158,46 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   animation: station-flash 2s ease-out;
 }
 
+/* Age scrubber slider — restyled to match the Co-Star palette */
+.age-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+.age-scrubber::-webkit-slider-runnable-track {
+  height: 1px;
+  background: #2a2a2a;
+}
+.age-scrubber::-moz-range-track {
+  height: 1px;
+  background: #2a2a2a;
+}
+.age-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #8b3a3a;
+  border: 0;
+  margin-top: -6px;
+  border-radius: 0;
+  cursor: grab;
+}
+.age-scrubber::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+.age-scrubber::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #8b3a3a;
+  border: 0;
+  border-radius: 0;
+  cursor: grab;
+}
+
 /* line clamp util */
 .line-clamp-3 {
   display: -webkit-box;

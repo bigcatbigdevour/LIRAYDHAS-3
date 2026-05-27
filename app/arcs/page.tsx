@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import ArcDiagram, { type ArcSelection } from '@/components/ArcDiagram';
 import ScrollHint from '@/components/ScrollHint';
-import { CYCLES, ageInYears } from '@/lib/cycles';
+import { CYCLES, ageInYears, positionInCycles } from '@/lib/cycles';
 import { CYCLE_LENSES, arcDescription } from '@/lib/cycleLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 
@@ -13,6 +13,7 @@ export default function ArcsPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
   const [selected, setSelected] = useState<ArcSelection | null>(null);
+  const [focusAge, setFocusAge] = useState<number | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
@@ -46,6 +47,7 @@ export default function ArcsPage() {
           birthIso={blueprint.birth.iso}
           selected={selected}
           onSelect={setSelected}
+          focusAge={focusAge}
           onSelectStation={(stationAge) => {
             // scroll the matching station card into view
             const el = document.getElementById(`station-${String(stationAge).replace('.', '_')}`);
@@ -56,7 +58,65 @@ export default function ArcsPage() {
             }
           }}
         />
-        {!selected && <ScrollHint label="tap an arc · a diamond · or scroll" />}
+
+        {/* Age scrubber */}
+        <div className="mt-2">
+          <div className="flex items-center justify-between text-[11px] mb-1">
+            <span className="small-label caps text-ink-faint">
+              {focusAge === null ? 'showing right now' : 'scrubbing'}
+            </span>
+            <span className="tabular-nums text-ink-dim">
+              {(focusAge ?? age).toFixed(1)}y
+              {focusAge !== null && (
+                <button
+                  className="ml-2 text-ink-faint hover:text-ink underline"
+                  onClick={() => setFocusAge(null)}
+                  type="button"
+                >
+                  reset
+                </button>
+              )}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={85}
+            step={0.1}
+            value={focusAge ?? age}
+            onChange={(e) => {
+              const v = parseFloat(e.currentTarget.value);
+              if (Math.abs(v - age) < 0.15) setFocusAge(null);
+              else setFocusAge(v);
+            }}
+            className="w-full age-scrubber"
+            aria-label="Scrub through your life to explore any age"
+          />
+        </div>
+
+        {/* Scrub-result panel: what's active at the focused age */}
+        {focusAge !== null && (
+          <div className="mt-3 border border-hairline p-3 fade-in">
+            <p className="small-label caps text-ink-faint mb-1">
+              at age {focusAge.toFixed(1)} you are inside
+            </p>
+            <ul className="space-y-0.5 text-[12.5px]">
+              {positionInCycles(focusAge).map((p) => (
+                <li key={p.cycle.key} className="flex justify-between">
+                  <span className="flex items-center gap-2 text-ink-dim">
+                    <span className="inline-block w-2 h-px" style={{ background: p.cycle.color }} />
+                    <span className="text-ink">{p.cycle.label.toLowerCase()}</span>
+                  </span>
+                  <span className="tabular-nums text-ink-faint">
+                    {p.positive ? 'rising' : 'descending'} · {Math.round(p.fraction * 100)}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {!selected && focusAge === null && <ScrollHint label="tap · a diamond · scrub · or scroll" />}
       </section>
 
       {/* Detail panel — what does the selected arc mean */}

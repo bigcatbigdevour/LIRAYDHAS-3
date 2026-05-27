@@ -21,6 +21,8 @@ interface Props {
   selected?: ArcSelection | null;
   onSelect?: (sel: ArcSelection | null) => void;
   onSelectStation?: (age: number) => void;
+  /** If set, treat this age as the "focus" for active-arc highlighting and station markers, in addition to drawing the real today-marker. */
+  focusAge?: number | null;
 }
 
 interface Arc extends ArcSelection {
@@ -28,7 +30,7 @@ interface Arc extends ArcSelection {
   index: number;
 }
 
-export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect, onSelectStation }: Props) {
+export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect, onSelectStation, focusAge }: Props) {
   const ref = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Arc | null>(null);
 
@@ -102,8 +104,9 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect, 
     const arcG = g.append('g').attr('class', 'arcs');
 
     const age = ageInYears(birthIso);
+    const focus = focusAge ?? age;
     function isActiveArc(d: Arc): boolean {
-      return age >= d.ageStart && age < d.ageEnd;
+      return focus >= d.ageStart && focus < d.ageEnd;
     }
     function strokeFor(d: Arc): string {
       return d.color;
@@ -213,8 +216,8 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect, 
       .attr('width', 6)
       .attr('height', 6)
       .attr('transform', (s) => `rotate(45 ${x(s.age)} ${stationY})`)
-      .attr('fill', (s) => Math.abs(age - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
-      .attr('opacity', (s) => Math.abs(age - s.age) < 2 ? 0.95 : 0.7)
+      .attr('fill', (s) => Math.abs(focus - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
+      .attr('opacity', (s) => Math.abs(focus - s.age) < 2 ? 0.95 : 0.7)
       .attr('cursor', onSelectStation ? 'pointer' : 'default')
       .on('click', function (_e, s) {
         onSelectStation?.(s.age);
@@ -247,10 +250,31 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect, 
       .text(`now · ${age.toFixed(1)}y`);
     nowText.transition().delay(1300).duration(500).attr('opacity', 1);
 
+    // Focus marker — only drawn when scrubbing to a different age.
+    if (focusAge !== undefined && focusAge !== null && Math.abs(focusAge - age) > 0.05) {
+      const focusLine = g.append('line')
+        .attr('x1', x(focus)).attr('x2', x(focus))
+        .attr('y1', 0).attr('y2', innerH)
+        .attr('stroke', '#8b3a3a').attr('stroke-width', 1.2)
+        .attr('stroke-dasharray', '4 3');
+      focusLine.append('animate')
+        .attr('attributeName', 'opacity')
+        .attr('values', '1;0.6;1')
+        .attr('dur', '3s')
+        .attr('repeatCount', 'indefinite');
+      g.append('text')
+        .attr('x', x(focus))
+        .attr('y', innerH + 30)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#8b3a3a')
+        .attr('font-size', 10)
+        .text(`focus · ${focus.toFixed(1)}y`);
+    }
+
     return () => {
       d3.select(ref.current).selectAll('*').remove();
     };
-  }, [birthIso, maxAge, selected, onSelect]);
+  }, [birthIso, maxAge, selected, onSelect, focusAge]);
 
   return (
     <div className="relative">
