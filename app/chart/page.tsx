@@ -18,6 +18,7 @@ import { lifePath, lifePathArchetype } from '@/lib/numerology';
 import { houseOfLongitude } from '@/lib/astrology/houses';
 import { SUN_BY_SIGN, MOON_BY_SIGN, RISING_BY_SIGN } from '@/lib/astrology/signMeanings';
 import { gateName } from '@/lib/humandesign/gateNames';
+import { ageInYears, positionInCycles } from '@/lib/cycles';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -232,6 +233,30 @@ export default function ChartPage() {
         <p className="text-[12.5px] text-ink-dim mt-1 italic">
           {lifePathArchetype(lifePath(blueprint.birth.iso))}
         </p>
+      </section>
+
+      {/* Live cycle status at the bottom of the natal chart */}
+      <section className="mt-12 border-t border-hairline pt-6">
+        <div className="flex items-baseline justify-between mb-2">
+          <p className="small-label caps">your cycles right now</p>
+          <Link href="/polarity" className="small-label caps text-ink-faint hover:text-ink">
+            full stack →
+          </Link>
+        </div>
+        <ul className="space-y-0.5 text-[12.5px]">
+          {positionInCycles(ageInYears(blueprint.birth.iso)).map((p) => (
+            <li key={p.cycle.key} className="flex justify-between border-b border-hairline py-1">
+              <span className="text-ink-dim flex items-center gap-1.5">
+                <span className="serif text-[12px] text-ink-dim" aria-hidden>{p.cycle.glyph}</span>
+                <span className="inline-block w-2 h-px" style={{ background: p.cycle.color }} />
+                <span className="text-ink">{p.cycle.label}</span>
+              </span>
+              <span className="tabular-nums text-ink-faint">
+                {p.positive ? '↑ rising' : '↓ descending'} · {Math.round(p.fraction * 100)}%
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="mt-12 space-y-2">
