@@ -91,15 +91,50 @@ export default function ArcsPage() {
             <span className="tabular-nums text-ink-dim">
               {(focusAge ?? age).toFixed(1)}y
               {focusAge !== null && (
-                <button
-                  className="ml-2 text-ink-faint hover:text-ink underline"
-                  onClick={() => setFocusAge(null)}
-                  type="button"
-                >
-                  reset
-                </button>
+                <>
+                  <button
+                    className="ml-2 text-ink-faint hover:text-ink underline"
+                    onClick={() => setFocusAge(null)}
+                    type="button"
+                  >
+                    reset
+                  </button>
+                  <button
+                    className="ml-2 text-accent hover:opacity-80 underline"
+                    onClick={async () => {
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({
+                            title: `Liraydhas — age ${focusAge.toFixed(1)}`,
+                            url: window.location.href,
+                          });
+                        } else {
+                          await navigator.clipboard.writeText(window.location.href);
+                          // tiny visual confirmation
+                          const el = document.getElementById('share-toast');
+                          if (el) {
+                            el.style.opacity = '1';
+                            window.setTimeout(() => { el.style.opacity = '0'; }, 1500);
+                          }
+                        }
+                      } catch {
+                        // user cancelled / no permission — ignore
+                      }
+                    }}
+                    type="button"
+                  >
+                    share this view
+                  </button>
+                </>
               )}
             </span>
+          </div>
+          <div
+            id="share-toast"
+            className="small-label caps text-accent text-right"
+            style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}
+          >
+            link copied
           </div>
           <input
             type="range"
