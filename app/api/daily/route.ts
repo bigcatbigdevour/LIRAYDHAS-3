@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { todaysTransits, pickTopAspects, currentRetrogrades } from '@/lib/astrology/transits';
 import { userTransits } from '@/lib/humandesign/transitGates';
+import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
+import { polarityFlips } from '@/lib/cycles';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
 import type { Blueprint, DailyReport } from '@/lib/types';
 
@@ -27,6 +29,10 @@ export async function POST(req: Request) {
   const top = pickTopAspects(aspects, 3);
   const hd = userTransits(bp, now);
   const retros = currentRetrogrades(now);
+  // Most recently flipped polarity cycle, if within 14 days.
+  const recentFlip = polarityFlips(bp.birth.iso, now)
+    .filter((f) => f.daysSinceStart <= 14)
+    .sort((a, b) => a.daysSinceStart - b.daysSinceStart)[0] ?? null;
 
   const transitLines = top
     .map(
@@ -55,7 +61,8 @@ ${bp.natal.asc != null ? `- Rising sign: ${signFromLon(bp.natal.asc)}` : '- (bir
 Today's tightest transits to their natal chart:
 ${transitLines || '- (a quiet day for major aspects)'}
 
-${litLines ? `Transits hitting their personal natal gates:\n${litLines}\n` : ''}${completeLines ? `Channels temporarily completing for them today:\n${completeLines}\n` : ''}${retros.length ? `Currently retrograde: ${retros.join(', ')}\n` : ''}
+${litLines ? `Transits hitting their personal natal gates:\n${litLines}\n` : ''}${completeLines ? `Channels temporarily completing for them today:\n${completeLines}\n` : ''}${retros.length ? `Currently retrograde: ${retros.join(', ')}\n` : ''}${recentFlip ? `Polarity note: ${recentFlip.cycle.label} flipped ${Math.round(recentFlip.daysSinceStart)} days ago to ${recentFlip.positive ? 'rising' : 'descending'}.\n` : ''}Authority guidance for this reader (do NOT name "authority" or use HD jargon in the output — translate the spirit of this into how they should approach decisions today): ${AUTHORITY_DESCRIPTIONS[bp.humanDesign.authority]}
+
 Write one paragraph, 90–130 words. The voice is Co-Star: direct, slightly clinical, slightly mystical, dry. Speaks plainly. Anchor in at least one of the user-specific signals above (a tight transit OR a lit natal gate OR a temporarily-complete channel). Reference at most one piece of HD jargon (a channel or center, no more) and translate it plainly.
 
 Hard bans: no "the universe wants you to", no "embrace", no "manifest", no "abundance", no "lean into", no "trust the process", no emojis, no exclamation points, no rhetorical questions. No phrase that could appear in an airport-bookstore self-help book.
