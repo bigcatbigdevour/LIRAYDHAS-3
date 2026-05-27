@@ -65,6 +65,36 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
         viewBox={`0 0 ${size} ${size}`}
         className="w-full max-w-[420px] mx-auto block"
       >
+        {/* tiny scattered background stars — atmospheric, not informational */}
+        {(() => {
+          // Deterministic pseudo-random points so they don't reflow per render.
+          const stars: { x: number; y: number; r: number; dur: number; delay: number }[] = [];
+          let seed = 1234;
+          function rand() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+          }
+          for (let i = 0; i < 60; i++) {
+            // place inside the bounding square but outside the planet ring
+            const angle = rand() * Math.PI * 2;
+            const r = outer + 6 + rand() * (size / 2 - outer - 10);
+            const x = cx + r * Math.cos(angle);
+            const y = cy + r * Math.sin(angle);
+            if (x < 4 || x > size - 4 || y < 4 || y > size - 4) continue;
+            stars.push({ x, y, r: 0.4 + rand() * 0.7, dur: 4 + rand() * 4, delay: rand() * 4 });
+          }
+          return stars.map((s, i) => (
+            <circle key={`star-${i}`} cx={s.x} cy={s.y} r={s.r} fill="#888" opacity={0.35}>
+              <animate
+                attributeName="opacity"
+                values="0.15;0.45;0.15"
+                dur={`${s.dur}s`}
+                begin={`${s.delay}s`}
+                repeatCount="indefinite"
+              />
+            </circle>
+          ));
+        })()}
         {/* outer ring */}
         <circle cx={cx} cy={cy} r={outer} fill="none" stroke="#1c1c1c" strokeWidth="0.5" />
         <circle cx={cx} cy={cy} r={ring} fill="none" stroke="#222" strokeWidth="0.5" />
