@@ -20,6 +20,7 @@ interface Props {
   maxAge?: number;
   selected?: ArcSelection | null;
   onSelect?: (sel: ArcSelection | null) => void;
+  onSelectStation?: (age: number) => void;
 }
 
 interface Arc extends ArcSelection {
@@ -27,7 +28,7 @@ interface Arc extends ArcSelection {
   index: number;
 }
 
-export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }: Props) {
+export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect, onSelectStation }: Props) {
   const ref = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Arc | null>(null);
 
@@ -207,13 +208,19 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
       .enter()
       .append('rect')
       .attr('class', 'station')
-      .attr('x', (s) => x(s.age) - 2)
-      .attr('y', stationY - 2)
-      .attr('width', 4)
-      .attr('height', 4)
+      .attr('x', (s) => x(s.age) - 3)
+      .attr('y', stationY - 3)
+      .attr('width', 6)
+      .attr('height', 6)
       .attr('transform', (s) => `rotate(45 ${x(s.age)} ${stationY})`)
       .attr('fill', (s) => Math.abs(age - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
-      .attr('opacity', (s) => Math.abs(age - s.age) < 2 ? 0.95 : 0.7);
+      .attr('opacity', (s) => Math.abs(age - s.age) < 2 ? 0.95 : 0.7)
+      .attr('cursor', onSelectStation ? 'pointer' : 'default')
+      .on('click', function (_e, s) {
+        onSelectStation?.(s.age);
+      })
+      .append('title')
+      .text((s) => `${s.label} — age ${s.age}`);
 
     // today's age marker — slow opacity pulse, animated entry
     const nowLine = g.append('line')

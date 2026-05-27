@@ -46,8 +46,17 @@ export default function ArcsPage() {
           birthIso={blueprint.birth.iso}
           selected={selected}
           onSelect={setSelected}
+          onSelectStation={(stationAge) => {
+            // scroll the matching station card into view
+            const el = document.getElementById(`station-${String(stationAge).replace('.', '_')}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('station-flash');
+              window.setTimeout(() => el.classList.remove('station-flash'), 2000);
+            }
+          }}
         />
-        {!selected && <ScrollHint label="tap an arc · or scroll" />}
+        {!selected && <ScrollHint label="tap an arc · a diamond · or scroll" />}
       </section>
 
       {/* Detail panel — what does the selected arc mean */}
@@ -123,7 +132,11 @@ export default function ArcsPage() {
             const isHere = Math.abs(age - s.age) < 2;
             const isPast = age > s.age + 1;
             return (
-              <li key={s.age} className="border-l border-hairline pl-3">
+              <li
+                key={s.age}
+                id={`station-${String(s.age).replace('.', '_')}`}
+                className="border-l border-hairline pl-3"
+              >
                 <div className="flex items-baseline justify-between">
                   <p className="serif text-[16px] text-ink">
                     {s.label}
