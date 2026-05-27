@@ -11,6 +11,7 @@ import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } 
 import { POLARITY_LENSES } from '@/lib/polarityLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
+import { AUTHORITY_FOR_POLARITY } from '@/lib/humandesign/authorityForPolarity';
 import type { PolarityReading } from '@/lib/types';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -275,6 +276,17 @@ export default function PolarityPage() {
         <PolarityBars positions={positions} flips={flips} />
         <ScrollHint label="tap a bar · or scroll" />
       </section>
+
+      {blueprint.humanDesign?.authority && AUTHORITY_FOR_POLARITY[blueprint.humanDesign.authority] && (
+        <section className="mt-8 border-l-2 pl-3" style={{ borderLeftColor: '#8b3a3a' }}>
+          <p className="small-label caps text-accent">
+            for {blueprint.humanDesign.type.toLowerCase()}s with {blueprint.humanDesign.authority.toLowerCase()} authority
+          </p>
+          <p className="serif text-[14px] text-ink-dim mt-1.5 leading-relaxed">
+            {AUTHORITY_FOR_POLARITY[blueprint.humanDesign.authority]}
+          </p>
+        </section>
+      )}
 
       <section id="forecast" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
         <div className="flex items-baseline justify-between mb-3">
