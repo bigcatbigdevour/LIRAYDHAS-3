@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
+import PolarityForecast from '@/components/PolarityForecast';
 import ScrollHint from '@/components/ScrollHint';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
 import { POLARITY_LENSES } from '@/lib/polarityLenses';
@@ -207,6 +208,16 @@ export default function PolarityPage() {
       <section className="mt-6">
         <PolarityBars positions={positions} flips={flips} />
         <ScrollHint label="tap a bar · or scroll" />
+      </section>
+
+      <section className="mt-10 border-t border-hairline pt-6">
+        <p className="small-label caps mb-3">the next 12 months</p>
+        <PolarityForecast birthIso={blueprint.birth.iso} months={12} />
+        <p className="text-[12px] text-ink-dim serif italic mt-3 leading-relaxed">
+          A glance at how the stack changes month by month. Bright cell =
+          rising, faded cell = descending. The cycles that change colour
+          most across the strip are the ones about to flip.
+        </p>
       </section>
 
       {(recentFlips.length > 0 || imminentFlips.length > 0) && (
