@@ -141,7 +141,23 @@ export default function PolarityPage() {
       <header className="pb-6">
         <p className="small-label caps">Polarity</p>
         <h1 className="h-display serif mt-3">Where the tides are.</h1>
-        <p className="serif text-[15px] text-ink-dim mt-3 leading-relaxed">
+        {/* atmospheric one-liner: today's tide mood */}
+        {(() => {
+          let mood: string;
+          if (positive >= 6) mood = 'almost everything opening';
+          else if (positive === 5) mood = 'mostly opening';
+          else if (positive === 4) mood = 'tilted toward opening';
+          else if (positive === 3) mood = 'evenly held';
+          else if (positive === 2) mood = 'tilted toward closing';
+          else if (positive === 1) mood = 'mostly closing';
+          else mood = 'almost everything releasing';
+          return (
+            <p className="serif italic text-[16px] text-ink mt-3">
+              today the tide reads as <span className="text-accent">{mood}</span>.
+            </p>
+          );
+        })()}
+        <p className="serif text-[14.5px] text-ink-dim mt-3 leading-relaxed">
           Every major cycle in a human life has a polarity — a first half
           that is rising, building, opening, and a second half that is
           descending, completing, releasing. Most people live their whole
