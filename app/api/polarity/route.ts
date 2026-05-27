@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ageInYears, positionInCycles, polarityFlips } from '@/lib/cycles';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
+import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
 import type { Blueprint } from '@/lib/types';
 
@@ -53,6 +54,16 @@ export async function POST(req: Request) {
     ? `\nThe person is currently within ${nearestDistance.toFixed(1)} years of a named life-station: "${nearestStation.label}" at age ${nearestStation.age} (${nearestStation.convergence}). ${nearestStation.description}`
     : '';
 
+  // Compact summary of the next 12 months' major events (skip flips —
+  // they show in the recent/next-flip lines already).
+  const upcoming = upcomingEventsFeed(bp.birth.iso, new Date(), {
+    horizonYears: 1,
+    includeFlips: false,
+  });
+  const upcomingLine = upcoming.length > 0
+    ? `\nKey events inside the next 12 months:\n` + upcoming.slice(0, 5).map((e) => `- ${e.title} (${e.detail}) in ${Math.round(e.daysAhead)}d`).join('\n')
+    : '';
+
   const prompt = `Interpret the following polarity stack for a single person, in the dry, slightly clinical, slightly mystical voice of Co-Star.
 
 ${lines}
@@ -60,7 +71,7 @@ ${lines}
 ${rising.length} cycles are rising · ${descending.length} are descending.
 Most recent flip: ${mostRecent?.cycle.label ?? 'none'} (${mostRecent ? `${Math.round(mostRecent.daysSinceStart)} days ago to ${mostRecent.positive ? 'rising' : 'descending'}` : ''}).
 Next flip: ${nextUp?.cycle.label ?? 'none'} (${nextUp ? `in ${Math.round(nextUp.daysUntilEnd)} days to ${nextUp.positive ? 'descending' : 'rising'}` : ''}).
-${stationLine}
+${stationLine}${upcomingLine}
 
 Write one paragraph, 80-120 words, addressing the person directly. Name what the overall stack tends to feel like. If a life-station is named above, lean on it. Otherwise lean on the most recent flip. End on a sentence that lands like a quiet observation.
 
