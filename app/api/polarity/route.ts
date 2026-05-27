@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { ageInYears, positionInCycles } from '@/lib/cycles';
+import { ageInYears, positionInCycles, polarityFlips } from '@/lib/cycles';
+import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
 import type { Blueprint } from '@/lib/types';
 
@@ -18,18 +19,26 @@ export async function POST(req: Request) {
 
   const age = ageInYears(bp.birth.iso);
   const positions = positionInCycles(age);
+  const flips = polarityFlips(bp.birth.iso);
 
   const rising = positions.filter((p) => p.positive);
   const descending = positions.filter((p) => !p.positive);
-  const tightest = positions
-    .slice()
-    .sort((a, b) => {
-      // smallest absolute distance from a half-mark (flip point) first → most recent flip
-      const da = Math.min(a.fraction, 1 - a.fraction);
-      const db = Math.min(b.fraction, 1 - b.fraction);
-      return da - db;
-    });
-  const mostRecentFlip = tightest[0];
+
+  // Most recently flipped cycle (smallest daysSinceStart).
+  const mostRecent = [...flips].sort((a, b) => a.daysSinceStart - b.daysSinceStart)[0];
+  // Next cycle to flip (smallest daysUntilEnd).
+  const nextUp = [...flips].sort((a, b) => a.daysUntilEnd - b.daysUntilEnd)[0];
+
+  // Nearest LifeStation inside ±3y, if any.
+  let nearestStation: typeof LIFE_STATIONS[number] | null = null;
+  let nearestDistance = Infinity;
+  for (const s of LIFE_STATIONS) {
+    const d = Math.abs(age - s.age);
+    if (d < 3 && d < nearestDistance) {
+      nearestStation = s;
+      nearestDistance = d;
+    }
+  }
 
   const lines = positions
     .map(
@@ -40,18 +49,20 @@ export async function POST(req: Request) {
     )
     .join('\n');
 
+  const stationLine = nearestStation
+    ? `\nThe person is currently within ${nearestDistance.toFixed(1)} years of a named life-station: "${nearestStation.label}" at age ${nearestStation.age} (${nearestStation.convergence}). ${nearestStation.description}`
+    : '';
+
   const prompt = `Interpret the following polarity stack for a single person, in the dry, slightly clinical, slightly mystical voice of Co-Star.
 
 ${lines}
 
 ${rising.length} cycles are rising · ${descending.length} are descending.
-The cycle that flipped most recently: ${mostRecentFlip?.cycle.label ?? 'none'} (${
-    mostRecentFlip
-      ? (mostRecentFlip.positive ? 'just opened' : 'just closed')
-      : ''
-  }).
+Most recent flip: ${mostRecent?.cycle.label ?? 'none'} (${mostRecent ? `${Math.round(mostRecent.daysSinceStart)} days ago to ${mostRecent.positive ? 'rising' : 'descending'}` : ''}).
+Next flip: ${nextUp?.cycle.label ?? 'none'} (${nextUp ? `in ${Math.round(nextUp.daysUntilEnd)} days to ${nextUp.positive ? 'descending' : 'rising'}` : ''}).
+${stationLine}
 
-Write one paragraph, 80-120 words, addressing the person directly. Name what the overall stack tends to feel like, lean on the most recent flip, and end on a sentence that lands like a quiet observation.
+Write one paragraph, 80-120 words, addressing the person directly. Name what the overall stack tends to feel like. If a life-station is named above, lean on it. Otherwise lean on the most recent flip. End on a sentence that lands like a quiet observation.
 
 Hard bans: no "the universe", no "embrace", no "manifest", no "abundance", no "lean into", no emojis, no exclamation points, no rhetorical questions, no bullet points. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
 
