@@ -74,7 +74,7 @@ export default function PolarityBars({ positions, flips }: Props) {
                   }}
                 />
                 <div
-                  className="absolute top-0 bottom-0 w-px bg-ink"
+                  className="absolute top-0 bottom-0 w-px bg-ink polarity-marker-pulse"
                   style={{
                     left: `${markerLeft}%`,
                     transition: `left 900ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,

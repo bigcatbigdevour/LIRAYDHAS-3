@@ -140,6 +140,15 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 .fade-in { animation: fade-in 700ms ease both; }
 
+/* gentle breathing pulse for polarity markers and similar live signals */
+@keyframes polarity-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+.polarity-marker-pulse {
+  animation: polarity-pulse 4.5s ease-in-out infinite;
+}
+
 /* line clamp util */
 .line-clamp-3 {
   display: -webkit-box;

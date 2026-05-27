@@ -184,6 +184,18 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
       .attr('opacity', opacityFor)
       .attr('stroke-dashoffset', 0);
 
+    // Continuous gentle breathing pulse on the active arcs (the ones the
+    // user is inside right now). Pure SVG <animate> so it doesn't tax the
+    // main thread.
+    arcG
+      .selectAll<SVGPathElement, Arc>('path.arc')
+      .filter((d) => isActiveArc(d) && !(selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle))
+      .append('animate')
+      .attr('attributeName', 'opacity')
+      .attr('values', '0.95;0.55;0.95')
+      .attr('dur', '5.5s')
+      .attr('repeatCount', 'indefinite');
+
     // today's age marker — slow opacity pulse, animated entry
     const nowLine = g.append('line')
       .attr('x1', x(age)).attr('x2', x(age))
