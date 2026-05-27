@@ -10,6 +10,7 @@ import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
 import { dailyVibe } from '@/lib/astrology/vibe';
 import { ageInYears, polarityFlips, positionInCycles, type PolarityFlip } from '@/lib/cycles';
+import { upcomingEventsFeed, type UpcomingEvent } from '@/lib/upcomingEvents';
 import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
 import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
@@ -41,6 +42,7 @@ export default function TodayPage() {
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
   const [keyMoments, setKeyMoments] = useState<KeyMoment[]>([]);
   const [tideFlips, setTideFlips] = useState<PolarityFlip[]>([]);
+  const [nextMajor, setNextMajor] = useState<UpcomingEvent | null>(null);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
   const [expandedAspect, setExpandedAspect] = useState<number | null>(null);
 
@@ -60,6 +62,13 @@ export default function TodayPage() {
     // "the tides changed this week" callout linking to /polarity.
     const flips = polarityFlips(blueprint.birth.iso);
     setTideFlips(flips.filter((f) => f.daysSinceStart <= 14));
+    // Find the next "major" event: return or station inside the next 2 years,
+    // ignoring flips (they show in 'tides this week' already).
+    const upcoming = upcomingEventsFeed(blueprint.birth.iso, new Date(), {
+      horizonYears: 2,
+      includeFlips: false,
+    });
+    setNextMajor(upcoming[0] ?? null);
   }, [blueprint]);
 
   useEffect(() => {
@@ -190,6 +199,23 @@ export default function TodayPage() {
           ))}
           <p className="text-[12px] text-ink-dim mt-1 italic serif">
             A major chapter mark. The themes around you right now are not small.
+          </p>
+        </section>
+      )}
+
+      {nextMajor && keyMoments.length === 0 && (
+        <section className="mb-6 border-l-2 pl-3" style={{ borderLeftColor: nextMajor.color }}>
+          <p className="small-label caps text-ink-faint">your next major event</p>
+          <p className="serif text-[15px] text-ink mt-1">
+            {nextMajor.cycle && (
+              <span className="text-ink-dim serif text-[13px] mr-1.5" aria-hidden>{nextMajor.cycle.glyph}</span>
+            )}
+            {nextMajor.title}
+            <span className="text-ink-faint text-[12px] ml-2">{nextMajor.detail}</span>
+          </p>
+          <p className="text-[11px] text-ink-faint caps mt-0.5" style={{ letterSpacing: '0.08em' }}>
+            in {nextMajor.daysAhead < 365 ? `${Math.round(nextMajor.daysAhead)} days` : `${(nextMajor.daysAhead / 365.25).toFixed(1)} years`} ·{' '}
+            {nextMajor.date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
           </p>
         </section>
       )}
