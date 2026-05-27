@@ -7,6 +7,7 @@ import ArcDiagram, { type ArcSelection } from '@/components/ArcDiagram';
 import ScrollHint from '@/components/ScrollHint';
 import { CYCLES, ageInYears } from '@/lib/cycles';
 import { CYCLE_LENSES, arcDescription } from '@/lib/cycleLenses';
+import { LIFE_STATIONS } from '@/lib/lifeStations';
 
 export default function ArcsPage() {
   const router = useRouter();
@@ -100,8 +101,48 @@ export default function ArcsPage() {
         </ul>
       </section>
 
+      {/* Convergence stations — ages where multiple cycles align */}
+      <section className="mt-12">
+        <h2 className="h-display serif mb-2" style={{ fontSize: '1.5rem' }}>
+          Where the cycles converge.
+        </h2>
+        <p className="text-ink-dim text-[13.5px] serif leading-relaxed mb-4">
+          Certain ages feel universal — adolescence at twelve, the Saturn
+          return at twenty-nine, midlife around forty-five. These are not
+          arbitrary. They are the points where multiple cycles cross at the
+          same place on the timeline above. The "everyone goes through this"
+          moments are when the math literally stacks.
+        </p>
+        <ul className="space-y-5">
+          {LIFE_STATIONS.map((s) => {
+            const isHere = Math.abs(age - s.age) < 2;
+            const isPast = age > s.age + 1;
+            return (
+              <li key={s.age} className="border-l border-hairline pl-3">
+                <div className="flex items-baseline justify-between">
+                  <p className="serif text-[16px] text-ink">
+                    {s.label}
+                  </p>
+                  <span className={`small-label caps ${isHere ? 'text-accent' : isPast ? 'text-ink-faint' : 'text-ink-dim'}`}>
+                    age {s.age}
+                    {isHere && ' · you'}
+                    {isPast && ' · past'}
+                  </span>
+                </div>
+                <p className="text-[11.5px] text-ink-faint caps mt-0.5" style={{ letterSpacing: '0.08em' }}>
+                  {s.convergence}
+                </p>
+                <p className="text-[14px] text-ink-dim serif mt-1 leading-relaxed">
+                  {s.description}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
       {/* Cycle-by-cycle multi-lens guide */}
-      <section className="mt-12 space-y-10">
+      <section className="mt-16 space-y-10">
         <h2 className="h-display serif" style={{ fontSize: '1.5rem' }}>
           Each cycle, four ways.
         </h2>
