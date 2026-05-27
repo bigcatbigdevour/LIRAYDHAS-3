@@ -220,12 +220,22 @@ export default function PolarityPage() {
         </section>
       )}
 
-      <section className="mt-6">
+      <nav className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[10px] caps text-ink-faint border-t border-b border-hairline py-1.5" style={{ letterSpacing: '0.12em' }}>
+        <a href="#stack" className="hover:text-ink">stack</a>
+        <a href="#forecast" className="hover:text-ink">forecast</a>
+        <a href="#flips" className="hover:text-ink">flips</a>
+        <a href="#interpretation" className="hover:text-ink">interpretation</a>
+        <a href="#read" className="hover:text-ink">how to read</a>
+        <a href="#cycles" className="hover:text-ink">each cycle</a>
+        <a href="#returns" className="hover:text-ink">next returns</a>
+      </nav>
+
+      <section id="stack" className="mt-6 scroll-mt-4">
         <PolarityBars positions={positions} flips={flips} />
         <ScrollHint label="tap a bar · or scroll" />
       </section>
 
-      <section className="mt-10 border-t border-hairline pt-6">
+      <section id="forecast" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
         <div className="flex items-baseline justify-between mb-3">
           <p className="small-label caps">
             the next {forecastMonths >= 12 ? `${Math.round(forecastMonths / 12)} year${forecastMonths > 12 ? 's' : ''}` : `${forecastMonths} months`}
@@ -252,7 +262,7 @@ export default function PolarityPage() {
       </section>
 
       {(recentFlips.length > 0 || imminentFlips.length > 0) && (
-        <section className="mt-10 border-t border-hairline pt-6">
+        <section id="flips" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
           <p className="small-label caps mb-3">flips inside the month</p>
           <div className="grid grid-cols-1 gap-2 text-[13px]">
             {recentFlips.map((f) => (
@@ -291,7 +301,7 @@ export default function PolarityPage() {
         </section>
       )}
 
-      <section className="mt-10 border-t border-hairline pt-6">
+      <section id="interpretation" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
         {loading && !polarity?.paragraph && (
           <p className="text-ink-dim italic">reading the stack…</p>
         )}
@@ -307,7 +317,7 @@ export default function PolarityPage() {
       </section>
 
       {/* Always-visible key explaining the bars */}
-      <section className="mt-12 border-t border-hairline pt-6">
+      <section id="read" className="mt-12 border-t border-hairline pt-6 scroll-mt-4">
         <h2 className="h-display serif mb-3" style={{ fontSize: '1.4rem' }}>
           How to read this.
         </h2>
@@ -341,7 +351,7 @@ export default function PolarityPage() {
       </section>
 
       {/* Cycle-by-cycle deep dive */}
-      <section className="mt-12 space-y-10">
+      <section id="cycles" className="mt-12 space-y-10 scroll-mt-4">
         <h2 className="h-display serif" style={{ fontSize: '1.4rem' }}>
           Each cycle, in depth.
         </h2>
@@ -405,7 +415,7 @@ export default function PolarityPage() {
       </section>
 
       {upcoming.length > 0 && (
-        <section className="mt-12 border-t border-hairline pt-6">
+        <section id="returns" className="mt-12 border-t border-hairline pt-6 scroll-mt-4">
           <p className="small-label caps mb-3">next returns</p>
           <ul className="space-y-1">
             {upcoming.map((u) => (
