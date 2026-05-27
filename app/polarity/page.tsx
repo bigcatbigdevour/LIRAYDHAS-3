@@ -125,6 +125,30 @@ export default function PolarityPage() {
         <p className="text-ink-dim text-[13px] mt-3">
           Right now: <span className="text-ink">{positive} cycles rising · {negative} descending</span> — {stack}.
         </p>
+        {/* Live-stack glance: a row of dots, one per cycle */}
+        <div className="mt-4 flex items-center gap-2" aria-label="Current polarity stack">
+          {positions.map((p) => (
+            <div
+              key={p.cycle.key}
+              className="flex flex-col items-center gap-0.5"
+              title={`${p.cycle.label}: ${p.positive ? 'rising' : 'descending'} ${Math.round(p.fraction * 100)}%`}
+            >
+              <span
+                className="block w-2.5 h-2.5"
+                style={{
+                  background: p.cycle.color,
+                  opacity: p.positive ? 0.95 : 0.35,
+                }}
+              />
+              <span className="text-[8px] text-ink-faint" style={{ lineHeight: 1 }}>
+                {p.positive ? '↑' : '↓'}
+              </span>
+            </div>
+          ))}
+          <span className="text-[10px] text-ink-faint caps ml-2" style={{ letterSpacing: '0.16em' }}>
+            now
+          </span>
+        </div>
         {(mostRecentFlip || nextFlip) && (
           <div className="mt-3 grid grid-cols-2 gap-x-3 text-[11px]" style={{ letterSpacing: '0.06em' }}>
             {mostRecentFlip && (
