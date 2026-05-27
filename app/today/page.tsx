@@ -9,7 +9,7 @@ import { currentMoon, nextLunation, hoursUntilMoonSignChange, type UpcomingLunat
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
 import { dailyVibe } from '@/lib/astrology/vibe';
-import { ageInYears, polarityFlips, type PolarityFlip } from '@/lib/cycles';
+import { ageInYears, polarityFlips, positionInCycles, type PolarityFlip } from '@/lib/cycles';
 import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
 import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
@@ -374,6 +374,31 @@ export default function TodayPage() {
             solar return in {Math.round(solarReturnDays)} days
           </p>
         )}
+
+        {/* Compact 7-cycle phase strip — mirrors /polarity glance */}
+        <div className="mt-5">
+          <p className="small-label caps text-ink-faint mb-1.5">tides right now</p>
+          <a href="/polarity" className="flex items-end gap-1.5">
+            {positionInCycles(ageInYears(blueprint.birth.iso)).map((p) => (
+              <span
+                key={p.cycle.key}
+                className="flex flex-col items-center gap-0.5"
+                title={`${p.cycle.label}: ${p.positive ? 'rising' : 'descending'}`}
+              >
+                <span
+                  className="block w-2.5 h-2.5"
+                  style={{ background: p.cycle.color, opacity: p.positive ? 0.95 : 0.3 }}
+                />
+                <span className="text-[8px] text-ink-faint" style={{ lineHeight: 1 }}>
+                  {p.positive ? '↑' : '↓'}
+                </span>
+              </span>
+            ))}
+            <span className="text-[10px] text-ink-faint caps ml-1" style={{ letterSpacing: '0.16em' }}>
+              see all →
+            </span>
+          </a>
+        </div>
       </section>
 
       <section className="mt-8 mb-2 flex flex-wrap items-center justify-between gap-2">
