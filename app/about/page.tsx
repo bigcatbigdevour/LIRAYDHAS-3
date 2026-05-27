@@ -59,6 +59,43 @@ export default function AboutPage() {
         out of which centers and lines are lit.
       </p>
 
+      <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Polarity, briefly.</h2>
+      <p className="text-[14px] text-ink-dim serif leading-relaxed">
+        Every cycle has two halves. The first half is <em>rising</em> —
+        building, accumulating, opening. The second half is{' '}
+        <em>descending</em> — completing, releasing, integrating. Most
+        people live their whole lives inside these tides without noticing
+        when they flip. The Polarity tab shows the flip dates for every
+        cycle and tells you, right now, how many are rising vs descending.
+      </p>
+      <p className="text-[14px] text-ink-dim serif leading-relaxed mt-3">
+        A "stack" of mostly rising cycles tends to feel like an opening
+        season of life; mostly descending feels like a releasing one.
+        Recent flips in the slower cycles — Saturn, Chiron, Nodal — are
+        rarely subtle. Watch those.
+      </p>
+
+      <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Stations, briefly.</h2>
+      <p className="text-[14px] text-ink-dim serif leading-relaxed">
+        Some ages feel universal — adolescence at twelve, the Saturn return
+        at twenty-nine, midlife around forty-five, the Chiron return at
+        fifty. These are points where multiple cycles cross at the same
+        place on the timeline. "Everyone goes through this at X" is the
+        math literally stacking. The Arcs tab marks fourteen of these
+        stations with diamonds on the chart and explains each one.
+      </p>
+
+      <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>The seven cycles.</h2>
+      <dl className="space-y-2 text-[13px]">
+        <Item k="Solar return" v="Every year. The annual reset, birthday to birthday." />
+        <Item k="Mars synodic" v="Every 2.135 years. Action and friction. What you are fighting for." />
+        <Item k="Jupiter return" v="Every 11.86 years. Expansion. What you trust the world to give." />
+        <Item k="Nodal return" v="Every 18.6 years. Direction. The pull of fate." />
+        <Item k="Progressed lunar" v="Every 27.3 years (in 12 phases). Inner emotional weather slowed down." />
+        <Item k="Saturn return" v="Every 29.5 years. Structure and consequence. Reckonings at ~29 and ~59." />
+        <Item k="Chiron return" v="Every 50.4 years. The original wound and the original teacher. Once a lifetime." />
+      </dl>
+
       <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Settings.</h2>
       <div className="space-y-3">
         <Link href="/chart" className="btn-ghost block">go to your chart →</Link>
