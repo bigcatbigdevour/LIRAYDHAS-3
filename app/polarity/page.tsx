@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
 import ScrollHint from '@/components/ScrollHint';
-import { ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
+import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
+import { POLARITY_LENSES } from '@/lib/polarityLenses';
 import type { PolarityReading } from '@/lib/types';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -147,6 +148,104 @@ export default function PolarityPage() {
         {polarity?.paragraph && (
           <p className="body-prose serif text-ink">{polarity.paragraph}</p>
         )}
+      </section>
+
+      {/* Always-visible key explaining the bars */}
+      <section className="mt-12 border-t border-hairline pt-6">
+        <h2 className="h-display serif mb-3" style={{ fontSize: '1.4rem' }}>
+          How to read this.
+        </h2>
+        <ul className="space-y-2 text-[13.5px] text-ink-dim serif leading-relaxed">
+          <li>
+            <span className="text-ink">Each bar</span> is one cycle of your life.
+            Solar is a year. Mars is two. Saturn is twenty-nine and a half.
+          </li>
+          <li>
+            <span className="text-ink">Each cycle has two halves.</span> The
+            first half is rising — building, opening, gathering. The second
+            half is descending — completing, releasing, letting go.
+          </li>
+          <li>
+            <span className="text-ink">The colored fill</span> shows the half
+            you are inside. The thin vertical line marks where in that half
+            you are right now.
+          </li>
+          <li>
+            <span className="text-ink">The flip dates underneath</span> tell
+            you exactly when you crossed into this half and when you will
+            cross out of it.
+          </li>
+          <li>
+            <span className="text-ink">Read the stack as one weather.</span>{' '}
+            Mostly rising = an opening season of your life. Mostly descending
+            = a releasing one. A recent flip in a major cycle (Saturn, Nodal,
+            Chiron) is rarely subtle.
+          </li>
+        </ul>
+      </section>
+
+      {/* Cycle-by-cycle deep dive */}
+      <section className="mt-12 space-y-10">
+        <h2 className="h-display serif" style={{ fontSize: '1.4rem' }}>
+          Each cycle, in depth.
+        </h2>
+        {CYCLES.map((c) => {
+          const lens = POLARITY_LENSES[c.key];
+          if (!lens) return null;
+          const pos = positions.find((p) => p.cycle.key === c.key);
+          const flip = flips.find((f) => f.cycle.key === c.key);
+          return (
+            <article key={c.key}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-px" style={{ background: c.color }} />
+                  <h3 className="serif text-[19px] text-ink">{c.label}</h3>
+                </div>
+                {pos && (
+                  <span className="small-label caps text-ink-faint">
+                    {pos.positive ? 'rising' : 'descending'} · {Math.round(pos.fraction * 100)}%
+                  </span>
+                )}
+              </div>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="small-label caps text-ink-faint">
+                    {pos?.positive ? 'inside this rising half' : 'inside this descending half'}
+                  </dt>
+                  <dd className="serif text-[14px] text-ink mt-0.5 leading-relaxed">
+                    {pos?.positive ? lens.inRising : lens.inDescending}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="small-label caps text-ink-faint">
+                    {pos?.positive ? 'when this half ends' : 'when this half ends'}
+                  </dt>
+                  <dd className="serif text-[14px] text-ink-dim mt-0.5 leading-relaxed">
+                    {pos?.positive ? lens.inDescending : lens.inRising}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="small-label caps text-ink-faint">flip signals</dt>
+                  <dd className="serif text-[14px] text-ink-dim mt-0.5 leading-relaxed">
+                    {lens.flipSignals}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="small-label caps text-ink-faint">pairings</dt>
+                  <dd className="serif text-[14px] text-ink-dim mt-0.5 leading-relaxed">
+                    {lens.pairings}
+                  </dd>
+                </div>
+                {flip && (
+                  <p className="small-label caps text-ink-faint mt-2" style={{ letterSpacing: '0.06em' }}>
+                    flipped {Math.round(flip.daysSinceStart)} days ago ·{' '}
+                    next flip in {Math.round(flip.daysUntilEnd)} days
+                  </p>
+                )}
+              </dl>
+            </article>
+          );
+        })}
       </section>
 
       {upcoming.length > 0 && (
