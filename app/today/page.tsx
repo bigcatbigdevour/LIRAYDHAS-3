@@ -9,7 +9,7 @@ import { currentMoon, nextLunation, hoursUntilMoonSignChange, type UpcomingLunat
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
 import { dailyVibe } from '@/lib/astrology/vibe';
-import { ageInYears } from '@/lib/cycles';
+import { ageInYears, polarityFlips, type PolarityFlip } from '@/lib/cycles';
 import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
 import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
@@ -40,6 +40,7 @@ export default function TodayPage() {
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
   const [keyMoments, setKeyMoments] = useState<KeyMoment[]>([]);
+  const [tideFlips, setTideFlips] = useState<PolarityFlip[]>([]);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
   const [expandedAspect, setExpandedAspect] = useState<number | null>(null);
 
@@ -55,6 +56,10 @@ export default function TodayPage() {
     setTodayHd(userTransits(blueprint));
     setForecast(upcomingForecast(blueprint.natal, 7));
     setKeyMoments(imminentReturns(ageInYears(blueprint.birth.iso)));
+    // Cycles that just flipped (within last 14 days) — surface as a small
+    // "the tides changed this week" callout linking to /polarity.
+    const flips = polarityFlips(blueprint.birth.iso);
+    setTideFlips(flips.filter((f) => f.daysSinceStart <= 14));
   }, [blueprint]);
 
   useEffect(() => {
@@ -149,6 +154,28 @@ export default function TodayPage() {
           </p>
         )}
       </header>
+
+      {tideFlips.length > 0 && (
+        <section className="mb-6">
+          <p className="small-label caps text-ink-faint mb-2">the tides this week</p>
+          <ul className="space-y-1">
+            {tideFlips.map((f) => (
+              <li
+                key={f.cycle.key}
+                className="flex justify-between text-[12.5px] border-l-2 pl-2 py-0.5"
+                style={{ borderLeftColor: f.cycle.color }}
+              >
+                <span className="text-ink-dim">
+                  <span className="text-ink">{f.cycle.label.toLowerCase()}</span>{' '}
+                  flipped to <span className="text-ink">{f.positive ? 'rising' : 'descending'}</span>
+                </span>
+                <span className="tabular-nums text-ink-faint">{Math.round(f.daysSinceStart)}d ago</span>
+              </li>
+            ))}
+          </ul>
+          <a href="/polarity" className="btn-ghost mt-2 inline-block">see the stack →</a>
+        </section>
+      )}
 
       {keyMoments.length > 0 && (
         <section className="mb-8 border border-accent/40 p-3" style={{ borderColor: '#3a1a1a' }}>
