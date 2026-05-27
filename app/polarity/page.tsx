@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
 import { POLARITY_LENSES } from '@/lib/polarityLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
+import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import type { PolarityReading } from '@/lib/types';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -67,6 +68,13 @@ export default function PolarityPage() {
   }, [flips]);
 
   const [forecastMonths, setForecastMonths] = useState(12);
+  const [timelineRange, setTimelineRange] = useState<'1y' | '5y' | '20y'>('1y');
+
+  const upcomingEvents = useMemo(() => {
+    if (!blueprint) return [];
+    const horizonYears = timelineRange === '1y' ? 1 : timelineRange === '5y' ? 5 : 20;
+    return upcomingEventsFeed(blueprint.birth.iso, new Date(), { horizonYears }).slice(0, 60);
+  }, [blueprint, timelineRange]);
 
   const currentStation = useMemo(() => {
     if (!blueprint) return null;
@@ -257,6 +265,7 @@ export default function PolarityPage() {
         <a href="#forecast" className="hover:text-ink">forecast</a>
         <a href="#flips" className="hover:text-ink">flips</a>
         <a href="#interpretation" className="hover:text-ink">interpretation</a>
+        <a href="#timeline" className="hover:text-ink">timeline</a>
         <a href="#read" className="hover:text-ink">how to read</a>
         <a href="#cycles" className="hover:text-ink">each cycle</a>
         <a href="#returns" className="hover:text-ink">next returns</a>
@@ -332,6 +341,62 @@ export default function PolarityPage() {
           </div>
         </section>
       )}
+
+      <section id="timeline" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
+        <div className="flex items-baseline justify-between mb-3">
+          <p className="small-label caps">what's coming</p>
+          <div className="flex gap-2">
+            {(['1y', '5y', '20y'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setTimelineRange(r)}
+                className={`small-label caps text-[10px] ${timelineRange === r ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+        {upcomingEvents.length === 0 ? (
+          <p className="text-ink-dim text-[13px] italic">no major events inside this window.</p>
+        ) : (
+          <ol className="space-y-2 text-[13px]">
+            {upcomingEvents.map((e, i) => {
+              const dStr = e.daysAhead < 365
+                ? `${Math.round(e.daysAhead)}d`
+                : `${(e.daysAhead / 365.25).toFixed(1)}y`;
+              const dateStr = e.date.toLocaleDateString(undefined, {
+                year: e.daysAhead > 365 ? 'numeric' : undefined,
+                month: 'short',
+                day: 'numeric',
+              });
+              return (
+                <li
+                  key={i}
+                  className="flex items-baseline justify-between border-l-2 pl-2 py-1"
+                  style={{ borderLeftColor: e.color, opacity: e.kind === 'flip' ? 0.85 : 1 }}
+                >
+                  <span className="text-ink-dim flex items-baseline gap-2 min-w-0">
+                    {e.cycle && (
+                      <span className="serif text-[12px] text-ink-dim" aria-hidden>{e.cycle.glyph}</span>
+                    )}
+                    {e.kind === 'station' && (
+                      <span className="text-accent serif text-[10px]" aria-hidden>◆</span>
+                    )}
+                    <span className="text-ink truncate">{e.title}</span>
+                    <span className="text-ink-faint text-[11px] truncate">{e.detail}</span>
+                  </span>
+                  <span className="text-right shrink-0 tabular-nums text-[11px]">
+                    <span className="text-ink-faint">{dateStr}</span>
+                    <span className="text-ink-dim ml-2">in {dStr}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </section>
 
       <section id="interpretation" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
         {loading && !polarity?.paragraph && (
