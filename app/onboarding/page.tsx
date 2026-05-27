@@ -67,11 +67,24 @@ export default function Onboarding() {
       <main className="page max-w-md mx-auto fade-in min-h-screen flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-10">
           <div>
-            <svg viewBox="0 0 80 80" className="w-16 h-16 mx-auto" aria-hidden>
-              <circle cx="40" cy="40" r="34" fill="none" stroke="#f4f1ea" strokeWidth="0.6" opacity="0.5"/>
-              <circle cx="40" cy="40" r="22" fill="none" stroke="#f4f1ea" strokeWidth="0.5" opacity="0.7"/>
+            <svg viewBox="0 0 80 80" className="w-20 h-20 mx-auto" aria-hidden>
+              <g style={{ transformOrigin: '40px 40px' }}>
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#f4f1ea" strokeWidth="0.6" opacity="0.5">
+                  <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="360 40 40" dur="120s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="40" cy="40" r="22" fill="none" stroke="#f4f1ea" strokeWidth="0.5" opacity="0.7">
+                  <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="-360 40 40" dur="90s" repeatCount="indefinite" />
+                </circle>
+              </g>
               <circle cx="40" cy="40" r="10" fill="none" stroke="#f4f1ea" strokeWidth="0.5"/>
-              <circle cx="40" cy="40" r="3"  fill="#8b3a3a"/>
+              <circle cx="40" cy="40" r="3"  fill="#8b3a3a">
+                <animate attributeName="opacity" values="1;0.55;1" dur="4.5s" repeatCount="indefinite" />
+              </circle>
+              {/* a tiny diamond orbiting the inner ring */}
+              <g style={{ transformOrigin: '40px 40px' }}>
+                <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="360 40 40" dur="40s" repeatCount="indefinite" />
+                <rect x="38" y="6" width="4" height="4" fill="#8b3a3a" transform="rotate(45 40 8)" opacity="0.6" />
+              </g>
             </svg>
             <p className="caps small-label mt-6">liraydhas</p>
           </div>
