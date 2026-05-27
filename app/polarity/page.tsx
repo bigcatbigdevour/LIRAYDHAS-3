@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
 import PolarityForecast from '@/components/PolarityForecast';
 import ScrollHint from '@/components/ScrollHint';
+import Link from 'next/link';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
 import { POLARITY_LENSES } from '@/lib/polarityLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
@@ -202,6 +203,12 @@ export default function PolarityPage() {
           <p className="serif text-[14px] text-ink-dim leading-relaxed">
             {currentStation.description}
           </p>
+          <Link
+            href={`/arcs?age=${currentStation.age}`}
+            className="btn-ghost mt-2 inline-block"
+          >
+            see this station on your arcs →
+          </Link>
         </section>
       )}
 
