@@ -23,9 +23,15 @@ export default function PolarityForecast({ birthIso, months = 12 }: Props) {
     cells.push({ age: ageAtM, date: d, positions: positionInCycles(ageAtM) });
   }
 
-  const monthLabels = cells.map((c) =>
-    c.date.toLocaleString(undefined, { month: 'short' }).slice(0, 1),
-  );
+  // For long ranges, only label every Nth column to avoid crowding.
+  const labelStride = months <= 12 ? 1 : months <= 24 ? 2 : 6;
+  const monthLabels = cells.map((c, i) => {
+    if (i % labelStride !== 0) return '';
+    // Show "M" for short ranges, "MYY" or "Y" for longer.
+    if (months <= 12) return c.date.toLocaleString(undefined, { month: 'short' }).slice(0, 1);
+    if (months <= 24) return c.date.toLocaleString(undefined, { month: 'short' }).slice(0, 1);
+    return String(c.date.getFullYear()).slice(2);
+  });
 
   return (
     <div>

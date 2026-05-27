@@ -66,6 +66,8 @@ export default function PolarityPage() {
       .sort((a, b) => a.daysSinceStart - b.daysSinceStart);
   }, [flips]);
 
+  const [forecastMonths, setForecastMonths] = useState(12);
+
   const currentStation = useMemo(() => {
     if (!blueprint) return null;
     const age = ageInYears(blueprint.birth.iso);
@@ -224,8 +226,24 @@ export default function PolarityPage() {
       </section>
 
       <section className="mt-10 border-t border-hairline pt-6">
-        <p className="small-label caps mb-3">the next 12 months</p>
-        <PolarityForecast birthIso={blueprint.birth.iso} months={12} />
+        <div className="flex items-baseline justify-between mb-3">
+          <p className="small-label caps">
+            the next {forecastMonths >= 12 ? `${Math.round(forecastMonths / 12)} year${forecastMonths > 12 ? 's' : ''}` : `${forecastMonths} months`}
+          </p>
+          <div className="flex gap-2">
+            {[6, 12, 24, 60].map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setForecastMonths(m)}
+                className={`small-label caps text-[10px] ${forecastMonths === m ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
+              >
+                {m < 12 ? `${m}m` : `${m / 12}y`}
+              </button>
+            ))}
+          </div>
+        </div>
+        <PolarityForecast birthIso={blueprint.birth.iso} months={forecastMonths} />
         <p className="text-[12px] text-ink-dim serif italic mt-3 leading-relaxed">
           A glance at how the stack changes month by month. Bright cell =
           rising, faded cell = descending. The cycles that change colour
