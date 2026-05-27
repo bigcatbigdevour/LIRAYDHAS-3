@@ -199,6 +199,30 @@ export default function ArcsPage() {
           </div>
         </div>
 
+        {/* Live caption while scrubbing/playing: nearest station name */}
+        {focusAge !== null && (() => {
+          let nearest: typeof LIFE_STATIONS[number] | null = null;
+          let nearestDist = Infinity;
+          for (const s of LIFE_STATIONS) {
+            const d = Math.abs(focusAge - s.age);
+            if (d < nearestDist) { nearest = s; nearestDist = d; }
+          }
+          if (!nearest || nearestDist > 4) return null;
+          return (
+            <p
+              className="text-center serif text-[13px] mt-2 fade-in"
+              style={{
+                color: nearestDist < 1 ? '#8b3a3a' : '#888',
+                opacity: 1 - Math.min(0.6, nearestDist / 6),
+              }}
+            >
+              {nearestDist < 0.5
+                ? `at the ${nearest.label.toLowerCase()}`
+                : `${nearestDist.toFixed(1)}y ${focusAge < nearest.age ? 'before' : 'after'} the ${nearest.label.toLowerCase()}`}
+            </p>
+          );
+        })()}
+
         {/* Scrub-result panel: what's active at the focused age */}
         {focusAge !== null && (() => {
           const focusPos = positionInCycles(focusAge);
