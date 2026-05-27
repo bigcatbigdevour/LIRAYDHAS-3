@@ -46,7 +46,7 @@ export default function PolarityBars({ positions, flips }: Props) {
         const fillWidth = mounted ? Math.min(100, pct) : 0;
         const markerLeft = mounted ? pct : 0;
         return (
-          <li key={p.cycle.key}>
+          <li key={p.cycle.key} id={`bar-${p.cycle.key}`}>
             <button
               className="w-full text-left"
               onClick={() => setExpanded(isOpen ? null : p.cycle.key)}

@@ -139,13 +139,19 @@ export default function PolarityPage() {
         <p className="text-ink-dim text-[13px] mt-3">
           Right now: <span className="text-ink">{positive} cycles rising · {negative} descending</span> — {stack}.
         </p>
-        {/* Live-stack glance: a row of dots, one per cycle */}
+        {/* Live-stack glance: a row of dots, one per cycle. Tap to scroll
+            to that cycle's full bar below. */}
         <div className="mt-4 flex items-center gap-2" aria-label="Current polarity stack">
           {positions.map((p) => (
-            <div
+            <button
               key={p.cycle.key}
+              type="button"
               className="flex flex-col items-center gap-0.5"
               title={`${p.cycle.label}: ${p.positive ? 'rising' : 'descending'} ${Math.round(p.fraction * 100)}%`}
+              onClick={() => {
+                const el = document.getElementById(`bar-${p.cycle.key}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
             >
               <span
                 className="block w-2.5 h-2.5"
@@ -157,7 +163,7 @@ export default function PolarityPage() {
               <span className="text-[8px] text-ink-faint" style={{ lineHeight: 1 }}>
                 {p.positive ? '↑' : '↓'}
               </span>
-            </div>
+            </button>
           ))}
           <span className="text-[10px] text-ink-faint caps ml-2" style={{ letterSpacing: '0.16em' }}>
             now
