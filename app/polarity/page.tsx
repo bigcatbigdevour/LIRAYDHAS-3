@@ -377,28 +377,26 @@ export default function PolarityPage() {
               </li>
             ))}
           </ul>
-          <button
-            className="btn-ghost mt-3"
-            onClick={async () => {
-              if (!blueprint) return;
-              const res = await fetch('/api/calendar', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ blueprint }),
-              });
-              const blob = await res.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = 'liraydhas-returns.ics';
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            }}
-          >
-            download calendar (.ics)
-          </button>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+            <button
+              className="btn-ghost"
+              onClick={() => downloadCalendar(blueprint, ['returns'], 'returns')}
+            >
+              download returns (.ics)
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => downloadCalendar(blueprint, ['flips'], 'flips')}
+            >
+              download flips (.ics)
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => downloadCalendar(blueprint, ['returns', 'flips'], 'cycles')}
+            >
+              download all (.ics)
+            </button>
+          </div>
         </section>
       )}
 
@@ -409,4 +407,21 @@ export default function PolarityPage() {
       </section>
     </main>
   );
+}
+
+async function downloadCalendar(blueprint: NonNullable<ReturnType<typeof useStore.getState>['blueprint']>, include: string[], baseName: string) {
+  const res = await fetch('/api/calendar', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ blueprint, include }),
+  });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `liraydhas-${baseName}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
