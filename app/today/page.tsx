@@ -139,7 +139,7 @@ export default function TodayPage() {
         </div>
         {daily?.transits && daily.transits.length > 0 && (
           <p className="mt-3 serif text-ink-dim text-[15px] italic">
-            today is {dailyVibe(daily.transits)}.
+            today is {dailyVibe(daily.transits, positionInCycles(ageInYears(blueprint.birth.iso)))}.
           </p>
         )}
         {isSolarReturnToday && (
