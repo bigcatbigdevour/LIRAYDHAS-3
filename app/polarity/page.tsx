@@ -52,6 +52,18 @@ export default function PolarityPage() {
     return [...flips].sort((a, b) => a.daysUntilEnd - b.daysUntilEnd)[0];
   }, [flips]);
 
+  const imminentFlips = useMemo(() => {
+    return flips
+      .filter((f) => f.daysUntilEnd <= 30)
+      .sort((a, b) => a.daysUntilEnd - b.daysUntilEnd);
+  }, [flips]);
+
+  const recentFlips = useMemo(() => {
+    return flips
+      .filter((f) => f.daysSinceStart <= 30)
+      .sort((a, b) => a.daysSinceStart - b.daysSinceStart);
+  }, [flips]);
+
   const currentStation = useMemo(() => {
     if (!blueprint) return null;
     const age = ageInYears(blueprint.birth.iso);
@@ -196,6 +208,44 @@ export default function PolarityPage() {
         <PolarityBars positions={positions} flips={flips} />
         <ScrollHint label="tap a bar · or scroll" />
       </section>
+
+      {(recentFlips.length > 0 || imminentFlips.length > 0) && (
+        <section className="mt-10 border-t border-hairline pt-6">
+          <p className="small-label caps mb-3">flips inside the month</p>
+          <div className="grid grid-cols-1 gap-2 text-[13px]">
+            {recentFlips.map((f) => (
+              <div
+                key={`r-${f.cycle.key}`}
+                className="flex justify-between border-l-2 pl-2"
+                style={{ borderLeftColor: f.cycle.color }}
+              >
+                <span className="text-ink-dim">
+                  <span className="text-ink">{f.cycle.label.toLowerCase()}</span>{' '}
+                  flipped to <span className="text-ink">{f.positive ? 'rising' : 'descending'}</span>
+                </span>
+                <span className="tabular-nums text-ink-faint">
+                  {Math.round(f.daysSinceStart)}d ago
+                </span>
+              </div>
+            ))}
+            {imminentFlips.map((f) => (
+              <div
+                key={`i-${f.cycle.key}`}
+                className="flex justify-between border-l-2 pl-2 opacity-90"
+                style={{ borderLeftColor: f.cycle.color }}
+              >
+                <span className="text-ink-dim">
+                  <span className="text-ink">{f.cycle.label.toLowerCase()}</span>{' '}
+                  flips to <span className="text-ink">{f.positive ? 'descending' : 'rising'}</span>
+                </span>
+                <span className="tabular-nums text-accent">
+                  in {Math.round(f.daysUntilEnd)}d
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mt-10 border-t border-hairline pt-6">
         {loading && !polarity?.paragraph && (
