@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
-import { ageInYears, positionInCycles, upcomingReturns } from '@/lib/cycles';
+import { ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
 import type { PolarityReading } from '@/lib/types';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -33,6 +33,21 @@ export default function PolarityPage() {
     if (!blueprint) return [];
     return upcomingReturns(blueprint.birth.iso);
   }, [blueprint]);
+
+  const flips = useMemo(() => {
+    if (!blueprint) return [];
+    return polarityFlips(blueprint.birth.iso);
+  }, [blueprint]);
+
+  const mostRecentFlip = useMemo(() => {
+    if (flips.length === 0) return null;
+    return [...flips].sort((a, b) => a.daysSinceStart - b.daysSinceStart)[0];
+  }, [flips]);
+
+  const nextFlip = useMemo(() => {
+    if (flips.length === 0) return null;
+    return [...flips].sort((a, b) => a.daysUntilEnd - b.daysUntilEnd)[0];
+  }, [flips]);
 
   const fresh = useMemo(() => {
     if (!polarity) return false;
@@ -87,10 +102,34 @@ export default function PolarityPage() {
         <p className="text-ink-dim text-[13px] mt-2">
           {positive} cycles rising · {negative} descending — {stack}.
         </p>
+        {(mostRecentFlip || nextFlip) && (
+          <div className="mt-3 grid grid-cols-2 gap-x-3 text-[11px]" style={{ letterSpacing: '0.06em' }}>
+            {mostRecentFlip && (
+              <p className="text-ink-faint">
+                last flip · <span className="text-ink">{mostRecentFlip.cycle.label.toLowerCase()}</span>
+                <br />
+                <span className="small-label caps">
+                  {Math.round(mostRecentFlip.daysSinceStart)} days ago →{' '}
+                  {mostRecentFlip.positive ? 'rising' : 'descending'}
+                </span>
+              </p>
+            )}
+            {nextFlip && (
+              <p className="text-ink-faint text-right">
+                next flip · <span className="text-ink">{nextFlip.cycle.label.toLowerCase()}</span>
+                <br />
+                <span className="small-label caps">
+                  in {Math.round(nextFlip.daysUntilEnd)} days →{' '}
+                  {nextFlip.positive ? 'descending' : 'rising'}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
       </header>
 
       <section className="mt-6">
-        <PolarityBars positions={positions} />
+        <PolarityBars positions={positions} flips={flips} />
       </section>
 
       <section className="mt-10 border-t border-hairline pt-6">

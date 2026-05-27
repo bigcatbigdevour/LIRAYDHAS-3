@@ -15,7 +15,7 @@ import { daysUntilSolarReturn } from '../lib/astrology/returns';
 import { longitudeToGateLine, GATE_WHEEL } from '../lib/humandesign/gateWheel';
 import { ALL_CHANNELS } from '../lib/humandesign/channels';
 import { CENTER_GATES } from '../lib/humandesign/centers';
-import { ageInYears, positionInCycles, upcomingReturns } from '../lib/cycles';
+import { ageInYears, positionInCycles, upcomingReturns, polarityFlips, CYCLES } from '../lib/cycles';
 import { imminentReturns } from '../lib/keyMoments';
 import { lifePath } from '../lib/numerology';
 import { houseOfLongitude } from '../lib/astrology/houses';
@@ -336,6 +336,22 @@ sectionLine('cycles');
     if (ur[i].date.getTime() < ur[i-1].date.getTime()) { ok = false; break; }
   }
   check('upcomingReturns dates ascending', ok);
+}
+{
+  const flips = polarityFlips(bp.birth.iso);
+  check('polarityFlips returns one per cycle', flips.length === CYCLES.length);
+  let consistent = true;
+  for (const f of flips) {
+    const halfLen = f.cycle.yearLength / 2;
+    const halfDays = halfLen * 365.2425;
+    const total = f.daysSinceStart + f.daysUntilEnd;
+    if (Math.abs(total - halfDays) > 1) {
+      consistent = false;
+      console.log(`     ${f.cycle.label}: daysSince + daysUntil = ${total.toFixed(2)} ≠ half ${halfDays.toFixed(2)}`);
+    }
+    if (f.daysSinceStart < 0 || f.daysUntilEnd < 0) consistent = false;
+  }
+  check('every flip: daysSince + daysUntil = halfLength', consistent);
 }
 {
   // imminentReturns: for someone whose Saturn return is in 3 months, it should fire

@@ -71,3 +71,40 @@ export function upcomingReturns(birthIso: string, now = new Date()): UpcomingRet
     return { cycle: c, ageAtReturn: ageAt, date };
   }).sort((a, b) => a.date.getTime() - b.date.getTime());
 }
+
+export interface PolarityFlip {
+  cycle: Cycle;
+  /** True if currently in the rising half of its period. */
+  positive: boolean;
+  /** Date when current half started (a flip or a return). */
+  startedAt: Date;
+  /** Date when current half ends (next flip). */
+  endsAt: Date;
+  /** Days since the current half started. */
+  daysSinceStart: number;
+  /** Days until the current half ends. */
+  daysUntilEnd: number;
+}
+
+/**
+ * For each cycle, compute when the current rising/descending phase began
+ * and when it will end. A phase is half a period — the first half is
+ * rising, the second half is descending.
+ */
+export function polarityFlips(birthIso: string, now = new Date()): PolarityFlip[] {
+  const birth = new Date(birthIso);
+  const age = ageInYears(birthIso, now);
+  return CYCLES.map((c) => {
+    // Halves are every (yearLength / 2). The k-th half starts at age k*L/2.
+    const halfLen = c.yearLength / 2;
+    const halfIdx = Math.floor(age / halfLen);
+    const positive = halfIdx % 2 === 0;
+    const startAge = halfIdx * halfLen;
+    const endAge = (halfIdx + 1) * halfLen;
+    const startedAt = new Date(birth.getTime() + startAge * 365.2425 * 86400 * 1000);
+    const endsAt = new Date(birth.getTime() + endAge * 365.2425 * 86400 * 1000);
+    const daysSinceStart = (now.getTime() - startedAt.getTime()) / 86400_000;
+    const daysUntilEnd = (endsAt.getTime() - now.getTime()) / 86400_000;
+    return { cycle: c, positive, startedAt, endsAt, daysSinceStart, daysUntilEnd };
+  });
+}

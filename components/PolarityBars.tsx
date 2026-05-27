@@ -1,10 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import type { CyclePosition } from '@/lib/cycles';
+import type { CyclePosition, PolarityFlip } from '@/lib/cycles';
+import { POLARITY_HALVES } from '@/lib/polarityHalves';
 
-export default function PolarityBars({ positions }: { positions: CyclePosition[] }) {
+interface Props {
+  positions: CyclePosition[];
+  flips?: PolarityFlip[];
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function humanDays(d: number): string {
+  const abs = Math.abs(d);
+  if (abs < 1.5) return abs < 1 ? '<1 day' : '1 day';
+  if (abs < 60) return `${Math.round(abs)} days`;
+  if (abs < 365 * 1.5) return `${(abs / 30.44).toFixed(abs < 200 ? 1 : 0)} months`;
+  return `${(abs / 365.25).toFixed(1)} years`;
+}
+
+export default function PolarityBars({ positions, flips }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const flipByKey: Record<string, PolarityFlip> = {};
+  for (const f of flips ?? []) flipByKey[f.cycle.key] = f;
+
   return (
     <ul className="space-y-5">
       {positions.map((p) => {
@@ -12,6 +33,8 @@ export default function PolarityBars({ positions }: { positions: CyclePosition[]
         const pct = p.fraction * 100;
         const label = isPos ? 'rising' : 'descending';
         const isOpen = expanded === p.cycle.key;
+        const flip = flipByKey[p.cycle.key];
+        const halfText = POLARITY_HALVES[p.cycle.key];
         return (
           <li key={p.cycle.key}>
             <button
@@ -44,11 +67,42 @@ export default function PolarityBars({ positions }: { positions: CyclePosition[]
                   style={{ left: `${pct}%` }}
                 />
               </div>
+              {flip && (
+                <div className="mt-1.5 flex justify-between text-[10.5px] text-ink-faint" style={{ letterSpacing: '0.08em' }}>
+                  <span>
+                    flipped {humanDays(flip.daysSinceStart)} ago
+                    <span className="opacity-60"> · {formatDate(flip.startedAt)}</span>
+                  </span>
+                  <span>
+                    flips in {humanDays(flip.daysUntilEnd)}
+                  </span>
+                </div>
+              )}
             </button>
             {isOpen && (
-              <p className="text-[12.5px] text-ink-dim mt-2 serif italic">
-                {p.cycle.description}
-              </p>
+              <div className="mt-2 space-y-2">
+                <p className="text-[12.5px] text-ink-dim serif italic">
+                  {p.cycle.description}
+                </p>
+                {halfText && (
+                  <>
+                    <p className="text-[13px] serif">
+                      <span className="small-label caps text-ink-faint mr-1.5">
+                        {isPos ? 'rising · now' : 'descending · now'}
+                      </span>
+                      <span className="text-ink">
+                        {isPos ? halfText.rising : halfText.descending}
+                      </span>
+                    </p>
+                    <p className="text-[13px] serif text-ink-dim">
+                      <span className="small-label caps text-ink-faint mr-1.5">
+                        {isPos ? 'next: descending' : 'next: rising'}
+                      </span>
+                      {isPos ? halfText.descending : halfText.rising}
+                    </p>
+                  </>
+                )}
+              </div>
             )}
           </li>
         );
