@@ -30,7 +30,7 @@ interface Arc extends ArcSelection {
   index: number;
 }
 
-export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect, onSelectStation, focusAge }: Props) {
+export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, onSelectStation, focusAge }: Props) {
   const ref = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Arc | null>(null);
 

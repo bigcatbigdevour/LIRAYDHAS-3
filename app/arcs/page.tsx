@@ -34,7 +34,7 @@ export default function ArcsPage() {
     const a = new URLSearchParams(window.location.search).get('age');
     if (a !== null) {
       const n = parseFloat(a);
-      if (Number.isFinite(n) && n >= 0 && n <= 85) _setFocusAge(n);
+      if (Number.isFinite(n) && n >= 0 && n <= 92) _setFocusAge(n);
     }
   }, []);
 
@@ -55,9 +55,9 @@ export default function ArcsPage() {
         <p className="serif text-[15px] text-ink-dim mt-3 leading-relaxed max-w-xl">
           Most astrology gives you a snapshot. This gives you the shape of
           your whole life. Seven cycles — Solar, Mars, Jupiter, Saturn,
-          Nodal, Chiron, the Progressed Moon — drawn end to end from age
-          zero to eighty-five. The brighter arcs are the ones you are
-          currently inside. The white line is right now.
+          Nodal, Chiron, the Progressed Moon — drawn end to end across a
+          human lifespan. The brighter arcs are the ones you are currently
+          inside. The white line is right now.
         </p>
         <p className="text-ink-dim text-[13px] mt-3 max-w-md">
           <span className="text-ink">Tap any arc</span> to read what that
@@ -139,7 +139,7 @@ export default function ArcsPage() {
           <input
             type="range"
             min={0}
-            max={85}
+            max={92}
             step={0.1}
             value={focusAge ?? age}
             onChange={(e) => {
@@ -233,7 +233,7 @@ export default function ArcsPage() {
         <ul className="space-y-2 text-[13.5px] text-ink-dim serif">
           <li>
             <span className="text-ink">The bottom line</span> is your life,
-            ages 0 to 85, left to right.
+            ages 0 to 92, left to right.
           </li>
           <li>
             <span className="text-ink">Each tick</span> on the bottom line is

@@ -114,4 +114,18 @@ export const LIFE_STATIONS: LifeStation[] = [
     description:
       'The midpoint of the elder Saturn arc. The work of integration enters its second half. Often coincides with retirement-from-the-role-you-built, and the beginning of whatever the role-you-leave is going to be.',
   },
+  {
+    age: 84,
+    label: 'Uranus return',
+    convergence: 'Uranus 1 + Jupiter 7 + Saturn approaching 3',
+    description:
+      'The eccentric outer planet returns to its natal place once in a long lifetime, around 84. The "what only you could have done" question. Many cultures mark this age — kanreki extended, second eldership.',
+  },
+  {
+    age: 88.4,
+    label: 'Third Saturn return',
+    convergence: 'Saturn 3 + Jupiter ~7.5 + Nodal ~4.7',
+    description:
+      'If you make it, the final Saturn reckoning. The structure that has carried you is now fully your own. The question is no longer what to build but how to hand it off.',
+  },
 ];
