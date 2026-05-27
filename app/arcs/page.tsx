@@ -28,11 +28,16 @@ export default function ArcsPage() {
       <header className="pb-6">
         <p className="small-label caps">Arcs</p>
         <h1 className="h-display serif mt-3">Every cycle, drawn.</h1>
-        <p className="text-ink-dim text-[13px] mt-2 max-w-md">
-          Each tick is a return of a cycle. Each arc connects two consecutive
-          returns — one period of that cycle. The white line is where you are
-          right now. <span className="text-ink">Tap any arc</span> to read what
-          it holds for you.
+        <p className="serif text-[15px] text-ink-dim mt-3 leading-relaxed max-w-xl">
+          Most astrology gives you a snapshot. This gives you the shape of
+          your whole life. Seven cycles — Solar, Mars, Jupiter, Saturn,
+          Nodal, Chiron, the Progressed Moon — drawn end to end from age
+          zero to eighty-five. The brighter arcs are the ones you are
+          currently inside. The white line is right now.
+        </p>
+        <p className="text-ink-dim text-[13px] mt-3 max-w-md">
+          <span className="text-ink">Tap any arc</span> to read what that
+          specific period holds.
         </p>
       </header>
 

@@ -101,8 +101,14 @@ export default function PolarityPage() {
       <header className="pb-6">
         <p className="small-label caps">Polarity</p>
         <h1 className="h-display serif mt-3">Where the tides are.</h1>
-        <p className="text-ink-dim text-[13px] mt-2">
-          {positive} cycles rising · {negative} descending — {stack}.
+        <p className="serif text-[15px] text-ink-dim mt-3 leading-relaxed">
+          Every major cycle in a human life has a polarity — a first half
+          that is rising, building, opening, and a second half that is
+          descending, completing, releasing. Most people live their whole
+          lives inside these tides without knowing when they flip.
+        </p>
+        <p className="text-ink-dim text-[13px] mt-3">
+          Right now: <span className="text-ink">{positive} cycles rising · {negative} descending</span> — {stack}.
         </p>
         {(mostRecentFlip || nextFlip) && (
           <div className="mt-3 grid grid-cols-2 gap-x-3 text-[11px]" style={{ letterSpacing: '0.06em' }}>

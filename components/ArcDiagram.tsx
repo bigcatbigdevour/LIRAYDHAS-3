@@ -99,19 +99,23 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
 
     const arcG = g.append('g').attr('class', 'arcs');
 
+    const age = ageInYears(birthIso);
+    function isActiveArc(d: Arc): boolean {
+      return age >= d.ageStart && age < d.ageEnd;
+    }
     function strokeFor(d: Arc): string {
-      if (selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle) return d.color;
-      if (selected) return d.color; // keep all visible
       return d.color;
     }
     function opacityFor(d: Arc): number {
       const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
       if (selected && !isSel) return 0.18;
-      return 0.55;
+      if (isActiveArc(d)) return 0.95;
+      return 0.5;
     }
     function widthFor(d: Arc): number {
       const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
       if (isSel) return 2;
+      if (isActiveArc(d)) return 1.3;
       return 0.7;
     }
 
@@ -181,7 +185,6 @@ export default function ArcDiagram({ birthIso, maxAge = 85, selected, onSelect }
       .attr('stroke-dashoffset', 0);
 
     // today's age marker — slow opacity pulse, animated entry
-    const age = ageInYears(birthIso);
     const nowLine = g.append('line')
       .attr('x1', x(age)).attr('x2', x(age))
       .attr('y1', 0).attr('y2', 0)
