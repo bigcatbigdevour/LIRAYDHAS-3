@@ -13,7 +13,30 @@ export default function ArcsPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
   const [selected, setSelected] = useState<ArcSelection | null>(null);
-  const [focusAge, setFocusAge] = useState<number | null>(null);
+  const [focusAge, _setFocusAge] = useState<number | null>(null);
+
+  // Wrap setFocusAge so it also reflects the value in the URL — gives
+  // shareable deep-links like /arcs?age=29
+  function setFocusAge(v: number | null) {
+    _setFocusAge(v);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (v === null) params.delete('age');
+    else params.set('age', v.toFixed(1));
+    const q = params.toString();
+    const url = q ? `?${q}` : window.location.pathname;
+    window.history.replaceState(null, '', url);
+  }
+
+  // On mount, hydrate focusAge from ?age=N if present
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const a = new URLSearchParams(window.location.search).get('age');
+    if (a !== null) {
+      const n = parseFloat(a);
+      if (Number.isFinite(n) && n >= 0 && n <= 85) _setFocusAge(n);
+    }
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
