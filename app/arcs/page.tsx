@@ -93,7 +93,14 @@ export default function ArcsPage() {
         </p>
       </header>
 
-      <section className="mt-6">
+      <nav className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[10px] caps text-ink-faint border-t border-b border-hairline py-1.5" style={{ letterSpacing: '0.12em' }}>
+        <a href="#chart" className="hover:text-ink">chart</a>
+        <a href="#read" className="hover:text-ink">how to read</a>
+        <a href="#stations" className="hover:text-ink">stations</a>
+        <a href="#cycles" className="hover:text-ink">each cycle</a>
+      </nav>
+
+      <section id="chart" className="mt-6 scroll-mt-4">
         <ArcDiagram
           birthIso={blueprint.birth.iso}
           selected={selected}
@@ -297,7 +304,7 @@ export default function ArcsPage() {
       )}
 
       {/* Always-visible legend / key */}
-      <section className="mt-12">
+      <section id="read" className="mt-12 scroll-mt-4">
         <h2 className="h-display serif mb-3" style={{ fontSize: '1.5rem' }}>
           How to read this chart.
         </h2>
@@ -327,7 +334,7 @@ export default function ArcsPage() {
       </section>
 
       {/* Convergence stations — ages where multiple cycles align */}
-      <section className="mt-12">
+      <section id="stations" className="mt-12 scroll-mt-4">
         <h2 className="h-display serif mb-2" style={{ fontSize: '1.5rem' }}>
           Where the cycles converge.
         </h2>
@@ -384,7 +391,7 @@ export default function ArcsPage() {
       </section>
 
       {/* Cycle-by-cycle multi-lens guide */}
-      <section className="mt-16 space-y-10">
+      <section id="cycles" className="mt-16 space-y-10 scroll-mt-4">
         <h2 className="h-display serif" style={{ fontSize: '1.5rem' }}>
           Each cycle, four ways.
         </h2>
