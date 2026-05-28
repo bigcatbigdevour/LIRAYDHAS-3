@@ -232,6 +232,7 @@ export default function TodayPage() {
             in {nextMajor.daysAhead < 365 ? `${Math.round(nextMajor.daysAhead)} days` : `${(nextMajor.daysAhead / 365.25).toFixed(1)} years`} ·{' '}
             {nextMajor.date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
           </p>
+          <a href="/year" className="small-label caps text-[10px] text-ink-faint hover:text-ink mt-1 inline-block">see the year ahead →</a>
         </section>
       )}
 
