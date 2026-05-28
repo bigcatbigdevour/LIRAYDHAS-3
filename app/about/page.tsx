@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
+import { fullOverviewText } from '@/lib/fullOverview';
 
 export default function AboutPage() {
   const router = useRouter();
@@ -100,6 +101,25 @@ export default function AboutPage() {
       <div className="space-y-3">
         <Link href="/chart" className="btn-ghost block">go to your chart →</Link>
         <Link href="/year" className="btn-ghost block">your year ahead →</Link>
+        {blueprint && (
+          <button
+            className="btn-ghost text-left"
+            onClick={async () => {
+              const txt = fullOverviewText(blueprint);
+              try {
+                if (navigator.share) await navigator.share({ title: 'My blueprint', text: txt });
+                else {
+                  await navigator.clipboard.writeText(txt);
+                  const el = document.getElementById('overview-toast');
+                  if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+                }
+              } catch {/* cancelled */}
+            }}
+          >
+            export full overview (text)
+          </button>
+        )}
+        <div id="overview-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
         {blueprint && (
           <button
             className="btn-ghost"
