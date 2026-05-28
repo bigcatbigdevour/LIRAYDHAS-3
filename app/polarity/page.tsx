@@ -12,6 +12,7 @@ import { POLARITY_LENSES } from '@/lib/polarityLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { currentChapter } from '@/lib/lifeChapters';
+import { polarityGlanceText } from '@/lib/polarityGlance';
 import { AUTHORITY_FOR_POLARITY } from '@/lib/humandesign/authorityForPolarity';
 import type { PolarityReading } from '@/lib/types';
 
@@ -439,6 +440,34 @@ export default function PolarityPage() {
             })}
           </ol>
         )}
+      </section>
+
+      {/* Deterministic 'polarity at a glance' — always works, copy-friendly */}
+      <section className="mt-10 border-t border-hairline pt-6">
+        <div className="flex items-baseline justify-between mb-2">
+          <p className="small-label caps">polarity at a glance</p>
+          <button
+            type="button"
+            className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+            onClick={async () => {
+              const txt = polarityGlanceText(blueprint);
+              try {
+                if (navigator.share) await navigator.share({ title: 'Polarity', text: txt });
+                else {
+                  await navigator.clipboard.writeText(txt);
+                  const el = document.getElementById('polarity-glance-toast');
+                  if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+                }
+              } catch {/* cancelled */}
+            }}
+          >
+            share
+          </button>
+        </div>
+        <pre className="text-[12.5px] text-ink-dim font-mono whitespace-pre-wrap leading-relaxed">
+{polarityGlanceText(blueprint)}
+        </pre>
+        <div id="polarity-glance-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
       </section>
 
       <section id="interpretation" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
