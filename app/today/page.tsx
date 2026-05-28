@@ -7,7 +7,8 @@ import SkyVisual from '@/components/SkyVisual';
 import MoonIcon from '@/components/MoonIcon';
 import { currentMoon, nextLunation, hoursUntilMoonSignChange, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
-import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
+import { todaysTransits, pickTopAspects, upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
+import type { TransitAspect } from '@/lib/types';
 import { dailyVibe } from '@/lib/astrology/vibe';
 import { ageInYears, polarityFlips, positionInCycles, type PolarityFlip } from '@/lib/cycles';
 import { upcomingEventsFeed, type UpcomingEvent } from '@/lib/upcomingEvents';
@@ -15,6 +16,7 @@ import { todayGlanceText } from '@/lib/todayGlance';
 import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
 import { currentChapter } from '@/lib/lifeChapters';
 import type { PlanetName } from '@/lib/types';
+// (TransitAspect imported above with transits)
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 import { aspectMeaning } from '@/lib/astrology/aspectMeanings';
@@ -42,6 +44,7 @@ export default function TodayPage() {
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
+  const [liveTransits, setLiveTransits] = useState<TransitAspect[]>([]);
   const [keyMoments, setKeyMoments] = useState<KeyMoment[]>([]);
   const [tideFlips, setTideFlips] = useState<PolarityFlip[]>([]);
   const [nextMajor, setNextMajor] = useState<UpcomingEvent | null>(null);
@@ -59,6 +62,10 @@ export default function TodayPage() {
     if (!blueprint) return;
     setTodayHd(userTransits(blueprint));
     setForecast(upcomingForecast(blueprint.natal, 7));
+    // Compute today's top transits client-side so they show even when the
+    // LLM endpoint is unavailable.
+    const { aspects } = todaysTransits(blueprint.natal);
+    setLiveTransits(pickTopAspects(aspects, 3));
     setKeyMoments(imminentReturns(ageInYears(blueprint.birth.iso)));
     // Cycles that just flipped (within last 14 days) — surface as a small
     // "the tides changed this week" callout linking to /polarity.
@@ -139,11 +146,11 @@ export default function TodayPage() {
             </span>
           )}
         </div>
-        {daily?.transits && daily.transits.length > 0 && (
+        {(daily?.transits && daily.transits.length > 0) || liveTransits.length > 0 ? (
           <p className="mt-3 serif text-ink-dim text-[15px] italic">
-            today is {dailyVibe(daily.transits, positionInCycles(ageInYears(blueprint.birth.iso)))}.
+            today is {dailyVibe(daily?.transits ?? liveTransits, positionInCycles(ageInYears(blueprint.birth.iso)))}.
           </p>
-        )}
+        ) : null}
         {isSolarReturnToday && (
           <p className="text-accent text-[11px] mt-2 caps" style={{ letterSpacing: '0.2em' }}>
             ✦ solar return — your year begins
@@ -251,38 +258,42 @@ export default function TodayPage() {
         )}
       </section>
 
-      {daily?.transits && daily.transits.length > 0 && (
-        <section className="mt-12">
-          <p className="small-label caps mb-3">today's transits</p>
-          <ul className="space-y-0">
-            {daily.transits.map((t, i) => {
-              const open = expandedAspect === i;
-              const isExact = t.orb < 0.5;
-              return (
-                <li key={i} className="border-b border-hairline">
-                  <button
-                    onClick={() => setExpandedAspect(open ? null : i)}
-                    className="w-full flex justify-between items-baseline text-[13px] text-ink-dim py-2 text-left"
-                  >
-                    <span>
-                      <span className="text-ink">{t.transitPlanet}</span>{' '}
-                      {PRETTY_ASPECT[t.aspect]}{' '}
-                      natal <span className="text-ink">{t.natalPlanet}</span>
-                      {isExact && <span className="text-accent ml-1.5 caps small-label">exact</span>}
-                    </span>
-                    <span className={`tabular-nums ${isExact ? 'text-accent' : ''}`}>{t.orb.toFixed(1)}°</span>
-                  </button>
-                  {open && (
-                    <p className="text-[12.5px] text-ink-dim pb-2 serif italic">
-                      {aspectMeaning(t.transitPlanet, t.natalPlanet, t.aspect)}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
+      {(() => {
+        const transitsToShow = (daily?.transits && daily.transits.length > 0) ? daily.transits : liveTransits;
+        if (transitsToShow.length === 0) return null;
+        return (
+          <section className="mt-12">
+            <p className="small-label caps mb-3">today's transits</p>
+            <ul className="space-y-0">
+              {transitsToShow.map((t, i) => {
+                const open = expandedAspect === i;
+                const isExact = t.orb < 0.5;
+                return (
+                  <li key={i} className="border-b border-hairline">
+                    <button
+                      onClick={() => setExpandedAspect(open ? null : i)}
+                      className="w-full flex justify-between items-baseline text-[13px] text-ink-dim py-2 text-left"
+                    >
+                      <span>
+                        <span className="text-ink">{t.transitPlanet}</span>{' '}
+                        {PRETTY_ASPECT[t.aspect]}{' '}
+                        natal <span className="text-ink">{t.natalPlanet}</span>
+                        {isExact && <span className="text-accent ml-1.5 caps small-label">exact</span>}
+                      </span>
+                      <span className={`tabular-nums ${isExact ? 'text-accent' : ''}`}>{t.orb.toFixed(1)}°</span>
+                    </button>
+                    {open && (
+                      <p className="text-[12.5px] text-ink-dim pb-2 serif italic">
+                        {aspectMeaning(t.transitPlanet, t.natalPlanet, t.aspect)}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })()}
 
       {todayHd && (
         <section className="mt-12">
@@ -454,7 +465,7 @@ export default function TodayPage() {
             onClick={async () => {
               const txt = todayGlanceText({
                 blueprint,
-                transits: daily?.transits ?? [],
+                transits: daily?.transits ?? liveTransits,
                 moon,
                 retrogrades,
                 recentFlips: tideFlips,
@@ -477,7 +488,7 @@ export default function TodayPage() {
         <pre className="text-[12.5px] text-ink-dim font-mono whitespace-pre-wrap leading-relaxed">
 {todayGlanceText({
   blueprint,
-  transits: daily?.transits ?? [],
+  transits: daily?.transits ?? liveTransits,
   moon,
   retrogrades,
   recentFlips: tideFlips,
