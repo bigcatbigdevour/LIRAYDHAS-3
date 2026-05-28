@@ -214,7 +214,7 @@ export default function PolarityPage() {
               }}
             >
               <span
-                className="block w-2.5 h-2.5"
+                className={`block ${(p.fraction < 0.08 || p.fraction > 0.92) ? 'w-3 h-3' : 'w-2.5 h-2.5'} ${(p.fraction < 0.08 || p.fraction > 0.92) ? 'polarity-marker-pulse' : ''}`}
                 style={{
                   background: p.cycle.color,
                   opacity: p.positive ? 0.95 : 0.35,

@@ -149,6 +149,15 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   animation: polarity-pulse 4.5s ease-in-out infinite;
 }
 
+/* very gentle opacity pulse on the colored bar fill */
+@keyframes polarity-fill-breathe {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 0.78; }
+}
+.polarity-fill-breathe {
+  animation: polarity-fill-breathe 5.5s ease-in-out infinite;
+}
+
 /* brief flash when a station card is jumped to from the chart */
 @keyframes station-flash {
   0%   { border-left-color: #8b3a3a; background: #1a0e0e; }

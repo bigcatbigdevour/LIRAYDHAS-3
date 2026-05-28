@@ -77,13 +77,12 @@ export default function PolarityBars({ positions, flips }: Props) {
               <div className="relative h-8 border border-hairline overflow-hidden">
                 <div className="absolute left-0 right-0 top-1/2 h-px bg-hairline" />
                 <div
-                  className={`absolute ${isPos ? 'top-0' : 'bottom-0'}`}
+                  className={`absolute polarity-fill-breathe ${isPos ? 'top-0' : 'bottom-0'}`}
                   style={{
                     left: 0,
                     width: `${fillWidth}%`,
                     height: '50%',
                     background: p.cycle.color,
-                    opacity: 0.65,
                     transition: `width 900ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,
                   }}
                 />
