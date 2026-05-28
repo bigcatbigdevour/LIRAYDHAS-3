@@ -22,6 +22,12 @@ export default function Onboarding() {
   const [picked, setPicked] = useState<{ r: GeocodeResult; label: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [maxDate, setMaxDate] = useState('');
+
+  useEffect(() => {
+    // set after mount so SSR/CSR agree on the initial render
+    setMaxDate(new Date().toISOString().slice(0, 10));
+  }, []);
 
   const checked = useRef(false);
   useEffect(() => {
@@ -134,7 +140,7 @@ export default function Onboarding() {
             className="input"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            max="2026-12-31"
+            max={maxDate || undefined}
             min="1900-01-01"
           />
         </Field>

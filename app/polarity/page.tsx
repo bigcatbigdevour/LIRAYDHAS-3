@@ -659,6 +659,10 @@ async function downloadCalendar(blueprint: NonNullable<ReturnType<typeof useStor
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ blueprint, include }),
   });
+  if (!res.ok) {
+    console.error('calendar download failed', res.status);
+    return;
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
