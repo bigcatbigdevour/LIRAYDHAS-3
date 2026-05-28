@@ -124,6 +124,7 @@ export default function ArcsPage() {
         <a href="#read" className="hover:text-ink">how to read</a>
         <a href="#stations" className="hover:text-ink">stations</a>
         <a href="#cycles" className="hover:text-ink">each cycle</a>
+        <a href="/year" className="hover:text-ink text-accent">/year →</a>
       </nav>
 
       <section id="chart" className="mt-6 scroll-mt-4">

@@ -120,8 +120,10 @@ export default function Onboarding() {
         <h1 className="h-display serif mt-6">
           Tell me where<br />you started.
         </h1>
-        <p className="text-ink-dim text-[14px] mt-3 max-w-sm">
-          Date, time, and place of birth.
+        <p className="text-ink-dim text-[14px] mt-3 max-w-sm leading-relaxed">
+          Date, time, and place of birth. Your time matters most — without
+          it the rising sign and houses go soft. Place determines the
+          timezone, so a city that's close to where you were born is fine.
         </p>
       </header>
 

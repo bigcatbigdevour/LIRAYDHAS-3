@@ -302,6 +302,7 @@ export default function PolarityPage() {
         <a href="#read" className="hover:text-ink">how to read</a>
         <a href="#cycles" className="hover:text-ink">each cycle</a>
         <a href="#returns" className="hover:text-ink">next returns</a>
+        <a href="/year" className="hover:text-ink text-accent">/year →</a>
       </nav>
 
       <section id="stack" className="mt-6 scroll-mt-4">
