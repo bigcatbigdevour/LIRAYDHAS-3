@@ -97,7 +97,7 @@ export default function PolarityBars({ positions, flips }: Props) {
                 />
               </div>
               {flip && (
-                <div className="mt-1.5 flex justify-between text-[10.5px] text-ink-faint" style={{ letterSpacing: '0.08em' }}>
+                <div className="mt-1.5 flex flex-wrap justify-between gap-x-2 text-[10.5px] text-ink-faint" style={{ letterSpacing: '0.08em' }}>
                   <span>
                     flipped {humanDays(flip.daysSinceStart)} ago
                     <span className="opacity-60"> · {formatDate(flip.startedAt)}</span>
