@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import type { Blueprint, PlanetName } from '@/lib/types';
+import { todaysTransits } from '@/lib/astrology/transits';
 
 const SIGNS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
 const GLYPH: Partial<Record<PlanetName, string>> = {
@@ -12,6 +14,7 @@ const GLYPH: Partial<Record<PlanetName, string>> = {
 interface Body { name: PlanetName; lon: number }
 
 export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
+  const [showTransits, setShowTransits] = useState(false);
   const n = blueprint.natal;
   const bodies: Body[] = [
     { name: 'Sun', lon: n.sun.longitude },
@@ -28,12 +31,24 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
   ];
   if (n.chiron) bodies.push({ name: 'Chiron', lon: n.chiron.longitude });
 
+  const transits = useMemo(() => {
+    const t = todaysTransits(blueprint.natal);
+    const TRANSIT_ORDER: PlanetName[] = [
+      'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
+      'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
+    ];
+    return TRANSIT_ORDER
+      .map((p) => ({ name: p, lon: t.positions[p] }))
+      .filter((p): p is { name: PlanetName; lon: number } => p.lon !== undefined && p.lon >= 0);
+  }, [blueprint]);
+
   const size = 340;
   const cx = size / 2;
   const cy = size / 2;
   const rOuter = 158;
   const rRing = 138;
   const rPlanet = 112;
+  const rTransit = 92;
   const rInner = 64;
 
   const housesKnown = n.houses.every((h) => h != null);
@@ -46,12 +61,26 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
   }
 
   const placed = layout(bodies, 6);
+  const transitPlaced = layout(transits, 7);
 
   return (
+    <>
+    <div className="flex justify-end mb-1">
+      <button
+        type="button"
+        onClick={() => setShowTransits(!showTransits)}
+        className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+      >
+        {showTransits ? '✓ transits' : 'show transits'}
+      </button>
+    </div>
     <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[380px] mx-auto block">
       <circle cx={cx} cy={cy} r={rOuter} fill="none" stroke="#222" strokeWidth="0.6" />
       <circle cx={cx} cy={cy} r={rRing}  fill="none" stroke="#222" strokeWidth="0.4" />
       <circle cx={cx} cy={cy} r={rInner} fill="none" stroke="#222" strokeWidth="0.4" />
+      {showTransits && (
+        <circle cx={cx} cy={cy} r={rTransit} fill="none" stroke="#222" strokeWidth="0.3" strokeDasharray="2 3" />
+      )}
 
       {/* 12 zodiac dividers */}
       {Array.from({ length: 12 }).map((_, i) => {
@@ -134,7 +163,30 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
         <text x={point((n.mc + 180) % 360, rOuter + 12).x} y={point((n.mc + 180) % 360, rOuter + 12).y + 3}
               textAnchor="middle" fontSize="9" fill="#555">IC</text>
       )}
+
+      {/* TRANSIT overlay — today's planet positions in wine-accent */}
+      {showTransits && transitPlaced.map((t) => {
+        const pos = point(t.adjustedLon, rTransit);
+        return (
+          <g key={`t-${t.name}`}>
+            <line
+              x1={point(t.lon, rInner + 4).x} y1={point(t.lon, rInner + 4).y}
+              x2={point(t.lon, rInner + 12).x} y2={point(t.lon, rInner + 12).y}
+              stroke="#8b3a3a" strokeWidth="0.5" opacity="0.7"
+            />
+            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="11" fill="#b22a2a">
+              {GLYPH[t.name] ?? '·'}
+            </text>
+          </g>
+        );
+      })}
     </svg>
+    {showTransits && (
+      <p className="text-center small-label caps text-ink-faint mt-1" style={{ letterSpacing: '0.18em' }}>
+        cream = natal · wine = today
+      </p>
+    )}
+    </>
   );
 }
 
