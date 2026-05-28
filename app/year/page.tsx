@@ -23,6 +23,39 @@ export default function YearPage() {
     return upcomingEventsFeed(blueprint.birth.iso, new Date(), { horizonYears: 1 });
   }, [blueprint]);
 
+  // Pick the 3 most significant events for the year — prioritise stations,
+  // then slow-cycle returns (Chiron > Saturn > Nodal > Jupiter > Mars), then
+  // anything else.
+  const headlines = useMemo(() => {
+    const rank = (k: string) => {
+      if (k === 'station') return 0;
+      if (k === 'return') return 1;
+      return 2;
+    };
+    const cycleWeight: Record<string, number> = {
+      chiron: 0, saturn: 1, nodal: 2, jupiter: 3, mars: 4, solar: 5, lunarPg: 6,
+    };
+    const scored = events.slice();
+    scored.sort((a, b) => {
+      const r = rank(a.kind) - rank(b.kind);
+      if (r !== 0) return r;
+      const aw = a.cycle ? (cycleWeight[a.cycle.key] ?? 9) : 9;
+      const bw = b.cycle ? (cycleWeight[b.cycle.key] ?? 9) : 9;
+      return aw - bw;
+    });
+    // Dedupe by title+detail
+    const seen = new Set<string>();
+    const out: typeof events = [];
+    for (const e of scored) {
+      const key = `${e.title}|${e.detail}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(e);
+      if (out.length >= 3) break;
+    }
+    return out;
+  }, [events]);
+
   // Group events by month-year
   const byMonth = useMemo(() => {
     const m: Record<string, typeof events> = {};
@@ -62,7 +95,31 @@ export default function YearPage() {
         )}
       </header>
 
-      <section className="mt-6">
+      {headlines.length > 0 && (
+        <section className="mt-6">
+          <p className="small-label caps mb-3">headlines</p>
+          <ul className="space-y-2">
+            {headlines.map((e, i) => (
+              <li
+                key={i}
+                className="border-l-2 pl-3 py-1"
+                style={{ borderLeftColor: e.color }}
+              >
+                <p className="serif text-[15px] text-ink">
+                  {e.cycle && <span className="text-ink-dim serif text-[13px] mr-1.5" aria-hidden>{e.cycle.glyph}</span>}
+                  {e.kind === 'station' && <span className="text-accent text-[10px] mr-1.5">◆</span>}
+                  {e.title}
+                </p>
+                <p className="text-[11px] text-ink-faint caps mt-0.5" style={{ letterSpacing: '0.08em' }}>
+                  {e.detail} · {e.date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })} · in {e.daysAhead < 365 ? `${Math.round(e.daysAhead)}d` : `${(e.daysAhead / 365.25).toFixed(1)}y`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="mt-10">
         <p className="small-label caps mb-2">polarity heatmap · 12 months</p>
         <PolarityForecast birthIso={blueprint.birth.iso} months={12} />
       </section>
