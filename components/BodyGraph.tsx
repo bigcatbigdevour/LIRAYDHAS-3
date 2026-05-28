@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import type { Blueprint, CenterName } from '@/lib/types';
 import { ALL_CHANNELS } from '@/lib/humandesign/channels';
+import { CENTER_MEANINGS } from '@/lib/humandesign/centerMeanings';
 
 // Canonical vertical bodygraph layout, 320 × 580 viewBox.
 //
@@ -156,6 +158,7 @@ function shapePath(name: CenterName): string {
 }
 
 export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
+  const [tappedCenter, setTappedCenter] = useState<CenterName | null>(null);
   const defined = new Set(blueprint.humanDesign.definedCenters);
   const activeGates = new Set(blueprint.humanDesign.activeGates.map((g) => g.gate));
   const persGates = new Set(
@@ -170,6 +173,7 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
   );
 
   return (
+    <>
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[340px] mx-auto block">
       {/* channels first (under shapes) — each as two half-segments so a
           hanging single gate shows as half-lit (grey). */}
@@ -199,18 +203,21 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         );
       })}
 
-      {/* center shapes */}
+      {/* center shapes — tappable */}
       {(Object.keys(CENTERS) as CenterName[]).map((name) => {
         const c = CENTERS[name];
         const isDefined = defined.has(name);
+        const isTapped = tappedCenter === name;
         return (
           <path
             key={name}
             d={shapePath(name)}
             fill={isDefined ? c.fill : 'transparent'}
             fillOpacity={isDefined ? 0.92 : 0}
-            stroke={isDefined ? c.fill : '#2a2a2a'}
-            strokeWidth={isDefined ? 0 : 0.8}
+            stroke={isTapped ? '#f4f1ea' : isDefined ? c.fill : '#2a2a2a'}
+            strokeWidth={isTapped ? 1.4 : isDefined ? 0 : 0.8}
+            style={{ cursor: 'pointer' }}
+            onClick={() => setTappedCenter(isTapped ? null : name)}
           />
         );
       })}
@@ -246,5 +253,28 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         PERSONALITY
       </text>
     </svg>
+    {tappedCenter && (() => {
+      const meaning = CENTER_MEANINGS[tappedCenter];
+      const isDefined = defined.has(tappedCenter);
+      return (
+        <div className="mt-3 border-l-2 pl-3 fade-in" style={{ borderLeftColor: isDefined ? '#8b3a3a' : '#3a3a3a' }}>
+          <p className="small-label caps text-ink-faint">
+            {meaning.name}
+            <span className="ml-1.5 text-[10px]">· {isDefined ? 'defined' : 'undefined'}</span>
+          </p>
+          <p className="serif text-[14px] text-ink mt-1.5 leading-relaxed">
+            {isDefined ? meaning.defined : meaning.undefined}
+          </p>
+          <button
+            type="button"
+            className="small-label caps text-ink-faint hover:text-ink mt-2"
+            onClick={() => setTappedCenter(null)}
+          >
+            close
+          </button>
+        </div>
+      );
+    })()}
+    </>
   );
 }
