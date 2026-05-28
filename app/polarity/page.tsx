@@ -530,6 +530,20 @@ export default function PolarityPage() {
           if (!lens) return null;
           const pos = positions.find((p) => p.cycle.key === c.key);
           const flip = flips.find((f) => f.cycle.key === c.key);
+          // Match each cycle to its natal anchor for a personalising note.
+          const n = blueprint.natal;
+          const natalAnchor: { label: string; sign: string; degree: number } | null = (() => {
+            switch (c.key) {
+              case 'solar':   return { label: 'your natal Sun',     sign: n.sun.sign,     degree: n.sun.degree };
+              case 'mars':    return { label: 'your natal Mars',    sign: n.mars.sign,    degree: n.mars.degree };
+              case 'jupiter': return { label: 'your natal Jupiter', sign: n.jupiter.sign, degree: n.jupiter.degree };
+              case 'saturn':  return { label: 'your natal Saturn',  sign: n.saturn.sign,  degree: n.saturn.degree };
+              case 'nodal':   return { label: 'your North Node',    sign: n.northNode.sign, degree: n.northNode.degree };
+              case 'chiron':  return n.chiron ? { label: 'your natal Chiron', sign: n.chiron.sign, degree: n.chiron.degree } : null;
+              case 'lunarPg': return { label: 'your natal Moon',    sign: n.moon.sign,    degree: n.moon.degree };
+              default: return null;
+            }
+          })();
           return (
             <article key={c.key}>
               <div className="flex items-center justify-between mb-2">
@@ -543,6 +557,11 @@ export default function PolarityPage() {
                   </span>
                 )}
               </div>
+              {natalAnchor && (
+                <p className="small-label caps text-ink-faint mb-2" style={{ letterSpacing: '0.08em' }}>
+                  {natalAnchor.label} · <span className="text-ink">{natalAnchor.sign} {natalAnchor.degree.toFixed(0)}°</span>
+                </p>
+              )}
               <dl className="space-y-3">
                 <div>
                   <dt className="small-label caps text-ink-faint">
