@@ -80,7 +80,31 @@ export default function ArcsPage() {
       <header className="pb-6">
         <p className="small-label caps">Arcs</p>
         <h1 className="h-display serif mt-3">Every cycle, drawn.</h1>
-        <p className="serif text-[15px] text-ink-dim mt-3 leading-relaxed max-w-xl">
+        {(() => {
+          // Atmospheric one-liner pulled from the user's age decade.
+          const decade = Math.floor(age / 10) * 10;
+          const moods: Record<number, string> = {
+            0:  'you are still inside your first Saturn',
+            10: 'your first Jupiter is closing, your first Saturn opening',
+            20: 'the structures of adulthood are being chosen',
+            30: 'the borrowed years are being audited',
+            40: 'the midpoint, the pruning, the second half being chosen',
+            50: 'the wound is becoming the teaching',
+            60: 'the legacy is being laid down',
+            70: 'the integration, the slow handing off',
+            80: 'late elderhood, the long sky',
+            90: 'the long sky',
+          };
+          const mood = moods[decade] ?? '';
+          if (!mood) return null;
+          return (
+            <p className="serif italic text-[16px] text-ink mt-3">
+              you are <span className="text-accent">{age.toFixed(0)}</span>{' '}
+              — {mood}.
+            </p>
+          );
+        })()}
+        <p className="serif text-[14.5px] text-ink-dim mt-3 leading-relaxed max-w-xl">
           Most astrology gives you a snapshot. This gives you the shape of
           your whole life. Seven cycles — Solar, Mars, Jupiter, Saturn,
           Nodal, Chiron, the Progressed Moon — drawn end to end across a
