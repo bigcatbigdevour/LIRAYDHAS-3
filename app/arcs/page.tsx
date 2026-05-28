@@ -491,6 +491,19 @@ export default function ArcsPage() {
         {CYCLES.map((c) => {
           const lens = CYCLE_LENSES[c.key];
           if (!lens) return null;
+          const n = blueprint.natal;
+          const natalAnchor: { label: string; sign: string; degree: number } | null = (() => {
+            switch (c.key) {
+              case 'solar':   return { label: 'natal Sun',     sign: n.sun.sign,     degree: n.sun.degree };
+              case 'mars':    return { label: 'natal Mars',    sign: n.mars.sign,    degree: n.mars.degree };
+              case 'jupiter': return { label: 'natal Jupiter', sign: n.jupiter.sign, degree: n.jupiter.degree };
+              case 'saturn':  return { label: 'natal Saturn',  sign: n.saturn.sign,  degree: n.saturn.degree };
+              case 'nodal':   return { label: 'North Node',    sign: n.northNode.sign, degree: n.northNode.degree };
+              case 'chiron':  return n.chiron ? { label: 'natal Chiron', sign: n.chiron.sign, degree: n.chiron.degree } : null;
+              case 'lunarPg': return { label: 'natal Moon',    sign: n.moon.sign,    degree: n.moon.degree };
+              default: return null;
+            }
+          })();
           return (
             <article key={c.key}>
               <div className="flex items-center gap-2 mb-2">
@@ -500,6 +513,11 @@ export default function ArcsPage() {
                   every {c.yearLength.toFixed(2)}y
                 </span>
               </div>
+              {natalAnchor && (
+                <p className="small-label caps text-ink-faint mb-2" style={{ letterSpacing: '0.08em' }}>
+                  {natalAnchor.label} · <span className="text-ink">{natalAnchor.sign} {natalAnchor.degree.toFixed(0)}°</span>
+                </p>
+              )}
               <dl className="space-y-3">
                 <Lens k="Astrologically" v={lens.astrological} />
                 <Lens k="Psychologically" v={lens.psychological} />
