@@ -1,10 +1,35 @@
 # Liraydhas
 
-A Co-Star-style daily astrology + Human Design web app. Enter your birth data
-once; get a real daily reading driven by today's transits to your natal chart
-and a full Human Design blueprint computed from ephemeris-accurate
-calculations. Built to feel like Co-Star — pitch-black background, large
-serif headings, sharp edges, slow film grain, one wine-red accent.
+A Co-Star-style daily astrology + Human Design + life-cycle visualization
+app. Enter your birth data once; get a real daily reading driven by today's
+transits to your natal chart, a full Human Design blueprint computed from
+ephemeris-accurate math, and a unique visual reading of every major life
+cycle drawn end to end across your lifespan. Built to feel like Co-Star —
+pitch-black background, large serif headings, sharp edges, slow film
+grain, one wine-red accent.
+
+## The four tabs
+
+- **Today** — daily LLM-written paragraph anchored on your tightest current
+  transits + HD gates currently being touched + HD channels temporarily
+  completing for you. Current sky visual with breathing stars. Your moon
+  phase, next lunation, current retrogrades, recent polarity flips, next
+  major life event, week-ahead aspects.
+- **Arcs** — every major cycle (Solar, Mars, Jupiter, Saturn, Nodal,
+  Chiron, Progressed Moon) drawn end to end from age 0 to 92. Interactive:
+  scrub through any age to see what arcs you were inside; tap any arc for
+  a per-iteration reading; tap a station diamond to jump to its detail
+  card. 14 named "convergence stations" where multiple cycles align.
+  Play-your-life animation. URL state for shareable deep links.
+- **Polarity** — every cycle has a polarity (rising or descending half).
+  See the entire stack at a glance. Per-cycle bars with flip dates. Live
+  12-month forecast heatmap (6m / 12m / 2y / 5y range). Unified
+  chronological timeline of upcoming events. HD-authority-specific
+  guidance for relating to flips.
+- **Chart** — HD bodygraph (tap any defined center or channel for its
+  meaning), the 26 personality + design activations, type/profile/
+  authority/cross with expandable descriptions, natal astrology wheel
+  with Placidus houses, sign meanings, numerology, current cycle status.
 
 ## Stack
 
