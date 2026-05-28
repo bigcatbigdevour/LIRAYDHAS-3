@@ -8,6 +8,7 @@ import PolarityForecast from '@/components/PolarityForecast';
 import { ageInYears } from '@/lib/cycles';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { currentChapter } from '@/lib/lifeChapters';
+import { yearGlanceText } from '@/lib/yearGlance';
 
 export default function YearPage() {
   const router = useRouter();
@@ -161,6 +162,33 @@ export default function YearPage() {
             );
           })}
         </ul>
+      </section>
+
+      <section className="mt-12 border-t border-hairline pt-6">
+        <div className="flex items-baseline justify-between mb-2">
+          <p className="small-label caps">year at a glance</p>
+          <button
+            type="button"
+            className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+            onClick={async () => {
+              const txt = yearGlanceText(blueprint);
+              try {
+                if (navigator.share) await navigator.share({ title: 'Year ahead', text: txt });
+                else {
+                  await navigator.clipboard.writeText(txt);
+                  const el = document.getElementById('year-glance-toast');
+                  if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+                }
+              } catch {/* cancelled */}
+            }}
+          >
+            share
+          </button>
+        </div>
+        <pre className="text-[12.5px] text-ink-dim font-mono whitespace-pre-wrap leading-relaxed">
+{yearGlanceText(blueprint)}
+        </pre>
+        <div id="year-glance-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
       </section>
 
       <section className="mt-10 space-y-2">
