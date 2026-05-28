@@ -19,6 +19,7 @@ import { houseOfLongitude } from '@/lib/astrology/houses';
 import { SUN_BY_SIGN, MOON_BY_SIGN, RISING_BY_SIGN } from '@/lib/astrology/signMeanings';
 import { gateName } from '@/lib/humandesign/gateNames';
 import { ageInYears, positionInCycles } from '@/lib/cycles';
+import { currentChapter } from '@/lib/lifeChapters';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -237,6 +238,16 @@ export default function ChartPage() {
 
       {/* Live cycle status at the bottom of the natal chart */}
       <section className="mt-12 border-t border-hairline pt-6">
+        {(() => {
+          const ch = currentChapter(ageInYears(blueprint.birth.iso));
+          if (!ch) return null;
+          return (
+            <p className="small-label caps text-ink-faint mb-3">
+              you are in · <span className="text-ink">{ch.label.toLowerCase()}</span>
+              <span className="ml-2 text-[10px]">ages {ch.startAge}–{ch.endAge}</span>
+            </p>
+          );
+        })()}
         <div className="flex items-baseline justify-between mb-2">
           <p className="small-label caps">your cycles right now</p>
           <Link href="/polarity" className="small-label caps text-ink-faint hover:text-ink">

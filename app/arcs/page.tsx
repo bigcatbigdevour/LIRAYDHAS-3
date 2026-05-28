@@ -8,6 +8,7 @@ import ScrollHint from '@/components/ScrollHint';
 import { CYCLES, ageInYears, positionInCycles } from '@/lib/cycles';
 import { CYCLE_LENSES, arcDescription } from '@/lib/cycleLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
+import { LIFE_CHAPTERS, currentChapter } from '@/lib/lifeChapters';
 
 export default function ArcsPage() {
   const router = useRouter();
@@ -119,6 +120,7 @@ export default function ArcsPage() {
 
       <nav className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[10px] caps text-ink-faint border-t border-b border-hairline py-1.5" style={{ letterSpacing: '0.12em' }}>
         <a href="#chart" className="hover:text-ink">chart</a>
+        <a href="#chapters" className="hover:text-ink">chapters</a>
         <a href="#read" className="hover:text-ink">how to read</a>
         <a href="#stations" className="hover:text-ink">stations</a>
         <a href="#cycles" className="hover:text-ink">each cycle</a>
@@ -326,6 +328,52 @@ export default function ArcsPage() {
           )}
         </section>
       )}
+
+      {/* Chapters of life — current chapter banner + full list */}
+      <section id="chapters" className="mt-12 scroll-mt-4">
+        <h2 className="h-display serif mb-3" style={{ fontSize: '1.5rem' }}>
+          Chapters of a life.
+        </h2>
+        {(() => {
+          const ch = currentChapter(age);
+          if (!ch) return null;
+          const pct = ((age - ch.startAge) / (ch.endAge - ch.startAge)) * 100;
+          return (
+            <div className="border-l-2 border-accent pl-3 mb-6">
+              <p className="small-label caps text-accent">
+                you are in · {ch.label.toLowerCase()}
+              </p>
+              <p className="small-label caps text-ink-faint mt-0.5">
+                ages {ch.startAge} – {ch.endAge} · {pct.toFixed(0)}% through
+              </p>
+              <p className="serif text-[14px] text-ink-dim mt-1.5 leading-relaxed">
+                {ch.description}
+              </p>
+            </div>
+          );
+        })()}
+        <ul className="space-y-3">
+          {LIFE_CHAPTERS.map((ch) => {
+            const isHere = age >= ch.startAge && age < ch.endAge;
+            const isPast = age >= ch.endAge;
+            return (
+              <li
+                key={ch.label}
+                className={`border-l pl-3 ${isHere ? 'border-accent' : 'border-hairline'}`}
+              >
+                <div className="flex items-baseline justify-between">
+                  <p className={`serif text-[15px] ${isHere ? 'text-ink' : isPast ? 'text-ink-faint' : 'text-ink-dim'}`}>
+                    {ch.label}
+                  </p>
+                  <span className="small-label caps text-ink-faint">
+                    {ch.startAge} – {ch.endAge}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       {/* Always-visible legend / key */}
       <section id="read" className="mt-12 scroll-mt-4">

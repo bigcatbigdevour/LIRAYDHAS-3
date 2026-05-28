@@ -11,6 +11,7 @@ import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } 
 import { POLARITY_LENSES } from '@/lib/polarityLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
+import { currentChapter } from '@/lib/lifeChapters';
 import { AUTHORITY_FOR_POLARITY } from '@/lib/humandesign/authorityForPolarity';
 import type { PolarityReading } from '@/lib/types';
 
@@ -253,6 +254,20 @@ export default function PolarityPage() {
           </div>
         )}
       </header>
+
+      {(() => {
+        const ch = currentChapter(ageInYears(blueprint.birth.iso));
+        if (!ch) return null;
+        const pct = ((ageInYears(blueprint.birth.iso) - ch.startAge) / (ch.endAge - ch.startAge)) * 100;
+        return (
+          <section className="mt-6 border-l-2 pl-3" style={{ borderLeftColor: '#3a3a3a' }}>
+            <p className="small-label caps text-ink-faint">
+              chapter · <span className="text-ink">{ch.label.toLowerCase()}</span>
+              <span className="ml-2 text-[10px]">ages {ch.startAge}–{ch.endAge} · {pct.toFixed(0)}% through</span>
+            </p>
+          </section>
+        );
+      })()}
 
       {currentStation && (
         <section className="mt-6 border border-accent/40 p-4" style={{ borderColor: '#3a1a1a' }}>

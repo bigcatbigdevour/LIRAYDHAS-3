@@ -12,6 +12,7 @@ import { dailyVibe } from '@/lib/astrology/vibe';
 import { ageInYears, polarityFlips, positionInCycles, type PolarityFlip } from '@/lib/cycles';
 import { upcomingEventsFeed, type UpcomingEvent } from '@/lib/upcomingEvents';
 import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
+import { currentChapter } from '@/lib/lifeChapters';
 import type { PlanetName } from '@/lib/types';
 import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
@@ -163,6 +164,19 @@ export default function TodayPage() {
           </p>
         )}
       </header>
+
+      {(() => {
+        const ch = currentChapter(ageInYears(blueprint.birth.iso));
+        if (!ch) return null;
+        return (
+          <section className="mb-6 border-l-2 pl-3" style={{ borderLeftColor: '#3a3a3a' }}>
+            <p className="small-label caps text-ink-faint">
+              this chapter · <span className="text-ink">{ch.label.toLowerCase()}</span>
+              <span className="ml-2 text-[10px]">ages {ch.startAge}–{ch.endAge}</span>
+            </p>
+          </section>
+        );
+      })()}
 
       {tideFlips.length > 0 && (
         <section className="mb-6">
