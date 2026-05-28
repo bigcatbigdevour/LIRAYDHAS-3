@@ -23,23 +23,36 @@ function humanDays(d: number): string {
 
 export default function PolarityBars({ positions, flips }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [expandAll, setExpandAll] = useState(false);
   const [mounted, setMounted] = useState(false);
   const flipByKey: Record<string, PolarityFlip> = {};
   for (const f of flips ?? []) flipByKey[f.cycle.key] = f;
 
   useEffect(() => {
-    // next paint after mount: trigger fill animation
     const id = window.requestAnimationFrame(() => setMounted(true));
     return () => window.cancelAnimationFrame(id);
   }, []);
 
   return (
+    <>
+    <div className="flex justify-end mb-2">
+      <button
+        type="button"
+        onClick={() => {
+          setExpandAll((v) => !v);
+          setExpanded(null);
+        }}
+        className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+      >
+        {expandAll ? '✓ all expanded' : 'expand all'}
+      </button>
+    </div>
     <ul className="space-y-5">
       {positions.map((p, rowIdx) => {
         const isPos = p.positive;
         const pct = p.fraction * 100;
         const label = isPos ? 'rising' : 'descending';
-        const isOpen = expanded === p.cycle.key;
+        const isOpen = expandAll || expanded === p.cycle.key;
         const flip = flipByKey[p.cycle.key];
         const halfText = POLARITY_HALVES[p.cycle.key];
         const animDelayMs = rowIdx * 90;
@@ -123,5 +136,6 @@ export default function PolarityBars({ positions, flips }: Props) {
         );
       })}
     </ul>
+    </>
   );
 }
