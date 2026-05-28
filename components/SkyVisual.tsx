@@ -95,6 +95,18 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
             </circle>
           ));
         })()}
+        {/* outer ring with very slow rotation — the sky is moving */}
+        <g style={{ transformOrigin: `${cx}px ${cy}px` }}>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from={`0 ${cx} ${cy}`}
+            to={`360 ${cx} ${cy}`}
+            dur="600s"
+            repeatCount="indefinite"
+          />
+          <circle cx={cx} cy={cy} r={outer + 2} fill="none" stroke="#1a1a1a" strokeWidth="0.3" strokeDasharray="3 6" />
+        </g>
         {/* outer ring */}
         <circle cx={cx} cy={cy} r={outer} fill="none" stroke="#1c1c1c" strokeWidth="0.5" />
         <circle cx={cx} cy={cy} r={ring} fill="none" stroke="#222" strokeWidth="0.5" />
