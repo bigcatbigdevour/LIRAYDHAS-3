@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { Blueprint, CenterName } from '@/lib/types';
 import { ALL_CHANNELS } from '@/lib/humandesign/channels';
 import { CENTER_MEANINGS } from '@/lib/humandesign/centerMeanings';
+import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 
 // Canonical vertical bodygraph layout, 320 × 580 viewBox.
 //
@@ -157,8 +158,11 @@ function shapePath(name: CenterName): string {
   }
 }
 
+interface TappedChannel { a: number; b: number; name: string }
+
 export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
   const [tappedCenter, setTappedCenter] = useState<CenterName | null>(null);
+  const [tappedChannel, setTappedChannel] = useState<TappedChannel | null>(null);
   const defined = new Set(blueprint.humanDesign.definedCenters);
   const activeGates = new Set(blueprint.humanDesign.activeGates.map((g) => g.gate));
   const persGates = new Set(
@@ -176,7 +180,7 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
     <>
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[340px] mx-auto block">
       {/* channels first (under shapes) — each as two half-segments so a
-          hanging single gate shows as half-lit (grey). */}
+          hanging single gate shows as half-lit (grey). Tappable to expand. */}
       {ALL_CHANNELS.map((ch) => {
         const [a, b] = ch.gates;
         const key = [a, b].sort((x, y) => x - y).join('-');
@@ -187,18 +191,30 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const aActive = activeGates.has(a);
         const bActive = activeGates.has(b);
         const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+        const isTapped = tappedChannel && tappedChannel.a === a && tappedChannel.b === b;
         return (
-          <g key={key}>
+          <g
+            key={key}
+            style={{ cursor: isActive ? 'pointer' : 'default' }}
+            onClick={isActive ? () => setTappedChannel(isTapped ? null : { a, b, name: ch.name }) : undefined}
+          >
             <line
               x1={A.x} y1={A.y} x2={mid.x} y2={mid.y}
-              stroke={isActive ? '#f4f1ea' : aActive ? '#888' : '#1c1c1c'}
-              strokeWidth={isActive ? 1.5 : aActive ? 1.1 : 0.6}
+              stroke={isTapped ? '#8b3a3a' : isActive ? '#f4f1ea' : aActive ? '#888' : '#1c1c1c'}
+              strokeWidth={isTapped ? 2 : isActive ? 1.5 : aActive ? 1.1 : 0.6}
             />
             <line
               x1={mid.x} y1={mid.y} x2={B.x} y2={B.y}
-              stroke={isActive ? '#f4f1ea' : bActive ? '#888' : '#1c1c1c'}
-              strokeWidth={isActive ? 1.5 : bActive ? 1.1 : 0.6}
+              stroke={isTapped ? '#8b3a3a' : isActive ? '#f4f1ea' : bActive ? '#888' : '#1c1c1c'}
+              strokeWidth={isTapped ? 2 : isActive ? 1.5 : bActive ? 1.1 : 0.6}
             />
+            {/* invisible fat hit area for easier tap on mobile */}
+            {isActive && (
+              <line
+                x1={A.x} y1={A.y} x2={B.x} y2={B.y}
+                stroke="transparent" strokeWidth="14" pointerEvents="stroke"
+              />
+            )}
           </g>
         );
       })}
@@ -269,6 +285,27 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
             type="button"
             className="small-label caps text-ink-faint hover:text-ink mt-2"
             onClick={() => setTappedCenter(null)}
+          >
+            close
+          </button>
+        </div>
+      );
+    })()}
+    {tappedChannel && (() => {
+      const m = channelMeaning(tappedChannel.name, tappedChannel.a, tappedChannel.b);
+      return (
+        <div className="mt-3 border-l-2 pl-3 fade-in" style={{ borderLeftColor: '#8b3a3a' }}>
+          <p className="small-label caps text-ink-faint">
+            channel · <span className="text-accent">{tappedChannel.name}</span>
+            <span className="ml-1.5 text-[10px]">{tappedChannel.a}–{tappedChannel.b}</span>
+          </p>
+          <p className="serif text-[14px] text-ink mt-1.5 leading-relaxed">
+            {m || 'A defined channel in your design.'}
+          </p>
+          <button
+            type="button"
+            className="small-label caps text-ink-faint hover:text-ink mt-2"
+            onClick={() => setTappedChannel(null)}
           >
             close
           </button>
