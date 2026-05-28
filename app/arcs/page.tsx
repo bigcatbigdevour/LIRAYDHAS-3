@@ -384,10 +384,30 @@ export default function ArcsPage() {
                   type="button"
                   className="w-full text-left"
                   onClick={() => {
-                    // tap a station card → scrub the chart to this age and scroll up
-                    setFocusAge(s.age);
-                    document.querySelector('main')?.scrollTo?.({ top: 0, behavior: 'smooth' });
+                    // tap a station card → scroll up, then animate the chart
+                    // from the user's current focus to this station's age.
                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                    const start = focusAge ?? age;
+                    const target = s.age;
+                    if (Math.abs(target - start) < 0.5) {
+                      setFocusAge(target);
+                      return;
+                    }
+                    const durationMs = 1200;
+                    const fps = 30;
+                    const totalSteps = Math.round((durationMs / 1000) * fps);
+                    let step = 0;
+                    const id = window.setInterval(() => {
+                      step++;
+                      const t = step / totalSteps;
+                      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+                      const a2 = start + (target - start) * eased;
+                      _setFocusAge(a2);
+                      if (step >= totalSteps) {
+                        window.clearInterval(id);
+                        setFocusAge(target);
+                      }
+                    }, 1000 / fps);
                   }}
                 >
                   <div className="flex items-baseline justify-between">
