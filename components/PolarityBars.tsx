@@ -42,7 +42,9 @@ export default function PolarityBars({ positions, flips }: Props) {
           setExpandAll((v) => !v);
           setExpanded(null);
         }}
-        className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+        className="small-label caps text-[10px] text-ink-faint hover:text-ink py-1 px-1"
+        aria-pressed={expandAll}
+        aria-label={expandAll ? 'collapse all cycle bars' : 'expand all cycle bars'}
       >
         {expandAll ? '✓ all expanded' : 'expand all'}
       </button>

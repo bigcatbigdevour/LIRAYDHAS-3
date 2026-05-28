@@ -27,6 +27,10 @@ html, body {
   font-size: 15px;
   line-height: 1.6;
   font-weight: 400;
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html, body { scroll-behavior: auto; }
 }
 
 button, input, select, textarea {
@@ -165,6 +169,25 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 .station-flash {
   animation: station-flash 2s ease-out;
+}
+
+/* keyboard focus ring — visible without being loud */
+*:focus-visible {
+  outline: 1px solid var(--ink-dim);
+  outline-offset: 2px;
+}
+
+/* respect prefers-reduced-motion: kill ambient/continuous animations,
+   keep meaningful entry transitions intact */
+@media (prefers-reduced-motion: reduce) {
+  .polarity-marker-pulse,
+  .polarity-fill-breathe,
+  .breathe,
+  .station-flash {
+    animation: none !important;
+  }
+  /* svg <animate> elements respect a prefers-reduced-motion off-switch via JS;
+     for the static fallback, hide any continuous animation rotation */
 }
 
 /* Age scrubber slider — restyled to match the Co-Star palette */

@@ -210,8 +210,9 @@ export default function ArcsPage() {
                   setPlaying(true);
                 }
               }}
-              className="text-[14px] text-ink-faint hover:text-accent w-6 text-center"
-              aria-label={playing ? 'pause' : 'play life animation'}
+              className="text-[14px] text-ink-faint hover:text-accent w-10 h-10 flex items-center justify-center -ml-2"
+              aria-label={playing ? 'pause life animation' : 'play life animation'}
+              title={playing ? 'pause' : 'play your life as a movie'}
             >
               {playing ? '❚❚' : '▶'}
             </button>

@@ -69,7 +69,9 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
       <button
         type="button"
         onClick={() => setShowTransits(!showTransits)}
-        className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+        className="small-label caps text-[10px] text-ink-faint hover:text-ink py-1 px-1"
+        aria-pressed={showTransits}
+        aria-label={showTransits ? 'hide transit overlay' : 'show transit overlay'}
       >
         {showTransits ? '✓ transits' : 'show transits'}
       </button>
