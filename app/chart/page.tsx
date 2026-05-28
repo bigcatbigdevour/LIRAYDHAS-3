@@ -20,6 +20,8 @@ import { SUN_BY_SIGN, MOON_BY_SIGN, RISING_BY_SIGN } from '@/lib/astrology/signM
 import { gateName } from '@/lib/humandesign/gateNames';
 import { ageInYears, positionInCycles } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
+import { HOUSE_MEANINGS } from '@/lib/astrology/houseMeanings';
+import { chartGlanceText } from '@/lib/chartGlance';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -135,6 +137,35 @@ export default function ChartPage() {
         <ActivationColumns blueprint={blueprint} />
       </section>
 
+      {/* Deterministic glance summary — always present, copy-friendly */}
+      <section className="mt-2 mb-8">
+        <div className="flex items-baseline justify-between mb-1">
+          <p className="small-label caps">at a glance</p>
+          <button
+            type="button"
+            className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+            onClick={async () => {
+              const txt = chartGlanceText(blueprint);
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: 'My chart', text: txt });
+                } else {
+                  await navigator.clipboard.writeText(txt);
+                  const el = document.getElementById('chart-glance-toast');
+                  if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+                }
+              } catch {/* cancelled */}
+            }}
+          >
+            share
+          </button>
+        </div>
+        <pre className="text-[12.5px] text-ink-dim font-mono whitespace-pre-wrap leading-relaxed">
+{chartGlanceText(blueprint)}
+        </pre>
+        <div id="chart-glance-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
+      </section>
+
       {(() => {
         const counts = new Map<number, number>();
         for (const g of hd.activeGates) counts.set(g.gate, (counts.get(g.gate) ?? 0) + 1);
@@ -223,6 +254,34 @@ export default function ChartPage() {
             </li>
           )}
         </ul>
+
+        {/* Houses — tap-to-expand meaning */}
+        {n.houses[0] !== null && (
+          <details className="mt-6 group">
+            <summary className="small-label caps cursor-pointer text-ink-dim hover:text-ink list-none flex items-center gap-2">
+              <span>The twelve houses</span>
+              <span className="text-ink-faint group-open:rotate-90 transition-transform">›</span>
+            </summary>
+            <ul className="space-y-2 mt-3 text-[12.5px]">
+              {([1,2,3,4,5,6,7,8,9,10,11,12] as const).map((h) => {
+                const cusp = n.houses[h - 1];
+                if (cusp === null) return null;
+                const meaning = HOUSE_MEANINGS[h];
+                return (
+                  <li key={h} className="border-b border-hairline pb-1.5">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-ink">H{h} · {meaning.name}</span>
+                      <span className="tabular-nums text-ink-faint">
+                        {signFromLon(cusp)} {(cusp % 30).toFixed(1)}°
+                      </span>
+                    </div>
+                    <p className="serif text-ink-dim mt-0.5 leading-relaxed">{meaning.meaning}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        )}
       </section>
 
       <section className="mt-12 border-t border-hairline pt-6">
