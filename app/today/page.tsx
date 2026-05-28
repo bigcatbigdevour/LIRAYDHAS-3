@@ -11,6 +11,7 @@ import { upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib
 import { dailyVibe } from '@/lib/astrology/vibe';
 import { ageInYears, polarityFlips, positionInCycles, type PolarityFlip } from '@/lib/cycles';
 import { upcomingEventsFeed, type UpcomingEvent } from '@/lib/upcomingEvents';
+import { todayGlanceText } from '@/lib/todayGlance';
 import { imminentReturns, type KeyMoment } from '@/lib/keyMoments';
 import { currentChapter } from '@/lib/lifeChapters';
 import type { PlanetName } from '@/lib/types';
@@ -442,6 +443,49 @@ export default function TodayPage() {
         </div>
       </section>
 
+      {/* Deterministic 'today at a glance' — always present, copy-friendly */}
+      <section className="mt-12 border-t border-hairline pt-6">
+        <div className="flex items-baseline justify-between mb-2">
+          <p className="small-label caps">today at a glance</p>
+          <button
+            type="button"
+            className="small-label caps text-[10px] text-ink-faint hover:text-ink"
+            onClick={async () => {
+              const txt = todayGlanceText({
+                blueprint,
+                transits: daily?.transits ?? [],
+                moon,
+                retrogrades,
+                recentFlips: tideFlips,
+                todayLocal: today,
+              });
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: 'Today', text: txt });
+                } else {
+                  await navigator.clipboard.writeText(txt);
+                  const el = document.getElementById('today-glance-toast');
+                  if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+                }
+              } catch {/* cancelled */}
+            }}
+          >
+            share
+          </button>
+        </div>
+        <pre className="text-[12.5px] text-ink-dim font-mono whitespace-pre-wrap leading-relaxed">
+{todayGlanceText({
+  blueprint,
+  transits: daily?.transits ?? [],
+  moon,
+  retrogrades,
+  recentFlips: tideFlips,
+  todayLocal: today,
+})}
+        </pre>
+        <div id="today-glance-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
+      </section>
+
       <section className="mt-8 mb-2 flex flex-wrap items-center justify-between gap-2">
         <button className="btn-ghost" onClick={fetchDaily} disabled={loading}>
           {loading ? 'refreshing…' : 'refresh report'}
@@ -461,7 +505,7 @@ export default function TodayPage() {
               }
             }}
           >
-            share
+            share paragraph
           </button>
         )}
         <a href="/about" className="btn-ghost">about →</a>
