@@ -164,41 +164,44 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
               textAnchor="middle" fontSize="9" fill="#555">IC</text>
       )}
 
-      {/* TRANSIT overlay — today's planet positions in wine-accent */}
+      {/* TRANSIT overlay — only the 6 tightest aspects, coloured by type. */}
       {showTransits && (() => {
-        // Aspect lines between each transit and natal planets within orb.
         const ASPECTS = [
-          { angle: 0, orb: 5 },
-          { angle: 60, orb: 4 },
-          { angle: 90, orb: 5 },
-          { angle: 120, orb: 5 },
-          { angle: 180, orb: 5 },
+          { angle: 0,   orb: 5, color: '#f4f1ea' },  // conjunction — cream
+          { angle: 60,  orb: 4, color: '#3a7a52' },  // sextile — green
+          { angle: 90,  orb: 5, color: '#8b3a3a' },  // square — wine
+          { angle: 120, orb: 5, color: '#3a7a52' },  // trine — green
+          { angle: 180, orb: 5, color: '#8b3a3a' },  // opposition — wine
         ];
-        const aspects: { a: number; b: number }[] = [];
+        const aspects: { a: number; b: number; tightness: number; color: string }[] = [];
         for (const tr of transits) {
           for (const nat of bodies) {
             let d = Math.abs(tr.lon - nat.lon) % 360;
             if (d > 180) d = 360 - d;
             for (const A of ASPECTS) {
-              if (Math.abs(d - A.angle) <= A.orb) {
-                aspects.push({ a: tr.lon, b: nat.lon });
+              const orb = Math.abs(d - A.angle);
+              if (orb <= A.orb) {
+                aspects.push({ a: tr.lon, b: nat.lon, tightness: orb, color: A.color });
                 break;
               }
             }
           }
         }
-        return aspects.map((seg, i) => {
-          const a = point(seg.a, rTransit);
-          const b = point(seg.b, rPlanet);
-          return (
-            <line
-              key={`aspect-${i}`}
-              x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-              stroke="#8b3a3a" strokeWidth="0.3" opacity="0.4"
-              strokeDasharray="2 2"
-            />
-          );
-        });
+        return aspects
+          .sort((p, q) => p.tightness - q.tightness)
+          .slice(0, 6)
+          .map((seg, i) => {
+            const a = point(seg.a, rTransit);
+            const b = point(seg.b, rPlanet);
+            return (
+              <line
+                key={`aspect-${i}`}
+                x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                stroke={seg.color} strokeWidth="0.5" opacity={Math.max(0.25, 0.75 - seg.tightness * 0.09)}
+                strokeDasharray="2 2"
+              />
+            );
+          });
       })()}
       {showTransits && transitPlaced.map((t) => {
         const pos = point(t.adjustedLon, rTransit);

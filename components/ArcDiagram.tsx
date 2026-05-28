@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { CYCLES, ageInYears } from '@/lib/cycles';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
+import { LIFE_CHAPTERS } from '@/lib/lifeChapters';
 
 export interface ArcSelection {
   cycleKey: string;
@@ -200,6 +201,32 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .attr('values', '0.95;0.55;0.95')
       .attr('dur', '5.5s')
       .attr('repeatCount', 'indefinite');
+
+    // Life-chapter bands at the bottom — thin horizontal segments
+    // beneath the timeline showing where each chapter starts/ends.
+    // The chapter containing `focus` (or `age`) renders in wine-accent.
+    const chapterG = g.append('g').attr('class', 'chapters');
+    for (const ch of LIFE_CHAPTERS) {
+      if (ch.startAge >= maxAge) continue;
+      const x1 = x(Math.max(0, ch.startAge));
+      const x2 = x(Math.min(maxAge, ch.endAge));
+      const inChapter = focus >= ch.startAge && focus < ch.endAge;
+      chapterG.append('line')
+        .attr('x1', x1 + 1).attr('x2', x2 - 1)
+        .attr('y1', innerH + 28).attr('y2', innerH + 28)
+        .attr('stroke', inChapter ? '#8b3a3a' : '#3a3a3a')
+        .attr('stroke-width', inChapter ? 2 : 0.8)
+        .attr('opacity', inChapter ? 0.95 : 0.5);
+      if (inChapter) {
+        chapterG.append('text')
+          .attr('x', (x1 + x2) / 2)
+          .attr('y', innerH + 42)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#8b3a3a')
+          .attr('font-size', 9)
+          .text(ch.label);
+      }
+    }
 
     // Life-station markers above the chart: small diamonds at each
     // station age. Currently-active station (within 2y of `age`) is
