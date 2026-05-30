@@ -42,7 +42,7 @@ export const POLARITY_LENSES: Record<string, PolarityLens> = {
     inRising:
       'Doors keep opening that you did not knock on. Your scope of imagination is wider than your current life. You are being shown larger possibilities than you are ready for, which is usually how Jupiter offers anything.',
     inDescending:
-      'The wide-open phase narrows. You are deciding what you actually want from the abundance that came in. Many of the opportunities of the rising half get dropped — that is correct, not a failure.',
+      'The wide-open phase narrows. You are deciding what you actually want from the harvest that came in. Many of the opportunities of the rising half get dropped — that is correct, not a failure.',
     flipSignals:
       'An audit moment around year 6 of any Jupiter cycle. The thing that felt promising at the start either reveals its real size or reveals its limit.',
     pairings:
