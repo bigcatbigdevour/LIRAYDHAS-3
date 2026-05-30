@@ -123,6 +123,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   transition: background 200ms ease, color 200ms ease;
 }
 .btn-primary:hover { background: var(--ink); color: var(--bg); }
+.btn-primary:active { transform: translateY(1px); }
 .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .btn-ghost {
@@ -130,8 +131,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-dim);
-  padding: 8px 0;
+  padding: 10px 6px;
+  margin: -2px -6px;
+  border-radius: 0;
+  transition: color 150ms ease;
 }
+.btn-ghost:active { opacity: 0.6; }
 .btn-ghost:hover:not(:disabled) { color: var(--ink); }
 .btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
 
