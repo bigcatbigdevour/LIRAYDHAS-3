@@ -27,7 +27,6 @@ interface Props {
 }
 
 interface Arc extends ArcSelection {
-  /** index across all arcs, for unique React keys & DOM ids */
   index: number;
 }
 
@@ -35,18 +34,28 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
   const ref = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Arc | null>(null);
 
+  // Keep latest props in refs so the static effect can read them without re-firing.
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  const onSelectStationRef = useRef(onSelectStation);
+  onSelectStationRef.current = onSelectStation;
+
+  // Layout constants used in both effects.
+  const W = 800;
+  const H = 420;
+  const margin = { top: 30, right: 16, bottom: 60, left: 16 };
+  const innerW = W - margin.left - margin.right;
+  const innerH = H - margin.top - margin.bottom;
+  const x = d3.scaleLinear().domain([0, maxAge]).range([0, innerW]);
+
+  // === Heavy effect: build the static chart once (or when birth changes). ===
   useEffect(() => {
     const svg = d3.select(ref.current);
     svg.selectAll('*').remove();
-
-    const W = 800;
-    const H = 420;
-    const margin = { top: 30, right: 16, bottom: 60, left: 16 };
-    const innerW = W - margin.left - margin.right;
-    const innerH = H - margin.top - margin.bottom;
-
-    const x = d3.scaleLinear().domain([0, maxAge]).range([0, innerW]);
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    const age = ageInYears(birthIso);
 
     // baseline
     g.append('line')
@@ -54,7 +63,7 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .attr('y1', innerH).attr('y2', innerH)
       .attr('stroke', '#222').attr('stroke-width', 0.6);
 
-    // decade labels
+    // decade labels every 5 years
     g.selectAll('text.decade')
       .data(d3.range(0, maxAge + 1, 5))
       .enter()
@@ -72,15 +81,13 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
     let idx = 0;
     for (const c of CYCLES) {
       const events: number[] = [];
-      for (let n = 0; n * c.yearLength <= maxAge; n++) {
-        events.push(n * c.yearLength);
-      }
-      // tick marks at each return event
+      for (let n = 0; n * c.yearLength <= maxAge; n++) events.push(n * c.yearLength);
       g.append('g')
-        .selectAll('line')
+        .selectAll('line.tick')
         .data(events)
         .enter()
         .append('line')
+        .attr('class', 'tick')
         .attr('x1', (d) => x(d))
         .attr('x2', (d) => x(d))
         .attr('y1', innerH - 4)
@@ -103,44 +110,6 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
     }
 
     const arcG = g.append('g').attr('class', 'arcs');
-
-    const age = ageInYears(birthIso);
-    const focus = focusAge ?? age;
-    function isActiveArc(d: Arc): boolean {
-      return focus >= d.ageStart && focus < d.ageEnd;
-    }
-    function strokeFor(d: Arc): string {
-      return d.color;
-    }
-    function opacityFor(d: Arc): number {
-      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
-      if (selected && !isSel) return 0.18;
-      if (isActiveArc(d)) return 0.95;
-      return 0.5;
-    }
-    function widthFor(d: Arc): number {
-      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
-      if (isSel) return 2;
-      if (isActiveArc(d)) return 1.3;
-      return 0.7;
-    }
-
-    function commit(d: Arc) {
-      // toggle off if already selected, else select
-      if (selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle) {
-        onSelect?.(null);
-      } else {
-        onSelect?.({
-          cycleKey: d.cycleKey,
-          cycleLabel: d.cycleLabel,
-          color: d.color,
-          nthCycle: d.nthCycle,
-          ageStart: d.ageStart,
-          ageEnd: d.ageEnd,
-        });
-      }
-    }
-
     arcG
       .selectAll('path.arc')
       .data(allArcs)
@@ -148,89 +117,81 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .append('path')
       .attr('class', 'arc')
       .attr('fill', 'none')
-      .attr('stroke', strokeFor)
-      .attr('stroke-width', widthFor)
+      .attr('stroke', (d) => d.color)
+      .attr('stroke-width', 0.7)
       .attr('opacity', 0)
       .attr('cursor', 'pointer')
+      .attr('data-cycle', (d) => d.cycleKey)
+      .attr('data-nth', (d) => d.nthCycle)
+      .attr('data-age-start', (d) => d.ageStart)
+      .attr('data-age-end', (d) => d.ageEnd)
       .attr('d', (d) => {
         const x1 = x(d.ageStart);
         const x2 = x(d.ageEnd);
-        const cx = (x1 + x2) / 2;
         const r = (x2 - x1) / 2;
         const cy = innerH;
         return `M ${x1} ${cy} A ${r} ${r} 0 0 1 ${x2} ${cy}`;
       })
       .each(function () {
-        // Set stroke-dasharray = path length so the "draw-in" animation
-        // can interpolate from 0 to full length.
         const len = (this as SVGPathElement).getTotalLength?.() ?? 200;
         d3.select(this)
           .attr('stroke-dasharray', `${len} ${len}`)
           .attr('stroke-dashoffset', len);
       })
-      .on('mouseover', function (_e, d) {
-        setHover(d);
-      })
-      .on('mouseout', function () {
-        setHover(null);
-      })
-      // pointer/touch — Safari fires "click" on tap so this works for iOS too
+      .on('mouseover', function (_e, d) { setHover(d); })
+      .on('mouseout', function () { setHover(null); })
       .on('click', function (_e, d) {
-        commit(d);
+        const sel = selectedRef.current;
+        if (sel && sel.cycleKey === d.cycleKey && sel.nthCycle === d.nthCycle) {
+          onSelectRef.current?.(null);
+        } else {
+          onSelectRef.current?.({
+            cycleKey: d.cycleKey,
+            cycleLabel: d.cycleLabel,
+            color: d.color,
+            nthCycle: d.nthCycle,
+            ageStart: d.ageStart,
+            ageEnd: d.ageEnd,
+          });
+        }
       });
 
-    // Animate arcs in: draw-in by stroke-dashoffset, staggered slightly by
-    // age so the chart "writes itself" from left (birth) to right (now).
-    arcG
-      .selectAll<SVGPathElement, Arc>('path.arc')
+    // Draw-in animation, staggered by start age.
+    arcG.selectAll<SVGPathElement, Arc>('path.arc')
       .transition()
       .duration(900)
       .delay((d) => Math.min(800, d.ageStart * 9))
       .ease(d3.easeCubicOut)
-      .attr('opacity', opacityFor)
+      .attr('opacity', 0.5)
       .attr('stroke-dashoffset', 0);
 
-    // Continuous gentle breathing pulse on the active arcs (the ones the
-    // user is inside right now). Pure SVG <animate> so it doesn't tax the
-    // main thread.
-    arcG
-      .selectAll<SVGPathElement, Arc>('path.arc')
-      .filter((d) => isActiveArc(d) && !(selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle))
-      .append('animate')
-      .attr('attributeName', 'opacity')
-      .attr('values', '0.95;0.55;0.95')
-      .attr('dur', '5.5s')
-      .attr('repeatCount', 'indefinite');
-
-    // Life-chapter bands at the bottom — thin horizontal segments
-    // beneath the timeline showing where each chapter starts/ends.
-    // The chapter containing `focus` (or `age`) renders in wine-accent.
+    // Chapter bands (initial state — will be re-themed by the focus effect)
     const chapterG = g.append('g').attr('class', 'chapters');
     for (const ch of LIFE_CHAPTERS) {
       if (ch.startAge >= maxAge) continue;
       const x1 = x(Math.max(0, ch.startAge));
       const x2 = x(Math.min(maxAge, ch.endAge));
-      const inChapter = focus >= ch.startAge && focus < ch.endAge;
       chapterG.append('line')
+        .attr('class', 'chapter-band')
         .attr('x1', x1 + 1).attr('x2', x2 - 1)
         .attr('y1', innerH + 28).attr('y2', innerH + 28)
-        .attr('stroke', inChapter ? '#8b3a3a' : '#3a3a3a')
-        .attr('stroke-width', inChapter ? 2 : 0.8)
-        .attr('opacity', inChapter ? 0.95 : 0.5);
-      if (inChapter) {
-        chapterG.append('text')
-          .attr('x', (x1 + x2) / 2)
-          .attr('y', innerH + 42)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#8b3a3a')
-          .attr('font-size', 9)
-          .text(ch.label);
-      }
+        .attr('stroke', '#3a3a3a')
+        .attr('stroke-width', 0.8)
+        .attr('opacity', 0.5)
+        .attr('data-start', ch.startAge)
+        .attr('data-end', ch.endAge)
+        .attr('data-label', ch.label);
     }
+    // chapter label placeholder
+    chapterG.append('text')
+      .attr('class', 'chapter-label')
+      .attr('y', innerH + 42)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#8b3a3a')
+      .attr('font-size', 9)
+      .text('');
 
-    // Life-station markers above the chart: small diamonds at each
-    // station age. Currently-active station (within 2y of `age`) is
-    // wine-accent; the rest are dim.
+    // Station diamonds
     const stationY = -2;
     const stationG = g.append('g').attr('class', 'stations');
     stationG.selectAll('rect.station')
@@ -243,17 +204,17 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .attr('width', 6)
       .attr('height', 6)
       .attr('transform', (s) => `rotate(45 ${x(s.age)} ${stationY})`)
-      .attr('fill', (s) => Math.abs(focus - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
-      .attr('opacity', (s) => Math.abs(focus - s.age) < 2 ? 0.95 : 0.7)
-      .attr('cursor', onSelectStation ? 'pointer' : 'default')
-      .on('click', function (_e, s) {
-        onSelectStation?.(s.age);
-      })
+      .attr('fill', '#3a3a3a')
+      .attr('opacity', 0.7)
+      .attr('cursor', onSelectStationRef.current ? 'pointer' : 'default')
+      .attr('data-age', (s) => s.age)
+      .on('click', function (_e, s) { onSelectStationRef.current?.(s.age); })
       .append('title')
       .text((s) => `${s.label} — age ${s.age}`);
 
-    // today's age marker — slow opacity pulse, animated entry
+    // today marker (white)
     const nowLine = g.append('line')
+      .attr('class', 'now-line')
       .attr('x1', x(age)).attr('x2', x(age))
       .attr('y1', 0).attr('y2', 0)
       .attr('stroke', '#f4f1ea').attr('stroke-width', 1);
@@ -268,6 +229,7 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .attr('dur', '4.5s')
       .attr('repeatCount', 'indefinite');
     const nowText = g.append('text')
+      .attr('class', 'now-label')
       .attr('x', x(age))
       .attr('y', -8)
       .attr('text-anchor', 'middle')
@@ -277,31 +239,112 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .text(`now · ${age.toFixed(1)}y`);
     nowText.transition().delay(1300).duration(500).attr('opacity', 1);
 
-    // Focus marker — only drawn when scrubbing to a different age.
+    // Focus line container — pre-create, position later
+    g.append('g').attr('class', 'focus-group');
+    return () => {
+      d3.select(ref.current).selectAll('*').remove();
+    };
+    // Deliberately ONLY depend on birthIso + maxAge. selected/onSelect are read
+    // via refs so we don't tear down the entire chart on every interaction.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [birthIso, maxAge]);
+
+  // === Light effect: update only focus-driven visuals when focusAge or selected changes. ===
+  useEffect(() => {
+    const svg = d3.select(ref.current);
+    if (svg.empty()) return;
+    const g = svg.select<SVGGElement>('g');
+    if (g.empty()) return;
+
+    const age = ageInYears(birthIso);
+    const focus = focusAge ?? age;
+
+    function isActiveArc(d: Arc): boolean {
+      return focus >= d.ageStart && focus < d.ageEnd;
+    }
+    function opacityFor(d: Arc): number {
+      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
+      if (selected && !isSel) return 0.18;
+      if (isActiveArc(d)) return 0.95;
+      return 0.5;
+    }
+    function widthFor(d: Arc): number {
+      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
+      if (isSel) return 2;
+      if (isActiveArc(d)) return 1.3;
+      return 0.7;
+    }
+
+    // Update arc opacity + stroke-width based on focus + selection
+    g.selectAll<SVGPathElement, Arc>('path.arc')
+      .each(function (d) {
+        d3.select(this)
+          .attr('opacity', opacityFor(d))
+          .attr('stroke-width', widthFor(d));
+      });
+
+    // Update station diamonds
+    g.selectAll<SVGRectElement, typeof LIFE_STATIONS[number]>('rect.station')
+      .attr('fill', (s) => Math.abs(focus - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
+      .attr('opacity', (s) => Math.abs(focus - s.age) < 2 ? 0.95 : 0.7);
+
+    // Update chapter bands
+    g.selectAll<SVGLineElement, unknown>('line.chapter-band')
+      .attr('stroke', function () {
+        const startAge = parseFloat(this.getAttribute('data-start') ?? '0');
+        const endAge = parseFloat(this.getAttribute('data-end') ?? '0');
+        return focus >= startAge && focus < endAge ? '#8b3a3a' : '#3a3a3a';
+      })
+      .attr('stroke-width', function () {
+        const startAge = parseFloat(this.getAttribute('data-start') ?? '0');
+        const endAge = parseFloat(this.getAttribute('data-end') ?? '0');
+        return focus >= startAge && focus < endAge ? 2 : 0.8;
+      })
+      .attr('opacity', function () {
+        const startAge = parseFloat(this.getAttribute('data-start') ?? '0');
+        const endAge = parseFloat(this.getAttribute('data-end') ?? '0');
+        return focus >= startAge && focus < endAge ? 0.95 : 0.5;
+      });
+
+    // Chapter label
+    let activeChapter: typeof LIFE_CHAPTERS[number] | null = null;
+    for (const ch of LIFE_CHAPTERS) {
+      if (focus >= ch.startAge && focus < ch.endAge) { activeChapter = ch; break; }
+    }
+    if (activeChapter) {
+      const x1 = x(Math.max(0, activeChapter.startAge));
+      const x2 = x(Math.min(maxAge, activeChapter.endAge));
+      g.select('text.chapter-label')
+        .attr('x', (x1 + x2) / 2)
+        .text(activeChapter.label);
+    } else {
+      g.select('text.chapter-label').text('');
+    }
+
+    // Focus marker — only when scrubbing to a different age
+    const focusGroup = g.select<SVGGElement>('g.focus-group');
+    focusGroup.selectAll('*').remove();
     if (focusAge !== undefined && focusAge !== null && Math.abs(focusAge - age) > 0.05) {
-      const focusLine = g.append('line')
+      const fLine = focusGroup.append('line')
         .attr('x1', x(focus)).attr('x2', x(focus))
         .attr('y1', 0).attr('y2', innerH)
         .attr('stroke', '#8b3a3a').attr('stroke-width', 1.2)
         .attr('stroke-dasharray', '4 3');
-      focusLine.append('animate')
+      fLine.append('animate')
         .attr('attributeName', 'opacity')
         .attr('values', '1;0.6;1')
         .attr('dur', '3s')
         .attr('repeatCount', 'indefinite');
-      g.append('text')
+      focusGroup.append('text')
         .attr('x', x(focus))
-        .attr('y', innerH + 30)
+        .attr('y', innerH + 60)
         .attr('text-anchor', 'middle')
         .attr('fill', '#8b3a3a')
         .attr('font-size', 10)
         .text(`focus · ${focus.toFixed(1)}y`);
     }
-
-    return () => {
-      d3.select(ref.current).selectAll('*').remove();
-    };
-  }, [birthIso, maxAge, selected, onSelect, focusAge]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusAge, selected, birthIso, maxAge]);
 
   return (
     <div className="relative">
@@ -318,8 +361,6 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
             type="button"
             className="flex items-center gap-2 text-left"
             onClick={() => {
-              // select the FIRST arc of this cycle as a way to scroll the
-              // detail panel to this cycle's most relevant section
               const firstEnd = c.yearLength;
               onSelect?.({
                 cycleKey: c.key,

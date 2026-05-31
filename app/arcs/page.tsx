@@ -112,10 +112,15 @@ export default function ArcsPage() {
           human lifespan. The brighter arcs are the ones you are currently
           inside. The white line is right now.
         </p>
-        <p className="text-ink-dim text-[13px] mt-3 max-w-md">
-          <span className="text-ink">Tap any arc</span> to read what that
-          specific period holds.
-        </p>
+        <div className="mt-3 border border-hairline p-3 text-[12.5px] text-ink-dim serif leading-relaxed max-w-md">
+          <p className="text-ink mb-1.5 small-label caps" style={{ letterSpacing: '0.14em' }}>how to use this</p>
+          <ol className="space-y-1 list-decimal list-inside">
+            <li><span className="text-ink">Drag the slider</span> to explore any age — see what cycles you were inside.</li>
+            <li><span className="text-ink">Tap ▶</span> to watch your whole life animate from 0 to 92.</li>
+            <li><span className="text-ink">Tap any arc</span> for what that period of your life holds.</li>
+            <li><span className="text-ink">Tap a ◆ diamond</span> to jump to a major life-station (Saturn return, Chiron return, etc.).</li>
+          </ol>
+        </div>
       </header>
 
       <nav className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[10px] caps text-ink-faint border-t border-b border-hairline py-1.5" style={{ letterSpacing: '0.12em' }}>
@@ -145,13 +150,16 @@ export default function ArcsPage() {
         />
 
         {/* Age scrubber */}
-        <div className="mt-2">
+        <div className="mt-4">
+          <p className="small-label caps text-ink-faint mb-2" style={{ letterSpacing: '0.18em' }}>
+            drag · or press play
+          </p>
           <div className="flex items-center justify-between text-[11px] mb-1">
             <span className="small-label caps text-ink-faint">
-              {focusAge === null ? 'showing right now' : 'scrubbing'}
+              {focusAge === null ? 'showing today' : playing ? 'playing' : 'scrubbing'}
             </span>
             <span className="tabular-nums text-ink-dim">
-              {(focusAge ?? age).toFixed(1)}y
+              age {(focusAge ?? age).toFixed(1)}
               {focusAge !== null && (
                 <>
                   <button

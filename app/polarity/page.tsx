@@ -165,6 +165,15 @@ export default function PolarityPage() {
           descending, completing, releasing. Most people live their whole
           lives inside these tides without knowing when they flip.
         </p>
+        <div className="mt-3 border border-hairline p-3 text-[12.5px] text-ink-dim serif leading-relaxed">
+          <p className="text-ink mb-1.5 small-label caps" style={{ letterSpacing: '0.14em' }}>how to read this page</p>
+          <ol className="space-y-1 list-decimal list-inside">
+            <li><span className="text-ink">Each bar</span> is one of your cycles. <span className="text-ink">Filled top half</span> = rising. <span className="text-ink">Filled bottom half</span> = descending.</li>
+            <li><span className="text-ink">The thin vertical line</span> in each bar shows where in that half you are right now.</li>
+            <li><span className="text-ink">Tap any bar</span> to read what its current half tends to feel like.</li>
+            <li>The <span className="text-accent">7 colored dots</span> under the headline are a glance-view of the whole stack — tap any to scroll to that bar.</li>
+          </ol>
+        </div>
         <div className="text-ink-dim text-[13px] mt-3 flex items-baseline justify-between gap-3">
           <p>
             Right now: <span className="text-ink">{positive} cycles rising · {negative} descending</span> — {stack}.
