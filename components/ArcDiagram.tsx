@@ -156,13 +156,15 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
         }
       });
 
-    // Draw-in animation, staggered by start age.
+    // Draw-in animation, staggered by start age. Only animates stroke-
+    // dashoffset (the visual "writing" effect) — opacity is left to the
+    // light effect so active-arc highlighting wins from the start.
     arcG.selectAll<SVGPathElement, Arc>('path.arc')
+      .attr('opacity', 0.5)  // initial default; light effect will override
       .transition()
       .duration(900)
       .delay((d) => Math.min(800, d.ageStart * 9))
       .ease(d3.easeCubicOut)
-      .attr('opacity', 0.5)
       .attr('stroke-dashoffset', 0);
 
     // Chapter bands (initial state — will be re-themed by the focus effect)

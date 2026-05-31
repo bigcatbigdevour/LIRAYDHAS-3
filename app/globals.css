@@ -195,44 +195,48 @@ input[type="time"]::-webkit-calendar-picker-indicator {
      for the static fallback, hide any continuous animation rotation */
 }
 
-/* Age scrubber slider — restyled to match the Co-Star palette */
+/* Age scrubber slider — bigger thumb so fingers can grab it */
 .age-scrubber {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 14px;
+  height: 32px;
   background: transparent;
   cursor: pointer;
+  touch-action: pan-x;
 }
 .age-scrubber::-webkit-slider-runnable-track {
-  height: 1px;
+  height: 2px;
   background: #2a2a2a;
 }
 .age-scrubber::-moz-range-track {
-  height: 1px;
+  height: 2px;
   background: #2a2a2a;
 }
 .age-scrubber::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 24px;
+  height: 24px;
   background: #8b3a3a;
-  border: 0;
-  margin-top: -6px;
-  border-radius: 0;
+  border: 2px solid #f4f1ea;
+  margin-top: -11px;
+  border-radius: 50%;
   cursor: grab;
+  box-shadow: 0 0 0 4px rgba(139, 58, 58, 0.25);
 }
 .age-scrubber::-webkit-slider-thumb:active {
   cursor: grabbing;
+  background: #f4f1ea;
 }
 .age-scrubber::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 24px;
+  height: 24px;
   background: #8b3a3a;
-  border: 0;
-  border-radius: 0;
+  border: 2px solid #f4f1ea;
+  border-radius: 50%;
   cursor: grab;
+  box-shadow: 0 0 0 4px rgba(139, 58, 58, 0.25);
 }
 
 /* line clamp util */

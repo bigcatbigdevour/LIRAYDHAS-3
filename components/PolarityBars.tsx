@@ -63,8 +63,17 @@ export default function PolarityBars({ positions, flips }: Props) {
         return (
           <li key={p.cycle.key} id={`bar-${p.cycle.key}`}>
             <button
+              type="button"
               className="w-full text-left"
-              onClick={() => setExpanded(isOpen ? null : p.cycle.key)}
+              onClick={() => {
+                if (expandAll) {
+                  // user wants to exit "all expanded" mode and focus on one
+                  setExpandAll(false);
+                  setExpanded(p.cycle.key);
+                } else {
+                  setExpanded(isOpen ? null : p.cycle.key);
+                }
+              }}
             >
               <div className="flex items-baseline justify-between mb-1">
                 <span className="small-label caps flex items-center gap-1.5">

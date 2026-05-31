@@ -206,7 +206,7 @@ export default function ArcsPage() {
           >
             link copied
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -218,7 +218,7 @@ export default function ArcsPage() {
                   setPlaying(true);
                 }
               }}
-              className="text-[14px] text-ink-faint hover:text-accent w-10 h-10 flex items-center justify-center -ml-2"
+              className="text-[16px] w-12 h-12 flex items-center justify-center border border-accent text-accent hover:bg-accent hover:text-bg transition-colors shrink-0"
               aria-label={playing ? 'pause life animation' : 'play life animation'}
               title={playing ? 'pause' : 'play your life as a movie'}
             >
