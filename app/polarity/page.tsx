@@ -502,6 +502,7 @@ export default function PolarityPage() {
       </section>
 
       <section id="interpretation" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
+        <p className="small-label caps text-ink-faint mb-2">what this all means · a written reading</p>
         {loading && !polarity?.paragraph && (
           <p className="text-ink-dim italic">reading the stack…</p>
         )}
