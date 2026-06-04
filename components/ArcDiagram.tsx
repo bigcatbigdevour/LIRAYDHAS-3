@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import { CYCLES, ageInYears } from '@/lib/cycles';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { LIFE_CHAPTERS } from '@/lib/lifeChapters';
+import { CYCLE_PLAIN_LABELS } from '@/lib/cyclePlainLabels';
 
 export interface ArcSelection {
   cycleKey: string;
@@ -398,8 +399,13 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
           >
             <span className="serif text-[11px] text-ink-dim" aria-hidden>{c.glyph}</span>
             <span className="inline-block w-3 h-px" style={{ background: c.color }} />
-            <span className={selected?.cycleKey === c.key ? 'text-ink' : 'text-ink-dim'}>
+            <span className={`flex-1 min-w-0 ${selected?.cycleKey === c.key ? 'text-ink' : 'text-ink-dim'}`}>
               {c.label}
+              {CYCLE_PLAIN_LABELS[c.key] && (
+                <span className="serif italic text-ink-faint normal-case text-[9px] ml-1">
+                  · {CYCLE_PLAIN_LABELS[c.key]}
+                </span>
+              )}
             </span>
           </button>
         ))}
