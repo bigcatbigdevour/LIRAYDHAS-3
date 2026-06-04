@@ -256,21 +256,49 @@ export default function ArcsPage() {
             >
               {playing ? '❚❚' : '▶'}
             </button>
-            <input
-              type="range"
-              min={0}
-              max={92}
-              step={0.1}
-              value={focusAge ?? age}
-              onChange={(e) => {
-                if (playing) setPlaying(false);
-                const v = parseFloat(e.currentTarget.value);
-                if (Math.abs(v - age) < 0.15) setFocusAge(null);
-                else setFocusAge(v);
-              }}
-              className="flex-1 age-scrubber"
-              aria-label="Scrub through your life to explore any age"
-            />
+            <div className="flex-1 relative">
+              {/* "today" pin floats above the slider track at today's age */}
+              <div
+                className="absolute -top-3 flex flex-col items-center pointer-events-none"
+                style={{ left: `calc(${(age / 92) * 100}% - 14px)`, width: 28 }}
+                aria-hidden
+              >
+                <span
+                  className="text-[8px] text-ink-faint caps"
+                  style={{ letterSpacing: '0.18em', opacity: focusAge === null ? 1 : 0.55 }}
+                >
+                  today
+                </span>
+                <span
+                  className="block w-px h-2 bg-ink"
+                  style={{ opacity: focusAge === null ? 1 : 0.4 }}
+                />
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={92}
+                step={0.1}
+                value={focusAge ?? age}
+                onChange={(e) => {
+                  if (playing) setPlaying(false);
+                  const v = parseFloat(e.currentTarget.value);
+                  if (Math.abs(v - age) < 0.15) setFocusAge(null);
+                  else setFocusAge(v);
+                }}
+                className="w-full age-scrubber"
+                aria-label="Scrub through your life to explore any age"
+              />
+              {/* decade tick labels under the slider */}
+              <div className="flex justify-between mt-1 text-[8px] text-ink-faint caps" style={{ letterSpacing: '0.12em' }}>
+                <span>0</span>
+                <span>20</span>
+                <span>40</span>
+                <span>60</span>
+                <span>80</span>
+                <span>92</span>
+              </div>
+            </div>
           </div>
         </div>
 
