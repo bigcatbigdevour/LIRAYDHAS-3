@@ -13,6 +13,7 @@ import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { currentChapter } from '@/lib/lifeChapters';
 import { polarityGlanceText } from '@/lib/polarityGlance';
+import { whereYouAre, prettyDays } from '@/lib/whereYouAre';
 import { AUTHORITY_FOR_POLARITY } from '@/lib/humandesign/authorityForPolarity';
 import type { PolarityReading } from '@/lib/types';
 
@@ -143,6 +144,26 @@ export default function PolarityPage() {
       <header className="pb-6">
         <p className="small-label caps">Polarity</p>
         <h1 className="h-display serif mt-3">Where the tides are.</h1>
+        {(() => {
+          const w = whereYouAre(blueprint);
+          return (
+            <div className="mt-3 border-l-2 border-accent pl-3 py-1.5">
+              <p className="text-[15px] text-ink serif">
+                You are <span className="text-accent">{w.ageYears.toFixed(2)} years old</span>.
+                <span className="text-ink-dim"> · {w.ageDays.toLocaleString()} days alive.</span>
+              </p>
+              <p className="text-[12.5px] text-ink-dim serif mt-1 leading-relaxed">
+                Next solar return: <span className="text-ink">{prettyDays(w.daysUntilSolarReturn)}</span> away.
+                {w.nextStation && (
+                  <> · Next life station ({w.nextStation.station.label.toLowerCase()}): <span className="text-ink">{prettyDays(w.nextStation.daysUntil)}</span> away.</>
+                )}
+                {w.lastStation && !w.nextStation && (
+                  <> · Last life station ({w.lastStation.station.label.toLowerCase()}): <span className="text-ink">{prettyDays(w.lastStation.daysAgo)}</span> ago.</>
+                )}
+              </p>
+            </div>
+          );
+        })()}
         {/* atmospheric one-liner: today's tide mood */}
         {(() => {
           let mood: string;

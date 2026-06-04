@@ -106,13 +106,13 @@ export default function PolarityBars({ positions, flips }: Props) {
                 />
               </div>
               {flip && (
-                <div className="mt-1.5 flex flex-wrap justify-between gap-x-2 text-[10.5px] text-ink-faint" style={{ letterSpacing: '0.08em' }}>
-                  <span>
-                    flipped {humanDays(flip.daysSinceStart)} ago
-                    <span className="opacity-60"> · {formatDate(flip.startedAt)}</span>
+                <div className="mt-2 flex flex-wrap justify-between gap-x-2 text-[11.5px]" style={{ letterSpacing: '0.04em' }}>
+                  <span className="text-ink-faint">
+                    <span className="text-ink-dim">Day {Math.round(flip.daysSinceStart)}</span> of this {isPos ? 'rising' : 'descending'} half
+                    <span className="opacity-60 text-[10px]"> · started {formatDate(flip.startedAt)}</span>
                   </span>
-                  <span>
-                    flips in {humanDays(flip.daysUntilEnd)}
+                  <span className="text-accent tabular-nums">
+                    {Math.round(flip.daysUntilEnd)}d until flip
                   </span>
                 </div>
               )}

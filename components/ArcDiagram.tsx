@@ -44,8 +44,8 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
 
   // Layout constants used in both effects.
   const W = 800;
-  const H = 420;
-  const margin = { top: 30, right: 16, bottom: 60, left: 16 };
+  const H = 460;
+  const margin = { top: 30, right: 16, bottom: 100, left: 16 };
   const innerW = W - margin.left - margin.right;
   const innerH = H - margin.top - margin.bottom;
   const x = d3.scaleLinear().domain([0, maxAge]).range([0, innerW]);
@@ -214,12 +214,12 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .append('title')
       .text((s) => `${s.label} — age ${s.age}`);
 
-    // today marker (white)
+    // today marker (white) — thicker, more contrast
     const nowLine = g.append('line')
       .attr('class', 'now-line')
       .attr('x1', x(age)).attr('x2', x(age))
       .attr('y1', 0).attr('y2', 0)
-      .attr('stroke', '#f4f1ea').attr('stroke-width', 1);
+      .attr('stroke', '#f4f1ea').attr('stroke-width', 1.5);
     nowLine.transition()
       .delay(900)
       .duration(800)
@@ -227,9 +227,15 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .attr('y2', innerH);
     nowLine.append('animate')
       .attr('attributeName', 'opacity')
-      .attr('values', '1;0.55;1')
-      .attr('dur', '4.5s')
+      .attr('values', '1;0.6;1')
+      .attr('dur', '3s')
       .attr('repeatCount', 'indefinite');
+    // a small downward triangle above the now line as an arrowhead
+    g.append('path')
+      .attr('class', 'now-arrow')
+      .attr('d', `M ${x(age) - 4} -2 L ${x(age) + 4} -2 L ${x(age)} 4 Z`)
+      .attr('fill', '#f4f1ea')
+      .attr('opacity', 0);
     const nowText = g.append('text')
       .attr('class', 'now-label')
       .attr('x', x(age))
@@ -240,6 +246,7 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       .attr('opacity', 0)
       .text(`now · ${age.toFixed(1)}y`);
     nowText.transition().delay(1300).duration(500).attr('opacity', 1);
+    g.select('path.now-arrow').transition().delay(1500).duration(500).attr('opacity', 0.9);
 
     // Focus line container — pre-create, position later
     g.append('g').attr('class', 'focus-group');
@@ -327,30 +334,45 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
     const focusGroup = g.select<SVGGElement>('g.focus-group');
     focusGroup.selectAll('*').remove();
     if (focusAge !== undefined && focusAge !== null && Math.abs(focusAge - age) > 0.05) {
+      // a glowing wine vertical line
       const fLine = focusGroup.append('line')
         .attr('x1', x(focus)).attr('x2', x(focus))
         .attr('y1', 0).attr('y2', innerH)
-        .attr('stroke', '#8b3a3a').attr('stroke-width', 1.2)
+        .attr('stroke', '#8b3a3a').attr('stroke-width', 1.5)
         .attr('stroke-dasharray', '4 3');
       fLine.append('animate')
         .attr('attributeName', 'opacity')
-        .attr('values', '1;0.6;1')
-        .attr('dur', '3s')
+        .attr('values', '1;0.55;1')
+        .attr('dur', '2s')
         .attr('repeatCount', 'indefinite');
+      // age label
       focusGroup.append('text')
         .attr('x', x(focus))
-        .attr('y', innerH + 60)
+        .attr('y', innerH + 56)
         .attr('text-anchor', 'middle')
         .attr('fill', '#8b3a3a')
-        .attr('font-size', 10)
-        .text(`focus · ${focus.toFixed(1)}y`);
+        .attr('font-size', 11)
+        .attr('font-weight', '500')
+        .text(`age ${focus.toFixed(1)}`);
+      // calendar date label
+      const birthMs = new Date(birthIso).getTime();
+      const focusDate = new Date(birthMs + focus * 365.2425 * 86400 * 1000);
+      const dateStr = focusDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+      focusGroup.append('text')
+        .attr('x', x(focus))
+        .attr('y', innerH + 70)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#8b3a3a')
+        .attr('opacity', 0.7)
+        .attr('font-size', 9)
+        .text(dateStr);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusAge, selected, birthIso, maxAge]);
 
   return (
     <div className="relative">
-      <svg ref={ref} viewBox="0 0 800 420" className="w-full" />
+      <svg ref={ref} viewBox="0 0 800 460" className="w-full" />
       {hover && !selected && (
         <div className="absolute top-1 right-2 text-[11px] text-ink-dim bg-bg px-2 py-1 border border-hairline">
           {hover.cycleLabel.toLowerCase()} · ages {hover.ageStart.toFixed(1)}–{hover.ageEnd.toFixed(1)}

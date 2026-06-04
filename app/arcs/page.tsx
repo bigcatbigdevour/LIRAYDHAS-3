@@ -9,6 +9,7 @@ import { CYCLES, ageInYears, positionInCycles } from '@/lib/cycles';
 import { CYCLE_LENSES, arcDescription } from '@/lib/cycleLenses';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { LIFE_CHAPTERS, currentChapter } from '@/lib/lifeChapters';
+import { whereYouAre, prettyDays } from '@/lib/whereYouAre';
 
 export default function ArcsPage() {
   const router = useRouter();
@@ -82,6 +83,26 @@ export default function ArcsPage() {
         <p className="small-label caps">Arcs</p>
         <h1 className="h-display serif mt-3">Every cycle, drawn.</h1>
         {(() => {
+          const w = whereYouAre(blueprint);
+          return (
+            <div className="mt-3 border-l-2 border-accent pl-3 py-1.5">
+              <p className="text-[15px] text-ink serif">
+                You are <span className="text-accent">{w.ageYears.toFixed(2)} years old</span>.
+                <span className="text-ink-dim"> · {w.ageDays.toLocaleString()} days alive.</span>
+              </p>
+              <p className="text-[12.5px] text-ink-dim serif mt-1 leading-relaxed">
+                {w.chapter && (
+                  <>In <span className="text-ink">{w.chapter.label.toLowerCase()}</span> (ages {w.chapter.startAge}–{w.chapter.endAge}). </>
+                )}
+                Next chapter in <span className="text-ink">{prettyDays(w.daysUntilNextChapter)}</span>.
+                {w.nextStation && (
+                  <> · Next major life-station ({w.nextStation.station.label.toLowerCase()}): <span className="text-ink">{prettyDays(w.nextStation.daysUntil)}</span> away.</>
+                )}
+              </p>
+            </div>
+          );
+        })()}
+        {(() => {
           // Atmospheric one-liner pulled from the user's age decade.
           const decade = Math.floor(age / 10) * 10;
           const moods: Record<number, string> = {
@@ -154,12 +175,23 @@ export default function ArcsPage() {
           <p className="small-label caps text-ink-faint mb-2" style={{ letterSpacing: '0.18em' }}>
             drag · or press play
           </p>
-          <div className="flex items-center justify-between text-[11px] mb-1">
-            <span className="small-label caps text-ink-faint">
+          <div className="flex items-center justify-between text-[11px] mb-1 gap-2">
+            <span className="small-label caps text-ink-faint shrink-0">
               {focusAge === null ? 'showing today' : playing ? 'playing' : 'scrubbing'}
             </span>
-            <span className="tabular-nums text-ink-dim">
-              age {(focusAge ?? age).toFixed(1)}
+            <span className="tabular-nums text-ink-dim text-right">
+              {(() => {
+                const a = focusAge ?? age;
+                const birthMs = new Date(blueprint.birth.iso).getTime();
+                const d = new Date(birthMs + a * 365.2425 * 86400 * 1000);
+                const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+                return (
+                  <>
+                    <span className="text-accent">age {a.toFixed(1)}</span>
+                    <span className="text-ink-faint ml-1.5">· {dateStr}</span>
+                  </>
+                );
+              })()}
               {focusAge !== null && (
                 <>
                   <button
