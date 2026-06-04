@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { CyclePosition, PolarityFlip } from '@/lib/cycles';
 import { POLARITY_HALVES } from '@/lib/polarityHalves';
+import { CYCLE_PLAIN_LABELS } from '@/lib/cyclePlainLabels';
 
 interface Props {
   positions: CyclePosition[];
@@ -75,13 +76,18 @@ export default function PolarityBars({ positions, flips }: Props) {
                 }
               }}
             >
-              <div className="flex items-baseline justify-between mb-1">
-                <span className="small-label caps flex items-center gap-1.5">
+              <div className="flex items-baseline justify-between mb-1 gap-2">
+                <span className="small-label caps flex items-baseline gap-1.5">
                   <span className="serif text-[13px] text-ink-dim" aria-hidden>{p.cycle.glyph}</span>
                   {p.cycle.label}
+                  {CYCLE_PLAIN_LABELS[p.cycle.key] && (
+                    <span className="serif italic text-[10.5px] text-ink-faint normal-case" style={{ letterSpacing: '0.02em' }}>
+                      · {CYCLE_PLAIN_LABELS[p.cycle.key]}
+                    </span>
+                  )}
                   <span className="text-ink-faint">{isOpen ? '−' : '+'}</span>
                 </span>
-                <span className="text-[11px] text-ink-dim tabular-nums">
+                <span className="text-[11px] text-ink-dim tabular-nums shrink-0">
                   {Math.round(pct)}% · {label}
                 </span>
               </div>

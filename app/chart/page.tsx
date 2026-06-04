@@ -19,6 +19,7 @@ import { houseOfLongitude } from '@/lib/astrology/houses';
 import { SUN_BY_SIGN, MOON_BY_SIGN, RISING_BY_SIGN } from '@/lib/astrology/signMeanings';
 import { gateName } from '@/lib/humandesign/gateNames';
 import { ageInYears, positionInCycles } from '@/lib/cycles';
+import { CYCLE_PLAIN_LABELS } from '@/lib/cyclePlainLabels';
 import { currentChapter } from '@/lib/lifeChapters';
 import { HOUSE_MEANINGS } from '@/lib/astrology/houseMeanings';
 import { chartGlanceText } from '@/lib/chartGlance';
@@ -315,13 +316,16 @@ export default function ChartPage() {
         </div>
         <ul className="space-y-0.5 text-[12.5px]">
           {positionInCycles(ageInYears(blueprint.birth.iso)).map((p) => (
-            <li key={p.cycle.key} className="flex justify-between border-b border-hairline py-1">
-              <span className="text-ink-dim flex items-center gap-1.5">
+            <li key={p.cycle.key} className="flex justify-between items-baseline gap-2 border-b border-hairline py-1">
+              <span className="text-ink-dim flex items-baseline gap-1.5 min-w-0">
                 <span className="serif text-[12px] text-ink-dim" aria-hidden>{p.cycle.glyph}</span>
-                <span className="inline-block w-2 h-px" style={{ background: p.cycle.color }} />
+                <span className="inline-block w-2 h-px self-center" style={{ background: p.cycle.color }} />
                 <span className="text-ink">{p.cycle.label}</span>
+                {CYCLE_PLAIN_LABELS[p.cycle.key] && (
+                  <span className="serif italic text-[10px] text-ink-faint truncate">· {CYCLE_PLAIN_LABELS[p.cycle.key]}</span>
+                )}
               </span>
-              <span className="tabular-nums text-ink-faint">
+              <span className="tabular-nums text-ink-faint shrink-0">
                 {p.positive ? '↑ rising' : '↓ descending'} · {Math.round(p.fraction * 100)}%
               </span>
             </li>
