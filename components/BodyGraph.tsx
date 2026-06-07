@@ -281,7 +281,11 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const isP = persGates.has(gate);
         const isD = desGates.has(gate);
         const isBoth = isP && isD;
-        const radius = 5;
+        const isInTappedChannel = !!tappedChannel && (tappedChannel.a === gate || tappedChannel.b === gate);
+        const isTappedGate = tappedGate === gate;
+        const radius = isInTappedChannel || isTappedGate ? 6 : 5;
+        const ringStroke = isInTappedChannel || isTappedGate ? '#8b3a3a' : '#0a0a0a';
+        const ringWidth = isInTappedChannel || isTappedGate ? 1.2 : 0.5;
         return (
           <g key={`node-${gate}`} pointerEvents="none">
             {isBoth ? (
@@ -295,14 +299,14 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
                   d={`M ${p.x} ${p.y - radius} A ${radius} ${radius} 0 0 1 ${p.x} ${p.y + radius} Z`}
                   fill="#f4f1ea"
                 />
-                <circle cx={p.x} cy={p.y} r={radius} fill="none" stroke="#0a0a0a" strokeWidth="0.5" />
+                <circle cx={p.x} cy={p.y} r={radius} fill="none" stroke={ringStroke} strokeWidth={ringWidth} />
               </>
             ) : isP ? (
-              <circle cx={p.x} cy={p.y} r={radius} fill="#f4f1ea" stroke="#0a0a0a" strokeWidth="0.5" />
+              <circle cx={p.x} cy={p.y} r={radius} fill="#f4f1ea" stroke={ringStroke} strokeWidth={ringWidth} />
             ) : isD ? (
-              <circle cx={p.x} cy={p.y} r={radius} fill="#b22a2a" stroke="#0a0a0a" strokeWidth="0.5" />
+              <circle cx={p.x} cy={p.y} r={radius} fill="#b22a2a" stroke={ringStroke} strokeWidth={ringWidth} />
             ) : (
-              <circle cx={p.x} cy={p.y} r={radius} fill="#0a0a0a" stroke="#3a3a3a" strokeWidth="0.5" />
+              <circle cx={p.x} cy={p.y} r={radius} fill="#0a0a0a" stroke={ringStroke} strokeWidth={ringWidth} />
             )}
           </g>
         );
