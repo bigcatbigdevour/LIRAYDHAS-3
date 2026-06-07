@@ -192,27 +192,51 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const bActive = activeGates.has(b);
         const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
         const isTapped = tappedChannel && tappedChannel.a === a && tappedChannel.b === b;
+        const strokeFor = (isHalfActive: boolean) => {
+          if (isTapped) return '#b22a2a';
+          if (isActive) return '#f4f1ea';
+          if (isHalfActive) return '#999';
+          return '#1c1c1c';
+        };
+        const widthFor = (isHalfActive: boolean) => {
+          if (isTapped) return 2.5;
+          if (isActive) return 1.8;
+          if (isHalfActive) return 1.3;
+          return 0.6;
+        };
         return (
           <g
             key={key}
             style={{ cursor: isActive ? 'pointer' : 'default' }}
             onClick={isActive ? () => setTappedChannel(isTapped ? null : { a, b, name: ch.name }) : undefined}
           >
+            {/* faint glow behind active channels */}
+            {(isActive || isTapped) && (
+              <line
+                x1={A.x} y1={A.y} x2={B.x} y2={B.y}
+                stroke={isTapped ? '#8b3a3a' : '#f4f1ea'}
+                strokeWidth={isTapped ? 5 : 4}
+                opacity={isTapped ? 0.18 : 0.08}
+                pointerEvents="none"
+              />
+            )}
             <line
               x1={A.x} y1={A.y} x2={mid.x} y2={mid.y}
-              stroke={isTapped ? '#8b3a3a' : isActive ? '#f4f1ea' : aActive ? '#888' : '#1c1c1c'}
-              strokeWidth={isTapped ? 2 : isActive ? 1.5 : aActive ? 1.1 : 0.6}
+              stroke={strokeFor(aActive)}
+              strokeWidth={widthFor(aActive)}
+              strokeLinecap="round"
             />
             <line
               x1={mid.x} y1={mid.y} x2={B.x} y2={B.y}
-              stroke={isTapped ? '#8b3a3a' : isActive ? '#f4f1ea' : bActive ? '#888' : '#1c1c1c'}
-              strokeWidth={isTapped ? 2 : isActive ? 1.5 : bActive ? 1.1 : 0.6}
+              stroke={strokeFor(bActive)}
+              strokeWidth={widthFor(bActive)}
+              strokeLinecap="round"
             />
             {/* invisible fat hit area for easier tap on mobile */}
             {isActive && (
               <line
                 x1={A.x} y1={A.y} x2={B.x} y2={B.y}
-                stroke="transparent" strokeWidth="14" pointerEvents="stroke"
+                stroke="transparent" strokeWidth="16" pointerEvents="stroke"
               />
             )}
           </g>
@@ -238,21 +262,59 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         );
       })}
 
-      {/* gate numbers */}
+      {/* gate nodes — small circle per gate, color-coded by activation
+          source. Personality gate = cream filled, Design gate = wine
+          filled, BOTH = split (cream right / wine left). Inactive = hollow. */}
       {Object.entries(GATE_ANCHORS).map(([gateStr, p]) => {
         const gate = Number(gateStr);
         const isP = persGates.has(gate);
         const isD = desGates.has(gate);
-        const fill = isP && isD ? '#f4f1ea' : isP ? '#f4f1ea' : isD ? '#b22a2a' : '#3a3a3a';
+        const isBoth = isP && isD;
+        const radius = 5;
+        return (
+          <g key={`node-${gate}`} pointerEvents="none">
+            {isBoth ? (
+              <>
+                {/* split node: design (wine) left half, personality (cream) right half */}
+                <path
+                  d={`M ${p.x} ${p.y - radius} A ${radius} ${radius} 0 0 0 ${p.x} ${p.y + radius} Z`}
+                  fill="#b22a2a"
+                />
+                <path
+                  d={`M ${p.x} ${p.y - radius} A ${radius} ${radius} 0 0 1 ${p.x} ${p.y + radius} Z`}
+                  fill="#f4f1ea"
+                />
+                <circle cx={p.x} cy={p.y} r={radius} fill="none" stroke="#0a0a0a" strokeWidth="0.5" />
+              </>
+            ) : isP ? (
+              <circle cx={p.x} cy={p.y} r={radius} fill="#f4f1ea" stroke="#0a0a0a" strokeWidth="0.5" />
+            ) : isD ? (
+              <circle cx={p.x} cy={p.y} r={radius} fill="#b22a2a" stroke="#0a0a0a" strokeWidth="0.5" />
+            ) : (
+              <circle cx={p.x} cy={p.y} r={radius} fill="#0a0a0a" stroke="#3a3a3a" strokeWidth="0.5" />
+            )}
+          </g>
+        );
+      })}
+
+      {/* gate numbers — overlaid on the nodes */}
+      {Object.entries(GATE_ANCHORS).map(([gateStr, p]) => {
+        const gate = Number(gateStr);
+        const isP = persGates.has(gate);
+        const isD = desGates.has(gate);
+        const isBoth = isP && isD;
+        const fill = isBoth ? '#0a0a0a' : isP ? '#0a0a0a' : isD ? '#f4f1ea' : '#666';
         return (
           <text
             key={gate}
             x={p.x}
-            y={p.y + 2.6}
+            y={p.y + 2.5}
             textAnchor="middle"
-            fontSize="7.5"
+            fontSize="7"
+            fontWeight={isP || isD ? '600' : '400'}
             fill={fill}
             fontFamily="var(--font-sans), Inter, sans-serif"
+            pointerEvents="none"
           >
             {gate}
           </text>

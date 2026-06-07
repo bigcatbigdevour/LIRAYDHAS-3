@@ -105,11 +105,30 @@ export default function ChartPage() {
 
       <section className="my-6">
         <BodyGraph blueprint={blueprint} />
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3 text-[10px] caps" style={{ letterSpacing: '0.16em' }}>
-          <span className="text-ink">— defined channel</span>
-          <span className="text-ink-faint">— undefined</span>
-          <span className="text-ink">white = personality</span>
-          <span style={{ color: '#b22a2a' }}>red = design</span>
+        <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1.5 mt-3 text-[10px] caps" style={{ letterSpacing: '0.14em' }}>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-4 h-px bg-ink" />
+            defined
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-4 h-px bg-hairline" />
+            undefined
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-ink" />
+            personality
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: '#b22a2a' }} />
+            design
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block w-2.5 h-2.5 rounded-full"
+              style={{ background: 'linear-gradient(90deg, #b22a2a 50%, #f4f1ea 50%)' }}
+            />
+            both
+          </span>
         </div>
       </section>
 
