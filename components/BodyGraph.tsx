@@ -5,6 +5,8 @@ import type { Blueprint, CenterName } from '@/lib/types';
 import { ALL_CHANNELS } from '@/lib/humandesign/channels';
 import { CENTER_MEANINGS } from '@/lib/humandesign/centerMeanings';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
+import { gateName } from '@/lib/humandesign/gateNames';
+import { centerOfGate, centerLabel } from '@/lib/humandesign/centers';
 
 // Canonical vertical bodygraph layout, 320 × 580 viewBox.
 //
@@ -163,6 +165,7 @@ interface TappedChannel { a: number; b: number; name: string }
 export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
   const [tappedCenter, setTappedCenter] = useState<CenterName | null>(null);
   const [tappedChannel, setTappedChannel] = useState<TappedChannel | null>(null);
+  const [tappedGate, setTappedGate] = useState<number | null>(null);
   const defined = new Set(blueprint.humanDesign.definedCenters);
   const activeGates = new Set(blueprint.humanDesign.activeGates.map((g) => g.gate));
   const persGates = new Set(
@@ -208,7 +211,11 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
           <g
             key={key}
             style={{ cursor: isActive ? 'pointer' : 'default' }}
-            onClick={isActive ? () => setTappedChannel(isTapped ? null : { a, b, name: ch.name }) : undefined}
+            onClick={isActive ? () => {
+              setTappedChannel(isTapped ? null : { a, b, name: ch.name });
+              setTappedCenter(null);
+              setTappedGate(null);
+            } : undefined}
           >
             {/* faint glow behind active channels */}
             {(isActive || isTapped) && (
@@ -257,7 +264,11 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
             stroke={isTapped ? '#f4f1ea' : isDefined ? c.fill : '#2a2a2a'}
             strokeWidth={isTapped ? 1.4 : isDefined ? 0 : 0.8}
             style={{ cursor: 'pointer' }}
-            onClick={() => setTappedCenter(isTapped ? null : name)}
+            onClick={() => {
+              setTappedCenter(isTapped ? null : name);
+              setTappedChannel(null);
+              setTappedGate(null);
+            }}
           />
         );
       })}
@@ -321,6 +332,27 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         );
       })}
 
+      {/* gate tap targets — invisible larger hit areas, on top so they win taps */}
+      {Object.entries(GATE_ANCHORS).map(([gateStr, p]) => {
+        const gate = Number(gateStr);
+        return (
+          <circle
+            key={`hit-${gate}`}
+            cx={p.x} cy={p.y} r={8}
+            fill="transparent"
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setTappedGate(tappedGate === gate ? null : gate);
+              setTappedCenter(null);
+              setTappedChannel(null);
+            }}
+          >
+            <title>{`Gate ${gate} — ${gateName(gate)}`}</title>
+          </circle>
+        );
+      })}
+
       {/* column labels */}
       <text x={6} y={H - 8} fontSize="9" fill="#666"
             fontFamily="var(--font-sans), Inter, sans-serif" style={{ letterSpacing: '0.18em' }}>
@@ -347,6 +379,41 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
             type="button"
             className="small-label caps text-ink-faint hover:text-ink mt-2"
             onClick={() => setTappedCenter(null)}
+          >
+            close
+          </button>
+        </div>
+      );
+    })()}
+    {tappedGate && (() => {
+      const center = centerOfGate(tappedGate);
+      const isP = persGates.has(tappedGate);
+      const isD = desGates.has(tappedGate);
+      const activations = blueprint.humanDesign.activeGates.filter((g) => g.gate === tappedGate);
+      const lit = isP || isD;
+      return (
+        <div className="mt-3 border-l-2 pl-3 fade-in" style={{ borderLeftColor: lit ? '#8b3a3a' : '#3a3a3a' }}>
+          <p className="small-label caps text-ink-faint">
+            gate <span className="text-ink">{tappedGate}</span> · <span className="text-accent">{gateName(tappedGate)}</span>
+            <span className="ml-1.5 text-[10px]">in {centerLabel(center)}</span>
+          </p>
+          <p className="text-[12px] text-ink-dim caps mt-1" style={{ letterSpacing: '0.08em' }}>
+            {isP && isD ? 'activated by both personality + design' : isP ? 'activated by personality' : isD ? 'activated by design' : 'not activated in your chart'}
+          </p>
+          {activations.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[12px] text-ink-dim">
+              {activations.map((a, i) => (
+                <li key={i}>
+                  <span className={a.chart === 'personality' ? 'text-ink' : 'text-accent'}>{a.planet}</span>{' '}
+                  ({a.chart}) · line {a.line}
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="small-label caps text-ink-faint hover:text-ink mt-2"
+            onClick={() => setTappedGate(null)}
           >
             close
           </button>
