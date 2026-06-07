@@ -130,6 +130,9 @@ export default function ChartPage() {
             both
           </span>
         </div>
+        <p className="small-label caps text-ink-faint text-center mt-2" style={{ letterSpacing: '0.18em' }}>
+          tap any gate · channel · or center
+        </p>
       </section>
 
       <section className="mt-4 mb-10">
