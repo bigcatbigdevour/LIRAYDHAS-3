@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import PolarityBars from '@/components/PolarityBars';
 import PolarityForecast from '@/components/PolarityForecast';
+import PullToRefresh from '@/components/PullToRefresh';
+import FirstTimeIntro from '@/components/FirstTimeIntro';
 import ScrollHint from '@/components/ScrollHint';
 import Link from 'next/link';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
@@ -140,10 +142,28 @@ export default function PolarityPage() {
         : 'evenly split';
 
   return (
+    <PullToRefresh onRefresh={fetchPolarity}>
     <main className="page max-w-md mx-auto fade-in">
       <header className="pb-6">
         <p className="small-label caps">Polarity</p>
         <h1 className="h-display serif mt-3">Where the tides are.</h1>
+        <FirstTimeIntro storeKey="liraydhas.polarity.intro.dismissed.v1" learnHref="/learn#polarity">
+          <p>
+            Every planet's cycle has two halves. The first half is{' '}
+            <span className="text-ink">rising</span> — energy building, things
+            accumulating, doors opening. The second half is{' '}
+            <span className="text-ink">descending</span> — completing, releasing,
+            integrating. Most people live their whole lives inside these tides
+            without noticing when one flips.
+          </p>
+          <p>
+            Below: every cycle of your life, with its current half marked. Add
+            them up — a mostly-rising stack feels like an opening season of
+            life; mostly descending feels like a releasing one. The slow ones
+            (Saturn, Chiron, Nodal) are the ones to watch when they flip — those
+            are not subtle.
+          </p>
+        </FirstTimeIntro>
         {(() => {
           const w = whereYouAre(blueprint);
           return (
@@ -681,6 +701,7 @@ export default function PolarityPage() {
         </button>
       </section>
     </main>
+    </PullToRefresh>
   );
 }
 

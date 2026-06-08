@@ -5,21 +5,26 @@ import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { ageInYears, polarityFlips } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
+import { handlePreflight, withCors } from '@/lib/cors';
 import type { Blueprint, DailyReport } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+export function OPTIONS(req: Request) {
+  return handlePreflight(req);
+}
 
 export async function POST(req: Request) {
   let body: { blueprint?: Blueprint; localDate?: string };
   try {
     body = (await req.json()) as { blueprint?: Blueprint; localDate?: string };
   } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
+    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
   }
   const bp = body.blueprint;
   if (!bp || !bp.natal || !bp.humanDesign) {
-    return NextResponse.json({ error: 'missing blueprint' }, { status: 400 });
+    return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
   }
 
   const now = new Date();
@@ -83,7 +88,7 @@ Naming one mundane, concrete thing they should pay attention to today is good. E
     paragraph = textOf(msg);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return withCors(NextResponse.json({ error: message }, { status: 500 }), req);
   }
 
   const report: DailyReport = {
@@ -91,7 +96,7 @@ Naming one mundane, concrete thing they should pay attention to today is good. E
     date: today,
     transits: top,
   };
-  return NextResponse.json(report);
+  return withCors(NextResponse.json(report), req);
 }
 
 const SIGNS = [

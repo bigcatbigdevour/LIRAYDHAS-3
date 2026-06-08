@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/lib/store';
+import { tap } from '@/lib/haptics';
 
 const TABS = [
   { href: '/today',    label: 'Today',    Icon: SunIcon },
@@ -32,6 +33,7 @@ export default function TabBar() {
             <li key={href}>
               <Link
                 href={href}
+                onClick={() => { if (!active) tap('light'); }}
                 className={`flex flex-col items-center justify-center gap-1 py-3 text-[10px] ${
                   active ? 'text-ink' : 'text-ink-faint'
                 }`}

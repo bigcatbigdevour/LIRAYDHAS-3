@@ -7,13 +7,9 @@ import { CENTER_MEANINGS } from '@/lib/humandesign/centerMeanings';
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 import { gateName } from '@/lib/humandesign/gateNames';
 import { centerOfGate, centerLabel } from '@/lib/humandesign/centers';
+import { tap as hapticTap } from '@/lib/haptics';
 
 // Canonical vertical bodygraph layout, 320 × 580 viewBox.
-//
-// Strategy: every gate is anchored at a fixed point on its center's
-// perimeter. Points are chosen so that the line drawn between the two
-// gates of any channel is close to a straight line through both centers'
-// edges — i.e. channels look like channels, not random crisscrosses.
 
 const W = 320;
 const H = 580;
@@ -21,32 +17,32 @@ const H = 580;
 interface CenterDef {
   cx: number; cy: number;
   shape: 'triangle-up' | 'triangle-down' | 'square' | 'diamond';
-  size: number;       // half-width of bounding box (square: half side; tri: base half)
+  size: number;
+  /** Canonical HD color (filled when defined). */
   fill: string;
 }
 
+// Canonical HD center colors — toned down to suit the dark Co-Star aesthetic
+// while remaining recognisable to anyone who reads HD charts elsewhere.
 const CENTERS: Record<CenterName, CenterDef> = {
-  Head:        { cx: 160, cy: 55,  shape: 'triangle-up',   size: 38, fill: '#a89a3a' },
-  Ajna:        { cx: 160, cy: 130, shape: 'triangle-down', size: 38, fill: '#a89a3a' },
-  Throat:      { cx: 160, cy: 210, shape: 'square',        size: 40, fill: '#6e553a' },
-  G:           { cx: 160, cy: 310, shape: 'diamond',       size: 46, fill: '#a89a3a' },
-  Heart:       { cx: 230, cy: 305, shape: 'triangle-up',   size: 30, fill: '#8b3a3a' },
-  Sacral:      { cx: 160, cy: 410, shape: 'square',        size: 42, fill: '#8b3a3a' },
-  SolarPlexus: { cx: 268, cy: 410, shape: 'triangle-down', size: 36, fill: '#6e553a' },
-  Spleen:      { cx: 52,  cy: 410, shape: 'triangle-down', size: 36, fill: '#6e553a' },
-  Root:        { cx: 160, cy: 510, shape: 'square',        size: 42, fill: '#6e553a' },
+  Head:        { cx: 160, cy: 55,  shape: 'triangle-up',   size: 38, fill: '#c49a3b' },  // gold
+  Ajna:        { cx: 160, cy: 130, shape: 'triangle-down', size: 38, fill: '#5a7a4a' },  // green
+  Throat:      { cx: 160, cy: 210, shape: 'square',        size: 40, fill: '#8b7355' },  // brown
+  G:           { cx: 160, cy: 310, shape: 'diamond',       size: 46, fill: '#c49a3b' },  // gold
+  Heart:       { cx: 230, cy: 305, shape: 'triangle-up',   size: 30, fill: '#a93232' },  // red
+  Sacral:      { cx: 160, cy: 410, shape: 'square',        size: 42, fill: '#a93232' },  // red
+  SolarPlexus: { cx: 268, cy: 410, shape: 'triangle-down', size: 36, fill: '#a65a52' },  // mauve/rust
+  Spleen:      { cx: 52,  cy: 410, shape: 'triangle-down', size: 36, fill: '#8b7355' },  // brown
+  Root:        { cx: 160, cy: 510, shape: 'square',        size: 42, fill: '#8b7355' },  // brown
 };
 
-// Per-gate anchor: (x, y) in viewBox coordinates.
-// Positioned at the perimeter point of each gate's center where its
-// most-significant channel(s) enter from. Spread to avoid collisions.
 const GATE_ANCHORS: Record<number, { x: number; y: number }> = {
-  // === HEAD (bottom edge, 3 gates above Ajna's top three) ===
+  // === HEAD ===
   64: { x: 142, y: 88 },
   61: { x: 160, y: 90 },
   63: { x: 178, y: 88 },
 
-  // === AJNA (top edge mirroring Head; bottom edge mirroring Throat top) ===
+  // === AJNA ===
   47: { x: 142, y: 102 },
   24: { x: 160, y: 100 },
   4:  { x: 178, y: 102 },
@@ -54,95 +50,74 @@ const GATE_ANCHORS: Record<number, { x: number; y: number }> = {
   43: { x: 160, y: 162 },
   11: { x: 175, y: 156 },
 
-  // === THROAT (square) ===
-  // Top edge (under Ajna's lower three):
+  // === THROAT ===
   62: { x: 145, y: 174 },
   23: { x: 160, y: 174 },
   56: { x: 175, y: 174 },
-  // Right edge (toward Solar Plexus):
   35: { x: 198, y: 196 },
   12: { x: 198, y: 220 },
-  // Bottom edge (toward G — 31, 8, 33; toward Heart — 45):
   31: { x: 138, y: 246 },
   8:  { x: 154, y: 246 },
   33: { x: 170, y: 246 },
   45: { x: 188, y: 246 },
-  // Left edge (toward Spleen 48; toward Sacral 34 / Spleen 57 / G 10 via 20):
   20: { x: 122, y: 220 },
   16: { x: 122, y: 196 },
 
-  // === G CENTER (diamond) ===
-  // Top corner area (toward Throat's bottom):
-  7:  { x: 160, y: 270 },   // up to Throat 31
-  1:  { x: 148, y: 281 },   // up to Throat 8
-  13: { x: 172, y: 281 },   // up to Throat 33
-  // Left vertex (toward Sacral 34 / Spleen 57 / Throat 20):
+  // === G CENTER ===
+  7:  { x: 160, y: 270 },
+  1:  { x: 148, y: 281 },
+  13: { x: 172, y: 281 },
   10: { x: 122, y: 310 },
-  // Right vertex (toward Heart):
   25: { x: 198, y: 310 },
-  // Bottom-half (toward Sacral):
-  15: { x: 136, y: 333 },   // down to Sacral 5
-  2:  { x: 184, y: 333 },   // down to Sacral 14
-  46: { x: 160, y: 350 },   // down to Sacral 29
+  15: { x: 136, y: 333 },
+  2:  { x: 184, y: 333 },
+  46: { x: 160, y: 350 },
 
-  // === HEART (small triangle up) ===
-  21: { x: 230, y: 286 },   // top → Throat 45
-  51: { x: 214, y: 314 },   // left → G 25
-  26: { x: 224, y: 326 },   // bottom-left → Spleen 44
-  40: { x: 244, y: 326 },   // bottom-right → SP 37
+  // === HEART ===
+  21: { x: 230, y: 286 },
+  51: { x: 214, y: 314 },
+  26: { x: 224, y: 326 },
+  40: { x: 244, y: 326 },
 
-  // === SACRAL (square) ===
-  // Top edge (toward G), left to right:
-  34: { x: 124, y: 372 },   // up-left toward Throat 20 / G 10 / Spleen 57
-  5:  { x: 144, y: 372 },   // up to G 15
-  14: { x: 160, y: 372 },   // up to G 2 (wait — channel 2-14, G 2 is at (184, 333), Sacral 14 at (160, 372))
-  29: { x: 176, y: 372 },   // up to G 46
-  // Right edge (toward SP):
+  // === SACRAL ===
+  34: { x: 124, y: 372 },
+  5:  { x: 144, y: 372 },
+  14: { x: 160, y: 372 },
+  29: { x: 176, y: 372 },
   59: { x: 200, y: 400 },
-  // Left edge (toward Spleen):
   27: { x: 120, y: 400 },
-  // Bottom edge (toward Root):
-  3:  { x: 145, y: 448 },   // down to Root 60
-  9:  { x: 165, y: 448 },   // down to Root 52
-  42: { x: 180, y: 448 },   // down to Root 53
+  3:  { x: 145, y: 448 },
+  9:  { x: 165, y: 448 },
+  42: { x: 180, y: 448 },
 
-  // === SOLAR PLEXUS (triangle pointing down) ===
-  // Top edge of the triangle (faces Throat):
-  22: { x: 290, y: 388 },   // up-right → Throat 12
-  36: { x: 254, y: 388 },   // up-left → Throat 35
-  // Left edge (toward Sacral, Heart):
-  6:  { x: 246, y: 405 },   // → Sacral 59
-  37: { x: 254, y: 418 },   // → Heart 40
-  // Bottom-right tip (toward Root):
-  49: { x: 250, y: 425 },   // → Root 19
-  55: { x: 268, y: 440 },   // → Root 39
-  30: { x: 286, y: 425 },   // → Root 41
+  // === SOLAR PLEXUS ===
+  22: { x: 290, y: 388 },
+  36: { x: 254, y: 388 },
+  6:  { x: 246, y: 405 },
+  37: { x: 254, y: 418 },
+  49: { x: 250, y: 425 },
+  55: { x: 268, y: 440 },
+  30: { x: 286, y: 425 },
 
-  // === SPLEEN (triangle pointing down) ===
-  // Top edge (toward Throat):
-  48: { x: 70,  y: 388 },   // → Throat 16
-  // Right edge (toward Sacral, G, Heart):
-  57: { x: 84,  y: 392 },   // → Throat 20 / Sacral 34 / G 10
-  44: { x: 84,  y: 408 },   // → Heart 26
-  50: { x: 84,  y: 420 },   // → Sacral 27
-  // Bottom-left tip (toward Root):
-  32: { x: 66,  y: 432 },   // → Root 54
-  28: { x: 50,  y: 440 },   // → Root 38
-  18: { x: 32,  y: 432 },   // → Root 58
+  // === SPLEEN ===
+  48: { x: 70,  y: 388 },
+  57: { x: 84,  y: 392 },
+  44: { x: 84,  y: 408 },
+  50: { x: 84,  y: 420 },
+  32: { x: 66,  y: 432 },
+  28: { x: 50,  y: 440 },
+  18: { x: 32,  y: 432 },
 
-  // === ROOT (square) ===
-  // Top edge (toward Sacral):
-  53: { x: 180, y: 472 },   // up → Sacral 42
-  60: { x: 160, y: 472 },   // up → Sacral 3 (note: channel 3-60, gate 3 at (145, 448), gate 60 at (160, 472) — slight skew)
-  52: { x: 140, y: 472 },   // up → Sacral 9
-  // Right edge (toward SP):
-  41: { x: 200, y: 478 },   // up-right → SP 30
-  39: { x: 200, y: 496 },   // up-right → SP 55
-  19: { x: 200, y: 514 },   // up-right → SP 49
-  // Left edge (toward Spleen):
-  58: { x: 120, y: 478 },   // up-left → Spleen 18
-  38: { x: 120, y: 496 },   // up-left → Spleen 28
-  54: { x: 120, y: 514 },   // up-left → Spleen 32
+  // === ROOT ===
+  53: { x: 180, y: 472 },
+  60: { x: 160, y: 472 },
+  52: { x: 140, y: 472 },
+  41: { x: 200, y: 478 },
+  39: { x: 200, y: 496 },
+  19: { x: 200, y: 514 },
+  58: { x: 120, y: 478 },
+  38: { x: 120, y: 496 },
+  54: { x: 120, y: 514 },
 };
 
 function shapePath(name: CenterName): string {
@@ -160,6 +135,29 @@ function shapePath(name: CenterName): string {
   }
 }
 
+/** Lighten a hex color toward white by `pct` (0–1). */
+function lighten(hex: string, pct: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const lr = Math.round(r + (255 - r) * pct);
+  const lg = Math.round(g + (255 - g) * pct);
+  const lb = Math.round(b + (255 - b) * pct);
+  return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+}
+/** Darken a hex color toward black by `pct` (0–1). */
+function darken(hex: string, pct: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const dr = Math.round(r * (1 - pct));
+  const dg = Math.round(g * (1 - pct));
+  const db = Math.round(b * (1 - pct));
+  return `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`;
+}
+
 interface TappedChannel { a: number; b: number; name: string }
 
 export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
@@ -174,16 +172,196 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
   const desGates = new Set(
     blueprint.humanDesign.activeGates.filter((g) => g.chart === 'design').map((g) => g.gate),
   );
-
   const activeChannelKeys = new Set(
     blueprint.humanDesign.activeChannels.map((p) => [...p].sort((a, b) => a - b).join('-')),
   );
 
+  // Color of a gate node (cream personality / wine design / split / dim).
+  const gateColor = (g: number) =>
+    persGates.has(g) && desGates.has(g)
+      ? 'split'
+      : persGates.has(g)
+        ? '#f4f1ea'
+        : desGates.has(g)
+          ? '#b22a2a'
+          : '#2a2a2a';
+
   return (
     <>
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[340px] mx-auto block">
-      {/* channels first (under shapes) — each as two half-segments so a
-          hanging single gate shows as half-lit (grey). Tappable to expand. */}
+      <defs>
+        {/* Soft drop shadow for centers — gives the shapes depth. */}
+        <filter id="bg-center-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1.4" />
+          <feOffset dx="0" dy="1.5" result="off" />
+          <feComponentTransfer><feFuncA type="linear" slope="0.55" /></feComponentTransfer>
+          <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        {/* Outer glow for active channels. */}
+        <filter id="bg-channel-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        {/* Tiny shadow under gate nodes. */}
+        <filter id="bg-node-shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="0.6" />
+          <feOffset dx="0" dy="0.6" result="off" />
+          <feComponentTransfer><feFuncA type="linear" slope="0.85" /></feComponentTransfer>
+          <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+
+        {/* Body silhouette gradient — radial so the body has a soft "core
+            glow" in the chest area, fading to background near the edges.
+            Reads as 3D rather than a flat cutout. */}
+        <radialGradient id="bg-silhouette" cx="50%" cy="42%" r="58%">
+          <stop offset="0%"  stopColor="#1f1f1f" />
+          <stop offset="55%" stopColor="#141414" />
+          <stop offset="100%" stopColor="#0b0b0b" />
+        </radialGradient>
+
+        {/* Per-center radial gradient (highlight upper-left) for defined fills. */}
+        {(Object.keys(CENTERS) as CenterName[]).map((name) => {
+          const c = CENTERS[name];
+          return (
+            <radialGradient
+              key={`grad-${name}`}
+              id={`bg-grad-${name}`}
+              cx="35%" cy="30%" r="75%"
+            >
+              <stop offset="0%" stopColor={lighten(c.fill, 0.22)} />
+              <stop offset="60%" stopColor={c.fill} />
+              <stop offset="100%" stopColor={darken(c.fill, 0.25)} />
+            </radialGradient>
+          );
+        })}
+
+        {/* Per-active-channel gradient: from gate-a's source-color to gate-b's source-color. */}
+        {ALL_CHANNELS.map((ch) => {
+          const [a, b] = ch.gates;
+          const A = GATE_ANCHORS[a];
+          const B = GATE_ANCHORS[b];
+          if (!A || !B) return null;
+          const key = [a, b].sort((x, y) => x - y).join('-');
+          if (!activeChannelKeys.has(key)) return null;
+          const colorAt = (g: number) => {
+            const c = gateColor(g);
+            if (c === 'split') return '#d9a09a';
+            return c;
+          };
+          return (
+            <linearGradient
+              key={`chgrad-${key}`}
+              id={`bg-ch-${key}`}
+              gradientUnits="userSpaceOnUse"
+              x1={A.x} y1={A.y} x2={B.x} y2={B.y}
+            >
+              <stop offset="0%" stopColor={colorAt(a)} />
+              <stop offset="100%" stopColor={colorAt(b)} />
+            </linearGradient>
+          );
+        })}
+      </defs>
+
+      {/* === BODY SILHOUETTE (behind everything) ===
+          An anatomically-shaped human form: egg-shaped head with a chin
+          taper, defined neck, trapezius slope to shoulders, ribcage that
+          narrows, waist indent, hip flare, then tapered legs with ankles.
+          Wide enough at the torso to fully envelop the Spleen (x=52) and
+          Solar Plexus (x=268) extensions. Subtle inner anatomical hints
+          (collarbone, sternum, pelvic line) layered on top at very low
+          opacity so they don't compete with the centers / channels. */}
+      <g pointerEvents="none">
+        <path
+          d="
+            M 160 14
+            C 195 14 215 36 215 78
+            C 215 108 205 130 188 148
+            C 184 158 184 168 187 175
+            C 215 184 252 198 280 226
+            C 296 246 298 274 296 300
+            C 294 326 292 360 290 396
+            C 288 426 285 450 282 476
+            C 282 500 286 522 282 546
+            C 277 566 265 580 252 580
+            L 215 580
+            C 215 555 205 525 195 495
+            C 188 470 175 460 165 460
+            L 155 460
+            C 145 460 132 470 125 495
+            C 115 525 105 555 105 580
+            L 68 580
+            C 55 580 43 566 38 546
+            C 34 522 38 500 38 476
+            C 35 450 32 426 30 396
+            C 28 360 26 326 24 300
+            C 22 274 24 246 40 226
+            C 68 198 105 184 133 175
+            C 136 168 136 158 132 148
+            C 115 130 105 108 105 78
+            C 105 36 125 14 160 14 Z
+          "
+          fill="url(#bg-silhouette)"
+          stroke="#272727"
+          strokeWidth={0.9}
+          strokeLinejoin="round"
+        />
+        {/* Subtle anatomical accent strokes — clavicle curve at the
+            shoulders, sternum line down the center of the chest, pelvic
+            line above the legs. All extremely faint so they read as
+            shading, not as foreground. */}
+        <path
+          d="M 137 178 Q 160 188 183 178"
+          fill="none" stroke="#262626" strokeWidth={0.6} opacity={0.65}
+        />
+        <path
+          d="M 160 200 L 160 268"
+          stroke="#202020" strokeWidth={0.5} opacity={0.55}
+        />
+        <path
+          d="M 122 460 Q 160 472 198 460"
+          fill="none" stroke="#262626" strokeWidth={0.55} opacity={0.6}
+        />
+      </g>
+
+      {/* === CENTER SHAPES (under channels and nodes) === */}
+      {(Object.keys(CENTERS) as CenterName[]).map((name) => {
+        const c = CENTERS[name];
+        const isDefined = defined.has(name);
+        const isTapped = tappedCenter === name;
+        return (
+          <g key={`center-${name}`}>
+            {/* glow ring when tapped */}
+            {isTapped && (
+              <path
+                d={shapePath(name)}
+                fill="none"
+                stroke="#f4f1ea"
+                strokeWidth={2.2}
+                opacity={0.35}
+                filter="url(#bg-channel-glow)"
+                pointerEvents="none"
+              />
+            )}
+            <path
+              d={shapePath(name)}
+              fill={isDefined ? `url(#bg-grad-${name})` : '#0e0e0e'}
+              fillOpacity={isDefined ? 1 : 0.85}
+              stroke={isTapped ? '#f4f1ea' : isDefined ? darken(c.fill, 0.45) : '#2a2a2a'}
+              strokeWidth={isTapped ? 1.4 : isDefined ? 0.8 : 0.9}
+              filter={isDefined ? 'url(#bg-center-shadow)' : undefined}
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                hapticTap('light');
+                setTappedCenter(isTapped ? null : name);
+                setTappedChannel(null);
+                setTappedGate(null);
+              }}
+            />
+          </g>
+        );
+      })}
+
+      {/* === CHANNELS (between centers, under gate nodes) === */}
       {ALL_CHANNELS.map((ch) => {
         const [a, b] = ch.gates;
         const key = [a, b].sort((x, y) => x - y).join('-');
@@ -194,52 +372,63 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const aActive = activeGates.has(a);
         const bActive = activeGates.has(b);
         const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
-        const isTapped = tappedChannel && tappedChannel.a === a && tappedChannel.b === b;
-        const strokeFor = (isHalfActive: boolean) => {
-          if (isTapped) return '#b22a2a';
-          if (isActive) return '#f4f1ea';
+        const isTapped = !!tappedChannel && tappedChannel.a === a && tappedChannel.b === b;
+        const halfStroke = (isHalfActive: boolean) => {
+          if (isTapped) return '#d44343';
           if (isHalfActive) return '#999';
           return '#1c1c1c';
         };
-        const widthFor = (isHalfActive: boolean) => {
-          if (isTapped) return 2.5;
-          if (isActive) return 1.8;
-          if (isHalfActive) return 1.3;
-          return 0.6;
+        const halfWidth = (isHalfActive: boolean) => {
+          if (isTapped) return 2.4;
+          if (isHalfActive) return 1.4;
+          return 0.7;
         };
         return (
           <g
-            key={key}
+            key={`ch-${key}`}
             style={{ cursor: isActive ? 'pointer' : 'default' }}
             onClick={isActive ? () => {
+              hapticTap('light');
               setTappedChannel(isTapped ? null : { a, b, name: ch.name });
               setTappedCenter(null);
               setTappedGate(null);
             } : undefined}
           >
-            {/* faint glow behind active channels */}
-            {(isActive || isTapped) && (
-              <line
-                x1={A.x} y1={A.y} x2={B.x} y2={B.y}
-                stroke={isTapped ? '#8b3a3a' : '#f4f1ea'}
-                strokeWidth={isTapped ? 5 : 4}
-                opacity={isTapped ? 0.18 : 0.08}
-                pointerEvents="none"
-              />
+            {isActive ? (
+              <>
+                {/* soft glow behind a defined channel */}
+                <line
+                  x1={A.x} y1={A.y} x2={B.x} y2={B.y}
+                  stroke={isTapped ? '#8b3a3a' : '#f4f1ea'}
+                  strokeWidth={isTapped ? 6 : 5}
+                  opacity={isTapped ? 0.22 : 0.10}
+                  pointerEvents="none"
+                  filter="url(#bg-channel-glow)"
+                />
+                {/* the active channel itself — a gradient from A's color to B's color */}
+                <line
+                  x1={A.x} y1={A.y} x2={B.x} y2={B.y}
+                  stroke={isTapped ? '#d44343' : `url(#bg-ch-${key})`}
+                  strokeWidth={isTapped ? 2.4 : 2.0}
+                  strokeLinecap="round"
+                />
+              </>
+            ) : (
+              <>
+                <line
+                  x1={A.x} y1={A.y} x2={mid.x} y2={mid.y}
+                  stroke={halfStroke(aActive)}
+                  strokeWidth={halfWidth(aActive)}
+                  strokeLinecap="round"
+                />
+                <line
+                  x1={mid.x} y1={mid.y} x2={B.x} y2={B.y}
+                  stroke={halfStroke(bActive)}
+                  strokeWidth={halfWidth(bActive)}
+                  strokeLinecap="round"
+                />
+              </>
             )}
-            <line
-              x1={A.x} y1={A.y} x2={mid.x} y2={mid.y}
-              stroke={strokeFor(aActive)}
-              strokeWidth={widthFor(aActive)}
-              strokeLinecap="round"
-            />
-            <line
-              x1={mid.x} y1={mid.y} x2={B.x} y2={B.y}
-              stroke={strokeFor(bActive)}
-              strokeWidth={widthFor(bActive)}
-              strokeLinecap="round"
-            />
-            {/* invisible fat hit area for easier tap on mobile */}
             {isActive && (
               <line
                 x1={A.x} y1={A.y} x2={B.x} y2={B.y}
@@ -250,47 +439,23 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         );
       })}
 
-      {/* center shapes — tappable */}
-      {(Object.keys(CENTERS) as CenterName[]).map((name) => {
-        const c = CENTERS[name];
-        const isDefined = defined.has(name);
-        const isTapped = tappedCenter === name;
-        return (
-          <path
-            key={name}
-            d={shapePath(name)}
-            fill={isDefined ? c.fill : 'transparent'}
-            fillOpacity={isDefined ? 0.92 : 0}
-            stroke={isTapped ? '#f4f1ea' : isDefined ? c.fill : '#2a2a2a'}
-            strokeWidth={isTapped ? 1.4 : isDefined ? 0 : 0.8}
-            style={{ cursor: 'pointer' }}
-            onClick={() => {
-              setTappedCenter(isTapped ? null : name);
-              setTappedChannel(null);
-              setTappedGate(null);
-            }}
-          />
-        );
-      })}
-
-      {/* gate nodes — small circle per gate, color-coded by activation
-          source. Personality gate = cream filled, Design gate = wine
-          filled, BOTH = split (cream right / wine left). Inactive = hollow. */}
+      {/* === GATE NODES (small jewels on each center's perimeter) === */}
       {Object.entries(GATE_ANCHORS).map(([gateStr, p]) => {
         const gate = Number(gateStr);
         const isP = persGates.has(gate);
         const isD = desGates.has(gate);
         const isBoth = isP && isD;
+        const lit = isP || isD;
         const isInTappedChannel = !!tappedChannel && (tappedChannel.a === gate || tappedChannel.b === gate);
         const isTappedGate = tappedGate === gate;
-        const radius = isInTappedChannel || isTappedGate ? 6 : 5;
-        const ringStroke = isInTappedChannel || isTappedGate ? '#8b3a3a' : '#0a0a0a';
-        const ringWidth = isInTappedChannel || isTappedGate ? 1.2 : 0.5;
+        const highlight = isInTappedChannel || isTappedGate;
+        const radius = highlight ? 6.5 : lit ? 5.5 : 5;
+        const ringStroke = highlight ? '#d44343' : lit ? '#0a0a0a' : '#2a2a2a';
+        const ringWidth = highlight ? 1.3 : lit ? 0.7 : 0.5;
         return (
-          <g key={`node-${gate}`} pointerEvents="none">
+          <g key={`node-${gate}`} pointerEvents="none" filter={lit ? 'url(#bg-node-shadow)' : undefined}>
             {isBoth ? (
               <>
-                {/* split node: design (wine) left half, personality (cream) right half */}
                 <path
                   d={`M ${p.x} ${p.y - radius} A ${radius} ${radius} 0 0 0 ${p.x} ${p.y + radius} Z`}
                   fill="#b22a2a"
@@ -301,18 +466,19 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
                 />
                 <circle cx={p.x} cy={p.y} r={radius} fill="none" stroke={ringStroke} strokeWidth={ringWidth} />
               </>
-            ) : isP ? (
-              <circle cx={p.x} cy={p.y} r={radius} fill="#f4f1ea" stroke={ringStroke} strokeWidth={ringWidth} />
-            ) : isD ? (
-              <circle cx={p.x} cy={p.y} r={radius} fill="#b22a2a" stroke={ringStroke} strokeWidth={ringWidth} />
             ) : (
-              <circle cx={p.x} cy={p.y} r={radius} fill="#0a0a0a" stroke={ringStroke} strokeWidth={ringWidth} />
+              <circle
+                cx={p.x} cy={p.y} r={radius}
+                fill={isP ? '#f4f1ea' : isD ? '#b22a2a' : '#0a0a0a'}
+                stroke={ringStroke}
+                strokeWidth={ringWidth}
+              />
             )}
           </g>
         );
       })}
 
-      {/* gate numbers — overlaid on the nodes */}
+      {/* === GATE NUMBERS (overlay) === */}
       {Object.entries(GATE_ANCHORS).map(([gateStr, p]) => {
         const gate = Number(gateStr);
         const isP = persGates.has(gate);
@@ -321,12 +487,12 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const fill = isBoth ? '#0a0a0a' : isP ? '#0a0a0a' : isD ? '#f4f1ea' : '#666';
         return (
           <text
-            key={gate}
+            key={`label-${gate}`}
             x={p.x}
             y={p.y + 2.5}
             textAnchor="middle"
             fontSize="7"
-            fontWeight={isP || isD ? '600' : '400'}
+            fontWeight={isP || isD ? '600' : '500'}
             fill={fill}
             fontFamily="var(--font-sans), Inter, sans-serif"
             pointerEvents="none"
@@ -336,7 +502,7 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         );
       })}
 
-      {/* gate tap targets — invisible larger hit areas, on top so they win taps */}
+      {/* === Invisible tap targets on top === */}
       {Object.entries(GATE_ANCHORS).map(([gateStr, p]) => {
         const gate = Number(gateStr);
         return (
@@ -347,6 +513,7 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
             style={{ cursor: 'pointer' }}
             onClick={(e) => {
               e.stopPropagation();
+              hapticTap('light');
               setTappedGate(tappedGate === gate ? null : gate);
               setTappedCenter(null);
               setTappedChannel(null);

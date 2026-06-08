@@ -190,3 +190,61 @@ center coverage, and a Steve Jobs sample blueprint.
 Without an API key, all client-side features (blueprint, chart, arcs,
 polarity bars, sky visual, transits, etc.) still work; only the
 LLM-written paragraphs will surface an error message.
+
+## Wrapping as an iOS app
+
+The repo is set up to ship as a native iOS app via **Capacitor 6**. The
+default config uses the *remote* approach: the iOS WebView points at the
+live Vercel deployment, so every code update reaches the app the moment
+Vercel finishes building — no App Store review needed for normal
+iteration.
+
+### Prereqs (one-time, on a Mac)
+
+- Xcode 15+ from the Mac App Store
+- An Apple Developer account ($99/yr) for TestFlight + App Store
+- CocoaPods: `sudo gem install cocoapods`
+
+### First-time scaffolding
+
+```bash
+npm install                # picks up the Capacitor deps
+npm run ios:add            # generates the native /ios project
+npm run ios:sync           # copies config + plugins into the project
+npm run ios:open           # launches Xcode
+```
+
+In Xcode: pick your team under *Signing & Capabilities*, choose a
+simulator or your physical iPhone, and hit Run.
+
+### Day-to-day
+
+Because `capacitor.config.ts` has `server.url` pointing at the Vercel
+deployment, **every push to `main` automatically updates the iOS app**.
+You only need to re-build the .ipa when you change native config (icons,
+splash, plugins, app metadata).
+
+In REMOTE mode the .ipa also ships a tiny `ios-www/index.html`
+"Connecting…" splash — the WebView falls back to it if the Vercel URL
+is unreachable.
+
+### Going fully offline (later)
+
+To ship a self-contained app that doesn't depend on Vercel for the
+HTML/JS:
+
+1. Comment out the `server` block in `capacitor.config.ts`.
+2. Change `webDir` to `'out'` and add `output: 'export'` to
+   `next.config.js`.
+3. Set `NEXT_PUBLIC_API_BASE=https://liraydhas-3.vercel.app` so
+   client-side `fetch('/api/...')` calls get rewritten to absolute.
+4. `npm run build && npm run ios:sync && npm run ios:open`.
+
+API routes always stay server-side (Vercel) — the static export only
+bundles the front-end.
+
+### CORS
+
+All `/api/*` routes accept requests from the Capacitor WebView origin
+(`capacitor://localhost`) in addition to the regular Vercel and
+localhost origins. See `lib/cors.ts`.

@@ -23,6 +23,8 @@ import { CYCLE_PLAIN_LABELS } from '@/lib/cyclePlainLabels';
 import { currentChapter } from '@/lib/lifeChapters';
 import { HOUSE_MEANINGS } from '@/lib/astrology/houseMeanings';
 import { chartGlanceText } from '@/lib/chartGlance';
+import PullToRefresh from '@/components/PullToRefresh';
+import FirstTimeIntro from '@/components/FirstTimeIntro';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -87,6 +89,7 @@ export default function ChartPage() {
   }
 
   return (
+    <PullToRefresh onRefresh={fetchNarrative}>
     <main className="page max-w-md mx-auto fade-in">
       <header className="pb-6">
         <p className="small-label caps">Your design</p>
@@ -95,12 +98,34 @@ export default function ChartPage() {
         </h1>
         <p className="text-ink-dim text-[13px] mt-2 italic">
           Born {new Date(blueprint.birth.iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: blueprint.birth.timeUnknown ? undefined : 'short' })} · {blueprint.birth.place}
+          {' '}
+          <Link href="/onboarding?edit=1" className="not-italic small-label caps text-ink-faint hover:text-accent ml-1" style={{ letterSpacing: '0.16em' }}>
+            edit
+          </Link>
         </p>
         {blueprint.birth.timeUnknown && (
           <p className="text-accent text-[11px] mt-2 caps" style={{ letterSpacing: '0.18em' }}>
             Birth time unknown — profile and houses are soft
           </p>
         )}
+        <FirstTimeIntro storeKey="liraydhas.chart.intro.dismissed.v1" learnHref="/learn#hd">
+          <p>
+            This is your Human Design <span className="text-ink">bodygraph</span>:
+            nine centers (the geometric shapes), 64 gates (the numbered
+            circles), 36 channels (the lines between gates). Centers fill in
+            when a channel completes across them — those are your{' '}
+            <span className="text-ink">defined</span> centers, the parts of
+            you that broadcast consistently. The open ones are where you
+            absorb from whoever's around you.
+          </p>
+          <p>
+            <span className="text-ink">Cream</span> dots come from your
+            Personality chart (the sky at your birth — your conscious self).{' '}
+            <span className="text-accent">Wine</span> dots come from your
+            Design chart (the sky 88° earlier — your unconscious body wisdom).
+            Tap any gate, channel, or center to read what it does.
+          </p>
+        </FirstTimeIntro>
       </header>
 
       <section className="my-6">
@@ -370,6 +395,7 @@ export default function ChartPage() {
         </button>
       </section>
     </main>
+    </PullToRefresh>
   );
 }
 

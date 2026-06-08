@@ -1,25 +1,57 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import { buildBlueprint } from '@/lib/blueprint';
 import { useStore } from '@/lib/store';
+import { success as hapticSuccess, warn as hapticWarn } from '@/lib/haptics';
 import type { GeocodeResult } from '@/lib/types';
 
 type Step = 'intro' | 'form';
 
 export default function Onboarding() {
+  // useSearchParams requires a Suspense boundary in the App Router; the
+  // inner component reads it, this outer one wraps.
+  return (
+    <Suspense fallback={null}>
+      <OnboardingInner />
+    </Suspense>
+  );
+}
+
+function OnboardingInner() {
   const router = useRouter();
+  const search = useSearchParams();
+  const isEdit = search?.get('edit') === '1';
   const blueprint = useStore((s) => s.blueprint);
   const setBlueprint = useStore((s) => s.setBlueprint);
 
-  const [step, setStep] = useState<Step>('intro');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [timeUnknown, setTimeUnknown] = useState(false);
-  const [placeQuery, setPlaceQuery] = useState('');
-  const [picked, setPicked] = useState<{ r: GeocodeResult; label: string } | null>(null);
+  // In edit mode, pre-fill the form with the existing blueprint values and
+  // jump straight to the form step. The user can change any field and submit
+  // to overwrite their stored chart.
+  const initialDate = isEdit && blueprint?.birth.iso ? blueprint.birth.iso.slice(0, 10) : '';
+  const initialTime = isEdit && blueprint?.birth.iso && !blueprint.birth.timeUnknown
+    ? blueprint.birth.iso.slice(11, 16)
+    : '';
+  const initialTimeUnknown = isEdit ? !!blueprint?.birth.timeUnknown : false;
+  const initialPicked: { r: GeocodeResult; label: string } | null = isEdit && blueprint
+    ? {
+        r: {
+          name: blueprint.birth.place.split(',')[0]?.trim() ?? blueprint.birth.place,
+          latitude: blueprint.birth.lat,
+          longitude: blueprint.birth.lon,
+        } as GeocodeResult,
+        label: blueprint.birth.place,
+      }
+    : null;
+
+  const [step, setStep] = useState<Step>(isEdit ? 'form' : 'intro');
+  const [date, setDate] = useState(initialDate);
+  const [time, setTime] = useState(initialTime);
+  const [timeUnknown, setTimeUnknown] = useState(initialTimeUnknown);
+  const [placeQuery, setPlaceQuery] = useState(isEdit ? (blueprint?.birth.place ?? '') : '');
+  const [picked, setPicked] = useState<{ r: GeocodeResult; label: string } | null>(initialPicked);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [maxDate, setMaxDate] = useState('');
@@ -31,6 +63,7 @@ export default function Onboarding() {
 
   const checked = useRef(false);
   useEffect(() => {
+    if (isEdit) return; // never auto-bounce when editing
     // already onboarded? skip ahead.
     const t = setTimeout(() => {
       if (blueprint && !checked.current) {
@@ -39,7 +72,7 @@ export default function Onboarding() {
       }
     }, 60);
     return () => clearTimeout(t);
-  }, [blueprint, router]);
+  }, [blueprint, router, isEdit]);
 
   const canSubmit =
     date.length === 10 &&
@@ -61,9 +94,11 @@ export default function Onboarding() {
         timeUnknown,
       });
       setBlueprint(bp);
+      hapticSuccess();
       router.replace('/today');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
+      hapticWarn();
       setBusy(false);
     }
   }
@@ -118,13 +153,16 @@ export default function Onboarding() {
     <main className="page max-w-md mx-auto fade-in">
       <header className="pt-2 pb-10">
         <button
-          onClick={() => setStep('intro')}
+          onClick={() => {
+            if (isEdit) router.replace('/chart');
+            else setStep('intro');
+          }}
           className="small-label caps text-ink-faint hover:text-ink"
         >
-          ← back
+          ← {isEdit ? 'cancel' : 'back'}
         </button>
         <h1 className="h-display serif mt-6">
-          Tell me where<br />you started.
+          {isEdit ? <>Edit your<br />birth data.</> : <>Tell me where<br />you started.</>}
         </h1>
         <p className="text-ink-dim text-[14px] mt-3 max-w-sm leading-relaxed">
           Date, time, and place of birth. Your time matters most — without
@@ -188,7 +226,7 @@ export default function Onboarding() {
 
       <div className="mt-12">
         <button className="btn-primary" disabled={!canSubmit || busy} onClick={submit}>
-          {busy ? 'computing…' : 'Compute my blueprint'}
+          {busy ? 'computing…' : isEdit ? 'Update my blueprint' : 'Compute my blueprint'}
         </button>
       </div>
     </main>

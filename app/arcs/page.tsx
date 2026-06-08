@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useStore } from '@/lib/store';
 import ArcDiagram, { type ArcSelection } from '@/components/ArcDiagram';
+import FirstTimeIntro from '@/components/FirstTimeIntro';
 import ScrollHint from '@/components/ScrollHint';
 import { CYCLES, ageInYears, positionInCycles } from '@/lib/cycles';
 import { CYCLE_LENSES, arcDescription } from '@/lib/cycleLenses';
@@ -133,6 +135,22 @@ export default function ArcsPage() {
           human lifespan. The brighter arcs are the ones you are currently
           inside. The white line is right now.
         </p>
+        <FirstTimeIntro storeKey="liraydhas.arcs.intro.dismissed.v1" learnHref="/learn#cycles">
+          <p>
+            Most astrology gives you a horoscope for today. This gives you the
+            shape of your whole life. Each colored arc below is one cycle of a
+            planet — and the slower the planet, the wider the arc. Saturn takes
+            29.5 years to return to where it was when you were born. Chiron
+            takes 50. The arcs are those orbits drawn end to end across your
+            lifespan.
+          </p>
+          <p>
+            The white vertical line is right now — where you are inside every
+            arc at once. The ◆ diamonds are the points where multiple cycles
+            cross at the same age (Saturn return, midlife, Chiron return) —
+            the "everyone goes through this at X" moments.
+          </p>
+        </FirstTimeIntro>
         <div className="mt-3 border border-hairline p-3 text-[12.5px] text-ink-dim serif leading-relaxed max-w-md">
           <p className="text-ink mb-1.5 small-label caps" style={{ letterSpacing: '0.14em' }}>how to use this</p>
           <ol className="space-y-1 list-decimal list-inside">
@@ -609,3 +627,4 @@ function Lens({ k, v }: { k: string; v: string }) {
     </div>
   );
 }
+

@@ -26,7 +26,10 @@ export const useStore = create<StoreState>()(
       history: [],
       polarity: null,
       narrative: null,
-      setBlueprint: (blueprint) => set({ blueprint, narrative: null }),
+      // Any LLM-derived reading is tied to a specific blueprint. When the
+      // blueprint changes (edit or first set), wipe the caches so the next
+      // tab visit regenerates them from the new chart.
+      setBlueprint: (blueprint) => set({ blueprint, narrative: null, daily: null, polarity: null, history: [] }),
       setDaily: (daily) =>
         set((s) => {
           if (!daily) return { daily: null };

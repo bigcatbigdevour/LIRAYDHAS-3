@@ -22,7 +22,14 @@ export default function AddToHomeScreen() {
     const isStandalone =
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
       window.matchMedia('(display-mode: standalone)').matches;
-    if (isIOS && isSafari && !isStandalone) {
+    // In a Capacitor WebView the location protocol is capacitor: (iOS) or
+    // ionic: — don't prompt to "add to home screen" inside the native app.
+    const isCapacitor =
+      typeof window !== 'undefined' &&
+      (window.location.protocol === 'capacitor:' ||
+        window.location.protocol === 'ionic:' ||
+        (window as Window & { Capacitor?: unknown }).Capacitor != null);
+    if (isIOS && isSafari && !isStandalone && !isCapacitor) {
       // Delay a couple seconds so it doesn't compete with page load.
       const t = setTimeout(() => setVisible(true), 2500);
       return () => clearTimeout(t);

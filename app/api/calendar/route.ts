@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { CYCLES, upcomingReturns } from '@/lib/cycles';
+import { handlePreflight, withCors } from '@/lib/cors';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+export function OPTIONS(req: Request) {
+  return handlePreflight(req);
+}
 
 function pad(n: number): string {
   return n.toString().padStart(2, '0');
@@ -43,10 +48,10 @@ export async function POST(req: Request) {
   try {
     body = (await req.json()) as { blueprint?: Blueprint; include?: string[] };
   } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
+    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
   }
   const bp = body.blueprint;
-  if (!bp) return NextResponse.json({ error: 'missing blueprint' }, { status: 400 });
+  if (!bp) return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
 
   const include = new Set(body.include ?? ['returns', 'flips']);
 
@@ -96,10 +101,10 @@ export async function POST(req: Request) {
   lines.push('END:VCALENDAR');
   const ics = lines.join('\r\n');
 
-  return new NextResponse(ics, {
+  return withCors(new NextResponse(ics, {
     headers: {
       'content-type': 'text/calendar; charset=utf-8',
       'content-disposition': 'attachment; filename="liraydhas-cycles.ics"',
     },
-  });
+  }), req);
 }

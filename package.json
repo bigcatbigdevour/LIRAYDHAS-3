@@ -7,10 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ios:add": "cap add ios",
+    "ios:sync": "cap sync ios",
+    "ios:open": "cap open ios",
+    "ios:run": "cap run ios",
+    "ios:assets": "capacitor-assets generate --ios"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@capacitor/app": "^6.0.3",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/haptics": "^6.0.3",
+    "@capacitor/ios": "^6.2.1",
+    "@capacitor/splash-screen": "^6.0.4",
+    "@capacitor/status-bar": "^6.0.3",
     "astronomy-engine": "^2.1.19",
     "d3": "^7.9.0",
     "next": "14.2.35",
@@ -20,6 +31,8 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.1",
     "@types/d3": "^7.4.3",
     "@types/node": "^20.14.11",
     "@types/react": "^18.3.3",

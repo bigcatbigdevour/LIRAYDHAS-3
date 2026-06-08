@@ -149,6 +149,9 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 .fade-in { animation: fade-in 700ms ease both; }
 
+/* used by PullToRefresh */
+@keyframes liraydhas-spin { to { transform: rotate(360deg); } }
+
 /* gentle breathing pulse for polarity markers and similar live signals */
 @keyframes polarity-pulse {
   0%, 100% { opacity: 1; }
@@ -247,5 +250,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   overflow: hidden;
 }
 
-/* safe areas */
-.page { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+/* safe areas — top inset matters in iOS standalone PWA and in the Capacitor
+   shell (StatusBar.overlaysWebView is true, so content draws under the
+   status bar). 0 in regular desktop / mobile browsers. */
+.page {
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}

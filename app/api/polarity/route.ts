@@ -4,20 +4,25 @@ import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { currentChapter } from '@/lib/lifeChapters';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
+import { handlePreflight, withCors } from '@/lib/cors';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+export function OPTIONS(req: Request) {
+  return handlePreflight(req);
+}
 
 export async function POST(req: Request) {
   let body: { blueprint?: Blueprint };
   try {
     body = (await req.json()) as { blueprint?: Blueprint };
   } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
+    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
   }
   const bp = body.blueprint;
-  if (!bp) return NextResponse.json({ error: 'missing blueprint' }, { status: 400 });
+  if (!bp) return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
 
   const age = ageInYears(bp.birth.iso);
   const positions = positionInCycles(age);
@@ -88,14 +93,14 @@ Hard bans: no "the universe", no "embrace", no "manifest", no "abundance", no "l
       temperature: 0.75,
       messages: [{ role: 'user', content: prompt }],
     });
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       paragraph: textOf(msg),
       rising: rising.length,
       descending: descending.length,
       generatedAt: new Date().toISOString(),
-    });
+    }), req);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return withCors(NextResponse.json({ error: message }, { status: 500 }), req);
   }
 }

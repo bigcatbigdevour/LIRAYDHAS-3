@@ -21,6 +21,8 @@ import { userTransits, type UserTransits } from '@/lib/humandesign/transitGates'
 import { channelMeaning } from '@/lib/humandesign/channelMeanings';
 import { aspectMeaning } from '@/lib/astrology/aspectMeanings';
 import { readingStreak } from '@/lib/streak';
+import PullToRefresh from '@/components/PullToRefresh';
+import FirstTimeIntro from '@/components/FirstTimeIntro';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -135,6 +137,7 @@ export default function TodayPage() {
   const pastDays = history.filter((h) => h.date !== daily?.date).slice(0, 6);
 
   return (
+    <PullToRefresh onRefresh={fetchDaily}>
     <main className="page max-w-md mx-auto fade-in">
       <header className="pb-8">
         <div className="flex items-baseline justify-between gap-3">
@@ -171,6 +174,19 @@ export default function TodayPage() {
             ℞ {retrogrades.join(' · ')}
           </p>
         )}
+        <FirstTimeIntro storeKey="liraydhas.today.intro.dismissed.v1" learnHref="/learn#astrology">
+          <p>
+            Most horoscope apps show you the same paragraph as everyone with
+            your sun sign. This isn't that. The reading below is written from{' '}
+            <span className="text-ink">your three tightest transits today</span>{' '}
+            (where today's planets sit relative to your natal chart), plus
+            any Human Design gates being touched right now, plus what's
+            happening in your life-cycles. It's specific to you.
+          </p>
+          <p>
+            Pull down anywhere on this screen to refresh the day's reading.
+          </p>
+        </FirstTimeIntro>
       </header>
 
       {(() => {
@@ -523,6 +539,7 @@ export default function TodayPage() {
         <a href="/about" className="btn-ghost">about →</a>
       </section>
     </main>
+    </PullToRefresh>
   );
 }
 

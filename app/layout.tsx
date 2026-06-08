@@ -4,6 +4,7 @@ import './globals.css';
 import TabBar from '@/components/TabBar';
 import AddToHomeScreen from '@/components/AddToHomeScreen';
 import PixelCreatures from '@/components/PixelCreatures';
+import OfflineBanner from '@/components/OfflineBanner';
 
 const sans = Inter({
   subsets: ['latin'],
@@ -58,6 +59,7 @@ export default function RootLayout({
     <html lang="en" className={`${sans.variable} ${serif.variable}`}>
       <body>
         <div className="grain" aria-hidden />
+        <OfflineBanner />
         {children}
         <PixelCreatures />
         <TabBar />
