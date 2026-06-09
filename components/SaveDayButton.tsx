@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { isSaved, saveDay, unsaveDay, updateNote, type SavedDay } from '@/lib/savedDays';
+import { isSaved, saveDay, unsaveDay, updateNote, listSavedDays, type SavedDay } from '@/lib/savedDays';
 import { tap as hapticTap } from '@/lib/haptics';
 
 interface Props {
@@ -30,13 +30,24 @@ interface Props {
 export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }: Props) {
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [existingNote, setExistingNote] = useState<string | undefined>(undefined);
   const [noteOpen, setNoteOpen] = useState(false);
   const [draftNote, setDraftNote] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Refresh the saved/note state from storage. Called on mount and after
+  // every save / unsave / note-commit so the inline preview stays accurate.
+  function refresh() {
+    setSaved(isSaved(dateIso));
+    const list = listSavedDays();
+    const me = list.find((d) => d.dateIso === dateIso);
+    setExistingNote(me?.note);
+  }
+
   useEffect(() => {
     setMounted(true);
-    setSaved(isSaved(dateIso));
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateIso]);
 
   // Auto-focus the textarea when the note panel opens — captures intent
@@ -58,7 +69,7 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
       snapshot,
       savedAt: Date.now(),
     });
-    setSaved(true);
+    refresh();
     setNoteOpen(true);
   };
 
@@ -66,15 +77,16 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     hapticTap('light');
     if (noteOpen && draftNote.trim() && !confirm('Discard your unsaved note and remove this day?')) return;
     unsaveDay(dateIso);
-    setSaved(false);
     setNoteOpen(false);
     setDraftNote('');
+    refresh();
   };
 
   const onCommitNote = () => {
     hapticTap('medium');
     updateNote(dateIso, draftNote.trim());
     setNoteOpen(false);
+    refresh();
   };
 
   return (
@@ -93,13 +105,58 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
         <span>{saved ? 'saved' : 'save'}</span>
       </button>
 
+      {/* If already saved with a note and the editor isn't open, show
+          the note quietly inline so the user can re-read what they
+          wrote without leaving the page. */}
+      {saved && existingNote && !noteOpen && (
+        <div className="mt-3 border-l-2 border-accent pl-3 py-1 fade-in w-full max-w-md">
+          <p
+            className="small-label caps text-accent mb-1"
+            style={{ letterSpacing: '0.12em' }}
+          >
+            your note
+          </p>
+          <p className="serif text-[13.5px] text-ink whitespace-pre-wrap leading-relaxed">
+            {existingNote}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap('light');
+              setDraftNote(existingNote);
+              setNoteOpen(true);
+            }}
+            className="small-label caps text-ink-faint hover:text-ink mt-2"
+            style={{ letterSpacing: '0.14em' }}
+          >
+            edit note
+          </button>
+        </div>
+      )}
+
+      {/* Or, if saved with no note yet, offer to add one without re-saving. */}
+      {saved && !existingNote && !noteOpen && (
+        <button
+          type="button"
+          onClick={() => {
+            hapticTap('light');
+            setDraftNote('');
+            setNoteOpen(true);
+          }}
+          className="small-label caps text-ink-faint hover:text-ink mt-3 inline-block"
+          style={{ letterSpacing: '0.14em' }}
+        >
+          + add a note
+        </button>
+      )}
+
       {noteOpen && (
         <div className="mt-3 border-l-2 border-accent pl-3 py-1 fade-in w-full max-w-md">
           <p
             className="small-label caps text-accent mb-1.5"
             style={{ letterSpacing: '0.14em' }}
           >
-            want to add a note? you can come back to it
+            {existingNote ? 'edit your note' : 'want to add a note? you can come back to it'}
           </p>
           <textarea
             ref={textareaRef}
@@ -126,8 +183,9 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
                 setDraftNote('');
               }}
               className="small-label caps text-ink-faint hover:text-ink"
+              aria-label={existingNote ? 'cancel editing' : 'skip adding a note'}
             >
-              skip
+              {existingNote ? 'cancel' : 'skip'}
             </button>
           </div>
         </div>

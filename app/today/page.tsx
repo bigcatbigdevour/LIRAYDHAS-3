@@ -634,18 +634,15 @@ export default function TodayPage() {
         <div id="today-glance-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
       </section>
 
-      <section className="mt-8 mb-2 flex flex-wrap items-center justify-between gap-2">
-        <button className="btn-ghost" onClick={() => { hapticTap('light'); void fetchDaily(); }} disabled={loading}>
-          {loading ? 'refreshing…' : 'refresh report'}
-        </button>
-        {daily?.paragraph && (() => {
-          const todayIso = new Date().toISOString().slice(0, 10);
-          const tightest = (daily.transits ?? liveTransits)[0];
-          const headline = tightest
-            ? `${tightest.transitPlanet} ${tightest.aspect} ${tightest.natalPlanet} · ${tightest.orb.toFixed(1)}°`
-            : undefined;
-          const ch = currentChapter(ageInYears(blueprint.birth.iso));
-          return (
+      {daily?.paragraph && (() => {
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const tightest = (daily.transits ?? liveTransits)[0];
+        const headline = tightest
+          ? `${tightest.transitPlanet} ${tightest.aspect} ${tightest.natalPlanet} · ${tightest.orb.toFixed(1)}°`
+          : undefined;
+        const ch = currentChapter(ageInYears(blueprint.birth.iso));
+        return (
+          <section className="mt-8">
             <SaveDayButton
               dateIso={todayIso}
               paragraph={daily.paragraph}
@@ -657,8 +654,14 @@ export default function TodayPage() {
                 ageYears: Math.round(ageInYears(blueprint.birth.iso) * 10) / 10,
               }}
             />
-          );
-        })()}
+          </section>
+        );
+      })()}
+
+      <section className="mt-6 mb-2 flex flex-wrap items-center justify-between gap-2">
+        <button className="btn-ghost" onClick={() => { hapticTap('light'); void fetchDaily(); }} disabled={loading}>
+          {loading ? 'refreshing…' : 'refresh report'}
+        </button>
         {daily?.paragraph && typeof navigator !== 'undefined' && 'share' in navigator && (
           <button
             className="btn-ghost"

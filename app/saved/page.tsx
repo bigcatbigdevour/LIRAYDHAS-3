@@ -293,20 +293,59 @@ export default function SavedPage() {
                             </p>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            hapticTap('light');
-                            if (!confirm('Remove this day from saved?')) return;
-                            unsaveDay(d.dateIso);
-                            setDays(listSavedDays());
-                          }}
-                          className="small-label caps text-ink-faint hover:text-accent shrink-0"
-                          aria-label="remove from saved"
-                        >
-                          remove
-                        </button>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              hapticTap('light');
+                              const lines = [
+                                dateStr.toUpperCase(),
+                                d.headline ? `(${d.headline})` : '',
+                                '',
+                                d.paragraph || '',
+                                d.note ? '\n— note —\n' + d.note : '',
+                              ].filter(Boolean).join('\n');
+                              try {
+                                if (navigator.share) {
+                                  await navigator.share({ title: dateStr, text: lines });
+                                } else {
+                                  await navigator.clipboard.writeText(lines);
+                                  const el = document.getElementById(`copy-${d.dateIso}`);
+                                  if (el) {
+                                    el.style.opacity = '1';
+                                    window.setTimeout(() => { el.style.opacity = '0'; }, 1500);
+                                  }
+                                }
+                              } catch {/* cancelled */}
+                            }}
+                            className="small-label caps text-ink-faint hover:text-ink"
+                            aria-label="share this entry"
+                          >
+                            share
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              hapticTap('light');
+                              if (!confirm('Remove this day from saved?')) return;
+                              unsaveDay(d.dateIso);
+                              setDays(listSavedDays());
+                            }}
+                            className="small-label caps text-ink-faint hover:text-accent"
+                            aria-label="remove from saved"
+                          >
+                            remove
+                          </button>
+                        </div>
                       </header>
+                      <span
+                        id={`copy-${d.dateIso}`}
+                        className="small-label caps text-accent block text-right -mt-2 mb-1"
+                        style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}
+                        aria-hidden
+                      >
+                        copied
+                      </span>
 
                       {d.paragraph && (
                         <p className="serif text-[14.5px] text-ink leading-relaxed">
