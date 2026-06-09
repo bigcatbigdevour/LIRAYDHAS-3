@@ -5,6 +5,7 @@ import { currentChapter } from '@/lib/lifeChapters';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
 import { handlePreflight, withCors } from '@/lib/cors';
+import { VOICE_SPEC } from '@/lib/voice';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -72,8 +73,12 @@ export async function POST(req: Request) {
     ? `\nKey events inside the next 12 months:\n` + upcoming.slice(0, 5).map((e) => `- ${e.title} (${e.detail}) in ${Math.round(e.daysAhead)}d`).join('\n')
     : '';
 
-  const prompt = `Interpret the following polarity stack for a single person, in a dry, slightly clinical, slightly mystical voice. Address the reader in the second person.
+  const prompt = `${VOICE_SPEC}
 
+TASK
+Interpret the reader's current polarity stack. Output one paragraph of 80 to 120 words. Output only the paragraph — no preamble, no header, no quotation marks.
+
+POLARITY STACK
 ${lines}
 
 ${rising.length} cycles are rising · ${descending.length} are descending.
@@ -81,9 +86,11 @@ Most recent flip: ${mostRecent?.cycle.label ?? 'none'} (${mostRecent ? `${Math.r
 Next flip: ${nextUp?.cycle.label ?? 'none'} (${nextUp ? `in ${Math.round(nextUp.daysUntilEnd)} days to ${nextUp.positive ? 'descending' : 'rising'}` : ''}).
 ${stationLine}${chapterLine}${upcomingLine}
 
-Write one paragraph, 80-120 words. Name what the overall stack tends to feel like. If a life-station is named above, lean on it. Otherwise lean on the most recent flip. End on a sentence that lands like a quiet observation.
-
-Hard bans: do NOT name the system ("Human Design", "HD", "bodygraph"), do NOT use "the universe", "embrace", "manifest", "abundance", "lean into", no emojis, no exclamation points, no rhetorical questions, no bullet points. Never compare this reading to other apps or to typical horoscopes. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
+WHAT TO INCLUDE IN THE PARAGRAPH
+1. Name what the overall stack tends to feel like as a season of life — not as a forecast, as a texture.
+2. If a life-station is named above, lean on it. Otherwise lean on the most recent flip.
+3. Include exactly one observation that quietly invites the reader to question something they take for granted about their own psyche — a belief about themselves, a pattern they've stopped noticing, a story they've been telling themselves about this season.
+4. End on a quiet observation.`;
 
   try {
     const client = getClient();

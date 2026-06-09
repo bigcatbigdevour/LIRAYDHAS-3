@@ -5,6 +5,7 @@ import { ageInYears, positionInCycles } from '@/lib/cycles';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { currentChapter } from '@/lib/lifeChapters';
 import { handlePreflight, withCors } from '@/lib/cors';
+import { VOICE_SPEC } from '@/lib/voice';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -58,8 +59,12 @@ export async function POST(req: Request) {
   const chapter = currentChapter(age);
   const chapterLine = chapter ? `\nLife chapter: '${chapter.label}' (ages ${chapter.startAge}–${chapter.endAge}). ${chapter.description}` : '';
 
-  const prompt = `Write a 90-130 word standalone summary of this person's chart in a direct, dry, slightly clinical, slightly mystical voice. Anchor in the specific combination of:
+  const prompt = `${VOICE_SPEC}
 
+TASK
+Write a one-time standalone summary of this person's chart. Output one paragraph of 90 to 130 words. Output only the paragraph — no preamble, no header, no quotation marks.
+
+THE CHART
 - Sun in ${n.sun.sign} (gate ${n.sun.gate}.${n.sun.line})
 - Moon in ${n.moon.sign}
 ${ascSign ? `- Rising sign: ${ascSign}` : '- (birth time unknown — soft profile)'}
@@ -72,9 +77,11 @@ ${ascSign ? `- Rising sign: ${ascSign}` : '- (birth time unknown — soft profil
 - Active channels: ${channels}
 - Current age: ${age.toFixed(1)}y; ${rising} cycles rising / ${positions.length - rising} descending. ${cyclesLine}${stationLine}${chapterLine}
 
-Speak to them in second person. Name the texture this combination creates — not a list of attributes but the actual feel of being them. If a named life-station applies, acknowledge it in one phrase. End with a sentence that lands like a quiet observation, not a command or pep talk.
-
-Hard bans: do NOT name the system ("Human Design", "HD", "bodygraph"), do NOT use "the universe", "embrace", "manifest", "abundance", "lean into", "you are special", "your gifts", no emojis, no exclamation points, no rhetorical questions. Never compare this reading to other apps. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
+WHAT TO INCLUDE IN THE PARAGRAPH
+1. Name the texture this specific combination creates — not a list of attributes, the actual feel of being them.
+2. Include exactly one observation that quietly invites the reader to question something they take for granted about their own psyche — a belief about who they are, a pattern they've stopped noticing, a story they've been telling about themselves that this chart suggests might be slightly off.
+3. If a named life-station applies, acknowledge it in one phrase.
+4. End on a quiet observation, not a command, not a pep talk.`;
 
   try {
     const client = getClient();

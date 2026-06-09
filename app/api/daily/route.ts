@@ -6,6 +6,7 @@ import { ageInYears, polarityFlips } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { getClient, MODEL, textOf } from '@/lib/anthropic';
 import { handlePreflight, withCors } from '@/lib/cors';
+import { VOICE_SPEC } from '@/lib/voice';
 import type { Blueprint, DailyReport } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -59,22 +60,28 @@ export async function POST(req: Request) {
     )
     .join('\n');
 
-  const prompt = `You are writing a daily reading for a person with this blueprint:
+  const prompt = `${VOICE_SPEC}
+
+TASK
+Write the day's reading for a single person. Output one paragraph of 90 to 130 words. Output only the paragraph — no preamble, no header, no quotation marks.
+
+THE PERSON'S CHART (chart numbers only; do not name the system in your output)
 - Sun in ${bp.natal.sun.sign} (gate ${bp.natal.sun.gate}.${bp.natal.sun.line})
 - Moon in ${bp.natal.moon.sign}
 ${bp.natal.asc != null ? `- Rising sign: ${signFromLon(bp.natal.asc)}` : '- (birth time unknown — no rising)'}
-- Type: ${bp.humanDesign.type} · Profile: ${bp.humanDesign.profile} · Inner-decision style: ${bp.humanDesign.authority}
+- Type: ${bp.humanDesign.type} · Profile: ${bp.humanDesign.profile}
+- Inner-decision style (translate the SPIRIT into how they should approach decisions today — do NOT use the labels "authority", "Sacral", "Splenic", "Emotional", "Ego", "Self-projected", "Mental", or "Lunar" verbatim): ${AUTHORITY_DESCRIPTIONS[bp.humanDesign.authority]}
 
-Today's tightest transits to their natal chart:
+TODAY
+Tightest transits to their natal chart:
 ${transitLines || '- (a quiet day for major aspects)'}
+${litLines ? `\nTransits hitting their natal gates:\n${litLines}` : ''}${completeLines ? `\nChannels temporarily completing for them today:\n${completeLines}` : ''}${retros.length ? `\nCurrently retrograde: ${retros.join(', ')}` : ''}${recentFlip ? `\nPolarity: ${recentFlip.cycle.label} flipped ${Math.round(recentFlip.daysSinceStart)} days ago to ${recentFlip.positive ? 'rising' : 'descending'}.` : ''}${chapter ? `\nLife chapter: in '${chapter.label}' (ages ${chapter.startAge}–${chapter.endAge}). ${chapter.description}` : ''}
 
-${litLines ? `Transits hitting their personal natal gates:\n${litLines}\n` : ''}${completeLines ? `Channels temporarily completing for them today:\n${completeLines}\n` : ''}${retros.length ? `Currently retrograde: ${retros.join(', ')}\n` : ''}${recentFlip ? `Polarity note: ${recentFlip.cycle.label} flipped ${Math.round(recentFlip.daysSinceStart)} days ago to ${recentFlip.positive ? 'rising' : 'descending'}.\n` : ''}${chapter ? `Life chapter: this person is in '${chapter.label}' (ages ${chapter.startAge}–${chapter.endAge}). ${chapter.description}\n` : ''}Decision-style guidance for this reader (translate the SPIRIT of this into how they should approach decisions today; do NOT use the labels "authority", "Sacral", "Splenic", "Emotional", "Ego", "Self-projected", "Mental", or "Lunar" verbatim): ${AUTHORITY_DESCRIPTIONS[bp.humanDesign.authority]}
-
-Write one paragraph, 90–130 words. Voice is direct, slightly clinical, slightly mystical, dry. Speaks plainly to the reader in the second person. Anchor in at least one of the user-specific signals above (a tight transit OR a lit natal gate OR a temporarily-complete channel). Refer to the relevant gate or channel by its number only ("gate 24", "the 43-23 channel"), translated plainly into what it MEANS for today — never as specialized jargon.
-
-Hard bans: do NOT name the system ("Human Design", "HD", "bodygraph", "rave"), do NOT use the words "the universe wants you to", "embrace", "manifest", "abundance", "lean into", "trust the process", no emojis, no exclamation points, no rhetorical questions. Never compare this reading to other apps or to typical horoscopes. No phrase that could appear in an airport-bookstore self-help book.
-
-Naming one mundane, concrete thing they should pay attention to today is good. End with a sentence that lands like a quiet observation, not a command. Output only the paragraph — no preamble, no quotation marks.`;
+WHAT TO INCLUDE IN THE PARAGRAPH
+1. Anchor in at least one of the specific signals above (a tight transit, a lit natal gate, or a temporarily-complete channel). Refer to a gate or channel by its number only ("gate 24", "the 43-23 channel") and translate it plainly into what it MEANS for today.
+2. Include exactly one observation that quietly invites the reader to question something they take for granted about their own psyche — a belief about themselves, a pattern they've stopped noticing, a story they've been telling themselves.
+3. Naming one mundane, concrete thing they should pay attention to today is welcome.
+4. End with a quiet observation — not a command, not a question.`;
 
   let paragraph: string;
   try {
