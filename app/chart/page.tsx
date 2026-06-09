@@ -25,6 +25,8 @@ import { HOUSE_MEANINGS } from '@/lib/astrology/houseMeanings';
 import { chartGlanceText } from '@/lib/chartGlance';
 import PullToRefresh from '@/components/PullToRefresh';
 import FirstTimeIntro from '@/components/FirstTimeIntro';
+import { friendlyError } from '@/lib/friendlyError';
+import { tap as hapticTap } from '@/lib/haptics';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -66,7 +68,7 @@ export default function ChartPage() {
       }
       setNarrative(await res.json());
     } catch (e: unknown) {
-      setNarrativeError(e instanceof Error ? e.message : 'failed');
+      setNarrativeError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
       setNarrativeLoading(false);
     }
@@ -166,17 +168,22 @@ export default function ChartPage() {
 
       <section className="mt-4 mb-10">
         {narrativeLoading && !narrative && (
-          <div className="space-y-2 animate-pulse">
-            <div className="h-4 bg-hairline w-11/12" />
-            <div className="h-4 bg-hairline w-10/12" />
-            <div className="h-4 bg-hairline w-9/12" />
-            <div className="h-4 bg-hairline w-8/12" />
+          <div>
+            <p className="small-label caps text-ink-faint mb-3" style={{ letterSpacing: '0.18em' }}>
+              composing your chart reading
+            </p>
+            <div className="space-y-2 animate-pulse">
+              <div className="h-4 bg-hairline w-11/12" />
+              <div className="h-4 bg-hairline w-10/12" />
+              <div className="h-4 bg-hairline w-9/12" />
+              <div className="h-4 bg-hairline w-8/12" />
+            </div>
           </div>
         )}
         {narrativeError && (
           <div>
             <p className="text-accent text-[12px]">{narrativeError}</p>
-            <button className="btn-ghost mt-1" onClick={fetchNarrative}>retry</button>
+            <button className="btn-ghost mt-1" onClick={() => { hapticTap('light'); void fetchNarrative(); }}>try again</button>
           </div>
         )}
         {narrative?.paragraph && (

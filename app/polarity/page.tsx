@@ -8,6 +8,8 @@ import PolarityForecast from '@/components/PolarityForecast';
 import PullToRefresh from '@/components/PullToRefresh';
 import FirstTimeIntro from '@/components/FirstTimeIntro';
 import ScrollHint from '@/components/ScrollHint';
+import { friendlyError } from '@/lib/friendlyError';
+import { tap as hapticTap } from '@/lib/haptics';
 import Link from 'next/link';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
 import { POLARITY_LENSES } from '@/lib/polarityLenses';
@@ -124,7 +126,7 @@ export default function PolarityPage() {
       const data = (await res.json()) as PolarityReading;
       setPolarity(data);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'failed');
+      setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
       setLoading(false);
     }
@@ -529,7 +531,7 @@ export default function PolarityPage() {
         {error && (
           <div>
             <p className="text-accent text-[13px]">{error}</p>
-            <button className="btn-ghost mt-2" onClick={fetchPolarity}>retry</button>
+            <button className="btn-ghost mt-2" onClick={() => { hapticTap('light'); void fetchPolarity(); }}>try again</button>
           </div>
         )}
         {polarity?.paragraph && (
@@ -696,7 +698,7 @@ export default function PolarityPage() {
       )}
 
       <section className="mt-6">
-        <button className="btn-ghost" onClick={fetchPolarity} disabled={loading}>
+        <button className="btn-ghost" onClick={() => { hapticTap('light'); void fetchPolarity(); }} disabled={loading}>
           {loading ? 'refreshing…' : 'refresh interpretation'}
         </button>
       </section>

@@ -23,6 +23,8 @@ import { aspectMeaning } from '@/lib/astrology/aspectMeanings';
 import { readingStreak } from '@/lib/streak';
 import PullToRefresh from '@/components/PullToRefresh';
 import FirstTimeIntro from '@/components/FirstTimeIntro';
+import { friendlyError } from '@/lib/friendlyError';
+import { tap as hapticTap } from '@/lib/haptics';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -119,7 +121,7 @@ export default function TodayPage() {
       const data = (await res.json()) as DailyReport;
       setDaily(data);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'failed');
+      setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
       setLoading(false);
     }
@@ -263,7 +265,7 @@ export default function TodayPage() {
         {error && (
           <div className="border border-hairline p-4 mb-4">
             <p className="text-accent text-[13px]">{error}</p>
-            <button className="btn-ghost mt-3" onClick={fetchDaily}>retry</button>
+            <button className="btn-ghost mt-3" onClick={() => { hapticTap('light'); void fetchDaily(); }}>try again</button>
           </div>
         )}
         {daily?.paragraph && (
@@ -514,7 +516,7 @@ export default function TodayPage() {
       </section>
 
       <section className="mt-8 mb-2 flex flex-wrap items-center justify-between gap-2">
-        <button className="btn-ghost" onClick={fetchDaily} disabled={loading}>
+        <button className="btn-ghost" onClick={() => { hapticTap('light'); void fetchDaily(); }} disabled={loading}>
           {loading ? 'refreshing…' : 'refresh report'}
         </button>
         {daily?.paragraph && typeof navigator !== 'undefined' && 'share' in navigator && (
@@ -544,12 +546,17 @@ export default function TodayPage() {
 
 function DailyParagraphSkeleton() {
   return (
-    <div className="space-y-3 animate-pulse">
-      <div className="h-5 bg-hairline w-11/12" />
-      <div className="h-5 bg-hairline w-full" />
-      <div className="h-5 bg-hairline w-10/12" />
-      <div className="h-5 bg-hairline w-9/12" />
-      <div className="h-5 bg-hairline w-8/12" />
+    <div>
+      <p className="small-label caps text-ink-faint mb-3" style={{ letterSpacing: '0.18em' }}>
+        composing today's reading
+      </p>
+      <div className="space-y-3 animate-pulse">
+        <div className="h-5 bg-hairline w-11/12" />
+        <div className="h-5 bg-hairline w-full" />
+        <div className="h-5 bg-hairline w-10/12" />
+        <div className="h-5 bg-hairline w-9/12" />
+        <div className="h-5 bg-hairline w-8/12" />
+      </div>
     </div>
   );
 }
