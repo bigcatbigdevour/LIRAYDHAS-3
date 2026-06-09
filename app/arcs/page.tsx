@@ -128,37 +128,25 @@ export default function ArcsPage() {
             </p>
           );
         })()}
-        <p className="serif text-[14.5px] text-ink-dim mt-3 leading-relaxed max-w-xl">
-          Seven cycles — Solar, Mars, Jupiter, Saturn, Nodal, Chiron, and
-          the Progressed Moon — drawn end to end across a human lifespan.
-          The brighter arcs are the ones you are currently inside. The
-          white line is right now.
-        </p>
         <FirstTimeIntro storeKey="liraydhas.arcs.intro.dismissed.v1" learnHref="/learn#cycles">
           <p>
             Each colored arc below is one cycle of a planet around the
-            sky — and the slower the planet, the wider the arc. Saturn
-            takes 29.5 years to return to where it was when you were
-            born. Chiron takes 50. The arcs are those orbits, drawn end
-            to end across your lifespan.
+            sky. The slower the planet, the wider its arc. Seven cycles
+            in total — Solar, Mars, Jupiter, Saturn, Nodal, Chiron, and
+            the Progressed Moon — drawn end to end across a human lifespan.
           </p>
           <p>
             The white vertical line is right now — where you are inside
-            every arc at once. The ◆ diamonds are the points where
-            multiple cycles cross at the same age (Saturn return,
-            midlife, Chiron return) — the ages that nearly everyone
-            experiences as a structural shift.
+            every arc at once. The ◆ diamonds are ages where multiple
+            cycles cross at once (Saturn return, midlife, Chiron return) —
+            the structural shifts nearly everyone experiences.
+          </p>
+          <p>
+            Drag the slider to explore any age. Tap ▶ to animate your
+            whole life. Tap any arc for what that period holds. Tap a
+            diamond to jump to a life-station.
           </p>
         </FirstTimeIntro>
-        <div className="mt-3 border border-hairline p-3 text-[12.5px] text-ink-dim serif leading-relaxed max-w-md">
-          <p className="text-ink mb-1.5 small-label caps" style={{ letterSpacing: '0.14em' }}>how to use this</p>
-          <ol className="space-y-1 list-decimal list-inside">
-            <li><span className="text-ink">Drag the slider</span> to explore any age — see what cycles you were inside.</li>
-            <li><span className="text-ink">Tap ▶</span> to watch your whole life animate from 0 to 92.</li>
-            <li><span className="text-ink">Tap any arc</span> for what that period of your life holds.</li>
-            <li><span className="text-ink">Tap a ◆ diamond</span> to jump to a major life-station (Saturn return, Chiron return, etc.).</li>
-          </ol>
-        </div>
       </header>
 
       <nav className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[10px] caps text-ink-faint border-t border-b border-hairline py-1.5" style={{ letterSpacing: '0.12em' }}>
@@ -462,34 +450,37 @@ export default function ArcsPage() {
         </ul>
       </section>
 
-      {/* Always-visible legend / key */}
+      {/* Collapsed key — discoverable but out of the way for returning users */}
       <section id="read" className="mt-12 scroll-mt-4">
-        <h2 className="h-display serif mb-3" style={{ fontSize: '1.5rem' }}>
-          How to read this chart.
-        </h2>
-        <ul className="space-y-2 text-[13.5px] text-ink-dim serif">
-          <li>
-            <span className="text-ink">The bottom line</span> is your life,
-            ages 0 to 92, left to right.
-          </li>
-          <li>
-            <span className="text-ink">Each tick</span> on the bottom line is
-            a moment when a cycle returns to where it started.
-          </li>
-          <li>
-            <span className="text-ink">Each curved arc</span> connects two
-            consecutive returns of the same cycle — one full period of that
-            cycle.
-          </li>
-          <li>
-            <span className="text-ink">Each color</span> is a different cycle.
-            The slower the cycle, the wider its arcs.
-          </li>
-          <li>
-            <span className="text-ink">The vertical white line</span> is today.
-            It is where you are inside every cycle at once.
-          </li>
-        </ul>
+        <details className="border-l-2 border-hairline pl-3 group">
+          <summary className="small-label caps text-ink-faint hover:text-ink cursor-pointer list-none flex items-center gap-2" style={{ letterSpacing: '0.18em' }}>
+            <span className="text-[10px] group-open:rotate-90 transition-transform inline-block">▶</span>
+            how to read this chart
+          </summary>
+          <ul className="mt-3 space-y-2 text-[13.5px] text-ink-dim serif">
+            <li>
+              <span className="text-ink">The bottom line</span> is your life,
+              ages 0 to 92, left to right.
+            </li>
+            <li>
+              <span className="text-ink">Each tick</span> on the bottom line is
+              a moment when a cycle returns to where it started.
+            </li>
+            <li>
+              <span className="text-ink">Each curved arc</span> connects two
+              consecutive returns of the same cycle — one full period of that
+              cycle.
+            </li>
+            <li>
+              <span className="text-ink">Each color</span> is a different cycle.
+              The slower the cycle, the wider its arcs.
+            </li>
+            <li>
+              <span className="text-ink">The vertical white line</span> is today.
+              It is where you are inside every cycle at once.
+            </li>
+          </ul>
+        </details>
       </section>
 
       {/* Convergence stations — ages where multiple cycles align */}
@@ -498,11 +489,8 @@ export default function ArcsPage() {
           Where the cycles converge.
         </h2>
         <p className="text-ink-dim text-[13.5px] serif leading-relaxed mb-4">
-          Certain ages feel universal — adolescence at twelve, the Saturn
-          return at twenty-nine, midlife around forty-five. These are not
-          arbitrary. They are the points where multiple cycles cross at the
-          same place on the timeline above. The "everyone goes through this"
-          moments are when the math literally stacks.
+          Ages where multiple cycles cross at once. The "everyone goes through
+          this" moments — when the math literally stacks.
         </p>
         <ul className="space-y-5">
           {LIFE_STATIONS.map((s) => {

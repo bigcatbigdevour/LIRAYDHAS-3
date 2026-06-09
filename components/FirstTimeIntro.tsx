@@ -1,13 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 /**
  * Dismissable "first time here? read this once" callout. Each invocation
  * is keyed by `storeKey` so /today's intro can be dismissed independently
- * of /arcs's intro, etc. After dismissal, a tiny re-open link sits in its
- * place so the explainer is never permanently gone.
+ * of /arcs's intro, etc.
+ *
+ * Design intent: a returning user should NEVER see this. The component
+ * renders null after dismissal — no persistent "reopen" button — so the
+ * tabs feel like quick check-ins, not a tutorial. If users want a refresher
+ * they can open /learn (always one tap away from the global nav).
+ *
+ * SSR note: rendering is gated on `mounted` so the server output (which
+ * cannot know localStorage) doesn't briefly flash an explainer that the
+ * user has already dismissed.
  */
 export default function FirstTimeIntro({
   storeKey,
@@ -21,23 +29,18 @@ export default function FirstTimeIntro({
   /** Optional `/learn#section` deep link. */
   learnHref?: string;
 }) {
-  const [open, setOpen] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return window.localStorage.getItem(storeKey) !== '1';
-  });
+  const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(true);
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="small-label caps text-ink-faint hover:text-ink mt-3"
-        style={{ letterSpacing: '0.16em' }}
-      >
-        + first time here?
-      </button>
-    );
-  }
+  useEffect(() => {
+    setMounted(true);
+    if (window.localStorage.getItem(storeKey) === '1') {
+      setOpen(false);
+    }
+  }, [storeKey]);
+
+  if (!mounted) return null;
+  if (!open) return null;
 
   return (
     <div className="mt-3 border-l-2 border-accent pl-3 py-2 max-w-md fade-in">
@@ -56,9 +59,7 @@ export default function FirstTimeIntro({
         <button
           type="button"
           onClick={() => {
-            if (typeof window !== 'undefined') {
-              window.localStorage.setItem(storeKey, '1');
-            }
+            window.localStorage.setItem(storeKey, '1');
             setOpen(false);
           }}
           className="text-ink-faint hover:text-ink"
@@ -69,3 +70,4 @@ export default function FirstTimeIntro({
     </div>
   );
 }
+

@@ -81,11 +81,25 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
     const allArcs: Arc[] = [];
     let idx = 0;
     for (const c of CYCLES) {
+      // returns at every multiple of yearLength. Push events up to AND
+      // INCLUDING the first one past maxAge so the final partial arc
+      // (the one the user might be inside in their late years) is drawn.
       const events: number[] = [];
-      for (let n = 0; n * c.yearLength <= maxAge; n++) events.push(n * c.yearLength);
+      let n = 0;
+      while (n * c.yearLength <= maxAge) {
+        events.push(n * c.yearLength);
+        n++;
+      }
+      // include the next return past maxAge so the trailing arc is drawn
+      events.push(n * c.yearLength);
+
+      // Only draw ticks for returns that actually land inside the lifespan
+      // (we don't want a tick mark hanging off the right edge for a cycle
+      // whose next return is at age 97).
+      const visibleTicks = events.filter((e) => e <= maxAge);
       g.append('g')
         .selectAll('line.tick')
-        .data(events)
+        .data(visibleTicks)
         .enter()
         .append('line')
         .attr('class', 'tick')
@@ -98,6 +112,8 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
         .attr('opacity', 0.7);
 
       for (let i = 0; i < events.length - 1; i++) {
+        // Skip arcs whose entire span sits past maxAge.
+        if (events[i] >= maxAge) continue;
         allArcs.push({
           index: idx++,
           cycleKey: c.key,

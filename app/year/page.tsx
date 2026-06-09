@@ -83,11 +83,6 @@ export default function YearPage() {
       <header className="pb-6">
         <p className="small-label caps">Year ahead</p>
         <h1 className="h-display serif mt-3">Twelve months, drawn out.</h1>
-        <p className="serif text-[14.5px] text-ink-dim mt-3 leading-relaxed">
-          Every cycle flip, every return, every named life-station inside
-          the next year — laid out chronologically. The heatmap shows the
-          rising/descending shape across the whole stack.
-        </p>
         {ch && (
           <p className="small-label caps text-ink-faint mt-3">
             you are in · <span className="text-ink">{ch.label.toLowerCase()}</span>

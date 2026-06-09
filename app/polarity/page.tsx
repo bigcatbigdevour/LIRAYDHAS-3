@@ -159,11 +159,14 @@ export default function PolarityPage() {
             without noticing when one flips.
           </p>
           <p>
-            Below: every cycle of your life, with its current half marked. Add
-            them up — a mostly-rising stack feels like an opening season of
-            life; mostly descending feels like a releasing one. The slow ones
-            (Saturn, Chiron, Nodal) are the ones to watch when they flip — those
-            are not subtle.
+            Each bar below is one cycle. The <span className="text-ink">filled top half</span>{' '}
+            means rising; the <span className="text-ink">filled bottom half</span> means
+            descending. The thin vertical line shows where in that half you are right
+            now. Tap any bar to read what its current half feels like.
+          </p>
+          <p>
+            The slow ones (Saturn, Chiron, Nodal) are the ones to watch when they
+            flip — those are not subtle.
           </p>
         </FirstTimeIntro>
         {(() => {
@@ -202,22 +205,7 @@ export default function PolarityPage() {
             </p>
           );
         })()}
-        <p className="serif text-[14.5px] text-ink-dim mt-3 leading-relaxed">
-          Every major cycle in a human life has a polarity — a first half
-          that is rising, building, opening, and a second half that is
-          descending, completing, releasing. Most people live their whole
-          lives inside these tides without knowing when they flip.
-        </p>
-        <div className="mt-3 border border-hairline p-3 text-[12.5px] text-ink-dim serif leading-relaxed">
-          <p className="text-ink mb-1.5 small-label caps" style={{ letterSpacing: '0.14em' }}>how to read this page</p>
-          <ol className="space-y-1 list-decimal list-inside">
-            <li><span className="text-ink">Each bar</span> is one of your cycles. <span className="text-ink">Filled top half</span> = rising. <span className="text-ink">Filled bottom half</span> = descending.</li>
-            <li><span className="text-ink">The thin vertical line</span> in each bar shows where in that half you are right now.</li>
-            <li><span className="text-ink">Tap any bar</span> to read what its current half tends to feel like.</li>
-            <li>The <span className="text-accent">7 colored dots</span> under the headline are a glance-view of the whole stack — tap any to scroll to that bar.</li>
-          </ol>
-        </div>
-        <div className="text-ink-dim text-[13px] mt-3 flex items-baseline justify-between gap-3">
+        <div className="text-ink-dim text-[13px] mt-4 flex items-baseline justify-between gap-3">
           <p>
             Right now: <span className="text-ink">{positive} cycles rising · {negative} descending</span> — {stack}.
           </p>
