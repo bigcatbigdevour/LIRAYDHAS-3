@@ -51,13 +51,27 @@ function read(): SavedDay[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (x): x is SavedDay =>
-        typeof x === 'object' && x !== null &&
-        typeof (x as SavedDay).dateIso === 'string' &&
-        typeof (x as SavedDay).paragraph === 'string' &&
-        typeof (x as SavedDay).savedAt === 'number'
-    );
+    return parsed
+      .filter(
+        (x): x is SavedDay =>
+          typeof x === 'object' && x !== null &&
+          typeof (x as SavedDay).dateIso === 'string' &&
+          typeof (x as SavedDay).paragraph === 'string' &&
+          typeof (x as SavedDay).savedAt === 'number',
+      )
+      .map((x) => {
+        // Normalize legacy data: defensively drop empty-string notes
+        // (older writes stored '' instead of undefined) and validate
+        // snapshot shape (a malformed snapshot would crash downstream
+        // at .toFixed / .toLowerCase calls).
+        const noteTrim = typeof x.note === 'string' ? x.note.trim() : '';
+        const snap = x.snapshot && typeof x.snapshot === 'object' ? x.snapshot : undefined;
+        return {
+          ...x,
+          note: noteTrim.length > 0 ? noteTrim : undefined,
+          snapshot: snap,
+        };
+      });
   } catch {
     return [];
   }
@@ -82,18 +96,30 @@ export function isSaved(dateIso: string): boolean {
  * and then later tapped ☆ on the daily reading — naive replace would
  * wipe their note. Rules: incoming non-empty fields win; existing
  * paragraph / note / headline / snapshot survive if the incoming entry
- * left them blank.
+ * left them blank. Snapshot is merged field-by-field.
  */
 export function saveDay(entry: SavedDay): void {
   const list = read();
   const existing = list.find((d) => d.dateIso === entry.dateIso);
+  // Field-by-field snapshot merge: SaveDayButton always passes a snapshot
+  // OBJECT, but some of its fields may be undefined (e.g. moon failed to
+  // load on a cold start). Naive `entry.snapshot ?? existing.snapshot`
+  // would let a half-populated snapshot clobber a previously good one.
+  const mergedSnapshot = existing?.snapshot || entry.snapshot
+    ? {
+        moonPhase: entry.snapshot?.moonPhase ?? existing?.snapshot?.moonPhase,
+        moonSign: entry.snapshot?.moonSign ?? existing?.snapshot?.moonSign,
+        chapter: entry.snapshot?.chapter ?? existing?.snapshot?.chapter,
+        ageYears: entry.snapshot?.ageYears ?? existing?.snapshot?.ageYears,
+      }
+    : undefined;
   const merged: SavedDay = existing
     ? {
         dateIso: entry.dateIso,
         paragraph: entry.paragraph || existing.paragraph,
         headline: entry.headline ?? existing.headline,
         note: entry.note ?? existing.note,
-        snapshot: entry.snapshot ?? existing.snapshot,
+        snapshot: mergedSnapshot,
         savedAt: existing.savedAt, // preserve original save time
       }
     : entry;
@@ -110,7 +136,11 @@ export function updateNote(dateIso: string, note: string): void {
   const list = read();
   const i = list.findIndex((d) => d.dateIso === dateIso);
   if (i < 0) return;
-  list[i] = { ...list[i], note };
+  // Treat empty / whitespace-only as "no note" so the "with notes" count
+  // and `existingNote` UI checks stay consistent. Otherwise updating to
+  // '' would silently keep the entry counted as noted.
+  const cleaned = note.trim();
+  list[i] = { ...list[i], note: cleaned.length > 0 ? cleaned : undefined };
   write(list);
 }
 
@@ -186,6 +216,42 @@ export function anniversaryDay(yearsAgo: number, now = new Date()): SavedDay | n
     if (distDays < bestDist && distDays <= 3) {
       best = d;
       bestDist = distDays;
+    }
+  }
+  return best;
+}
+
+/**
+ * Pick the best anniversary across all year-offsets up to `maxYearsAgo`,
+ * preferring the SMALLEST day-distance — not the most recent year.
+ * Otherwise an exact-match entry from 5 years ago is silently shadowed by
+ * a 3-days-off entry from 1 year ago, which is the wrong vibe: the
+ * exact-date hit is the more poignant journal echo.
+ *
+ * Tie-break: when two entries are equally close in days, prefer the more
+ * recent year (smaller yearsAgo) — "a year ago today" beats "five years
+ * ago today" when both are exact, because recency feels more relevant.
+ */
+export function bestAnniversary(
+  now: Date = new Date(),
+  maxYearsAgo = 5
+): { yearsAgo: number; day: SavedDay; distDays: number } | null {
+  let best: { yearsAgo: number; day: SavedDay; distDays: number } | null = null;
+  for (let n = 1; n <= maxYearsAgo; n++) {
+    const target = new Date(now);
+    target.setFullYear(target.getFullYear() - n);
+    const list = read();
+    for (const d of list) {
+      const dt = new Date(d.dateIso + 'T12:00:00');
+      const distDays = Math.abs(dt.getTime() - target.getTime()) / 86400_000;
+      if (distDays > 3) continue;
+      if (
+        best === null ||
+        distDays < best.distDays ||
+        (distDays === best.distDays && n < best.yearsAgo)
+      ) {
+        best = { yearsAgo: n, day: d, distDays };
+      }
     }
   }
   return best;

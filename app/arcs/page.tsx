@@ -265,7 +265,7 @@ export default function ArcsPage() {
               {/* "today" pin floats above the slider track at today's age */}
               <div
                 className="absolute -top-3 flex flex-col items-center pointer-events-none"
-                style={{ left: `calc(${(age / 92) * 100}% - 14px)`, width: 28 }}
+                style={{ left: `calc(${(Math.min(92, Math.max(0, age)) / 92) * 100}% - 14px)`, width: 28 }}
                 aria-hidden
               >
                 <span

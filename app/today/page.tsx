@@ -26,8 +26,9 @@ import FirstTimeIntro from '@/components/FirstTimeIntro';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import SaveDayButton from '@/components/SaveDayButton';
-import { anniversaryDay } from '@/lib/savedDays';
+import { bestAnniversary } from '@/lib/savedDays';
 import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
+import { localDateStr } from '@/lib/localDate';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -50,10 +51,7 @@ export default function TodayPage() {
   const [solarReturnDays, setSolarReturnDays] = useState<number | null>(null);
   // The "this day a year ago" callout. Computed in an effect so SSR
   // doesn't try to read localStorage. null = "no anniversary entry exists".
-  const [anniversary, setAnniversary] = useState<{
-    yearsAgo: number;
-    day: ReturnType<typeof anniversaryDay>;
-  } | null>(null);
+  const [anniversary, setAnniversary] = useState<ReturnType<typeof bestAnniversary> | null>(null);
   // "Your first reading" ceremonial banner. True only on the very first
   // /today visit after onboarding (flag set by the onboarding page).
   // Self-clears after acknowledgement so future visits are uneventful.
@@ -102,17 +100,11 @@ export default function TodayPage() {
     setSolarReturnDays(daysUntilSolarReturn(blueprint.natal.sun.longitude));
   }, [blueprint]);
 
-  // Walk back up to 5 years and find the most-recent year-ago saved
-  // reading. Stops at the first hit, so "1 year ago today" is preferred
-  // over "5 years ago today".
+  // Look across the past 5 years for the journal entry closest in calendar
+  // date to today. Closer day wins over more-recent year, so an exact
+  // 5-year-ago anniversary isn't shadowed by a 3-days-off 1-year-ago one.
   useEffect(() => {
-    for (let n = 1; n <= 5; n++) {
-      const found = anniversaryDay(n);
-      if (found) {
-        setAnniversary({ yearsAgo: n, day: found });
-        return;
-      }
-    }
+    setAnniversary(bestAnniversary());
   }, []);
 
   // Read the welcome flag exactly once. SSR-safe via the existing client
@@ -603,7 +595,7 @@ export default function TodayPage() {
           {questionLabelForHour(new Date().getHours())}
         </p>
         <p className="serif italic text-[16px] text-ink leading-relaxed">
-          {questionForDate(new Date().toISOString().slice(0, 10))}
+          {questionForDate(localDateStr())}
         </p>
         <p
           className="small-label caps text-ink-faint mt-2 text-[10px]"
@@ -657,7 +649,7 @@ export default function TodayPage() {
       </section>
 
       {daily?.paragraph && (() => {
-        const todayIso = new Date().toISOString().slice(0, 10);
+        const todayIso = localDateStr();
         const tightest = (daily.transits ?? liveTransits)[0];
         const headline = tightest
           ? `${tightest.transitPlanet} ${tightest.aspect} ${tightest.natalPlanet} · ${tightest.orb.toFixed(1)}°`
@@ -745,9 +737,3 @@ function signFromLon(lon: number): string {
   return SIGNS[Math.floor(n / 30)];
 }
 
-function localDateStr(d = new Date()): string {
-  const y = d.getFullYear();
-  const m = (d.getMonth() + 1).toString().padStart(2, '0');
-  const day = d.getDate().toString().padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}

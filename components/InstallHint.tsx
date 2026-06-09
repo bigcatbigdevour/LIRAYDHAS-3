@@ -48,6 +48,18 @@ export default function InstallHint() {
       return;
     }
 
+    // Running inside a Capacitor / Ionic native shell — telling the user
+    // to use Safari's Share Sheet is meaningless. Skip the hint.
+    const isCapacitor =
+      window.location.protocol === 'capacitor:' ||
+      window.location.protocol === 'ionic:' ||
+      (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() === true ||
+      (window as Window & { Capacitor?: unknown }).Capacitor != null;
+    if (isCapacitor) {
+      setDismissed(true);
+      return;
+    }
+
     const ua = window.navigator.userAgent;
     const isIos = /iPad|iPhone|iPod/.test(ua);
     const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);

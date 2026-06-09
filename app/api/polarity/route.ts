@@ -24,6 +24,9 @@ export async function POST(req: Request) {
   }
   const bp = body.blueprint;
   if (!bp) return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
+  if (!bp.birth?.iso) {
+    return withCors(NextResponse.json({ error: 'invalid blueprint: missing birth' }, { status: 400 }), req);
+  }
 
   const age = ageInYears(bp.birth.iso);
   const positions = positionInCycles(age);

@@ -171,13 +171,13 @@ export default function AboutPage() {
           <button
             className="btn-ghost"
             onClick={() => {
-              if (confirm('Erase your blueprint and start over?')) {
+              if (confirm('Erase your blueprint and start over? Your saved journal will be kept — clear it separately if you want it gone too.')) {
                 reset();
                 router.replace('/onboarding');
               }
             }}
           >
-            erase blueprint
+            erase blueprint (keeps journal)
           </button>
         )}
       </div>

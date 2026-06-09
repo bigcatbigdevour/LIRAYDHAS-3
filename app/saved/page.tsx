@@ -15,6 +15,7 @@ import {
 import SavedHeatmap from '@/components/SavedHeatmap';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
+import { localDateStr } from '@/lib/localDate';
 
 export default function SavedPage() {
   const [mounted, setMounted] = useState(false);
@@ -28,7 +29,7 @@ export default function SavedPage() {
   // User picks a date and writes a note. Used to backfill, or to journal
   // on days they didn't read the reading.
   const [composeOpen, setComposeOpen] = useState(false);
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = localDateStr();
   const [composeDate, setComposeDate] = useState(todayIso);
   const [composeBody, setComposeBody] = useState('');
 
@@ -139,6 +140,23 @@ export default function SavedPage() {
                 type="button"
                 onClick={() => {
                   if (!composeBody.trim()) return;
+                  // If the picked date already has an entry, the saveDay
+                  // merge will overwrite its note with the new compose
+                  // text. Confirm so a stray compose doesn't quietly
+                  // wipe an existing journal entry the user forgot about.
+                  const existing = days.find((d) => d.dateIso === composeDate);
+                  if (
+                    existing?.note &&
+                    !confirm(
+                      `An entry for ${composeDate} already has a note. Overwrite it?`,
+                    )
+                  ) {
+                    return;
+                  }
+                  // Also guard the max=today client-side bypass: the date
+                  // picker has max={todayIso} but DevTools / manual typing
+                  // can submit a future date. Silently drop those.
+                  if (composeDate > todayIso) return;
                   hapticTap('medium');
                   saveDay({
                     dateIso: composeDate,
@@ -209,14 +227,20 @@ export default function SavedPage() {
                 type="button"
                 onClick={() => {
                   hapticTap('light');
-                  // Pick a random saved day, scroll to it, and briefly
-                  // flash the entry so the page acts like a journal you
-                  // can flip open. Uses the day's month anchor as the
-                  // jump target (we don't have per-day anchors).
+                  // Pick a random saved day, scroll the entry into view,
+                  // and briefly flash it so the page acts like a journal
+                  // you can flip open. Falls back to the month anchor if
+                  // the per-day element isn't on screen for some reason.
                   const pick = days[Math.floor(Math.random() * days.length)];
-                  const anchor = `m-${pick.dateIso.slice(0, 7)}`;
-                  const el = document.getElementById(anchor);
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  const target = document.getElementById(`d-${pick.dateIso}`);
+                  if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    target.classList.add('station-flash');
+                    window.setTimeout(() => target.classList.remove('station-flash'), 2000);
+                  } else {
+                    const month = document.getElementById(`m-${pick.dateIso.slice(0, 7)}`);
+                    if (month) month.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
                 }}
                 className="small-label caps text-ink-faint hover:text-ink shrink-0"
                 title="open the journal to a random day"
@@ -268,7 +292,8 @@ export default function SavedPage() {
                   return (
                     <article
                       key={d.dateIso}
-                      className="border-l-2 border-hairline pl-3 py-1"
+                      id={`d-${d.dateIso}`}
+                      className="border-l-2 border-hairline pl-3 py-1 scroll-mt-4"
                     >
                       <header className="flex items-baseline justify-between gap-3 mb-2">
                         <div>
@@ -298,8 +323,17 @@ export default function SavedPage() {
                             type="button"
                             onClick={async () => {
                               hapticTap('light');
+                              // Shared text needs the year so recipients
+                              // know the date in absolute terms (inline
+                              // we omit it because month headers carry it).
+                              const fullDate = date.toLocaleDateString(undefined, {
+                                weekday: 'long',
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric',
+                              });
                               const lines = [
-                                dateStr.toUpperCase(),
+                                fullDate.toUpperCase(),
                                 d.headline ? `(${d.headline})` : '',
                                 '',
                                 d.paragraph || '',
@@ -307,7 +341,7 @@ export default function SavedPage() {
                               ].filter(Boolean).join('\n');
                               try {
                                 if (navigator.share) {
-                                  await navigator.share({ title: dateStr, text: lines });
+                                  await navigator.share({ title: fullDate, text: lines });
                                 } else {
                                   await navigator.clipboard.writeText(lines);
                                   const el = document.getElementById(`copy-${d.dateIso}`);
@@ -377,6 +411,17 @@ export default function SavedPage() {
                         <button
                           type="button"
                           onClick={() => {
+                            // Only one entry can be edited at a time
+                            // (single `editing` slot). If a draft is in
+                            // progress elsewhere, ask before discarding.
+                            if (
+                              editing &&
+                              editing !== d.dateIso &&
+                              draftNote.trim() &&
+                              !confirm('You have an unsaved note on another day. Discard it?')
+                            ) {
+                              return;
+                            }
                             hapticTap('light');
                             setEditing(d.dateIso);
                             setDraftNote(d.note ?? '');

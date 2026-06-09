@@ -24,6 +24,9 @@ export async function POST(req: Request) {
   }
   const bp = body.blueprint;
   if (!bp) return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
+  if (!bp.natal?.sun || !bp.humanDesign) {
+    return withCors(NextResponse.json({ error: 'invalid blueprint: missing natal/humanDesign' }, { status: 400 }), req);
+  }
 
   const hd = bp.humanDesign;
   const n = bp.natal;

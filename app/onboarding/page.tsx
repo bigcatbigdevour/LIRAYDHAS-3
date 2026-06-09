@@ -6,6 +6,8 @@ import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import { buildBlueprint } from '@/lib/blueprint';
 import { useStore } from '@/lib/store';
 import { success as hapticSuccess, warn as hapticWarn } from '@/lib/haptics';
+import { localDateStr } from '@/lib/localDate';
+import { friendlyError } from '@/lib/friendlyError';
 import type { GeocodeResult } from '@/lib/types';
 
 type Step = 'intro' | 'form';
@@ -58,7 +60,7 @@ function OnboardingInner() {
 
   useEffect(() => {
     // set after mount so SSR/CSR agree on the initial render
-    setMaxDate(new Date().toISOString().slice(0, 10));
+    setMaxDate(localDateStr());
   }, []);
 
   const checked = useRef(false);
@@ -95,13 +97,18 @@ function OnboardingInner() {
       });
       setBlueprint(bp);
       hapticSuccess();
-      // Flag the very first arrival on /today so the page can show a
-      // small "your first reading" moment instead of dropping the user
-      // straight into the standard view.
-      try { window.localStorage.setItem('liraydhas.welcome.v1', '1'); } catch { /* ignore */ }
-      router.replace('/today');
+      // Only set the welcome flag on a FIRST-TIME onboarding, never when
+      // someone is just editing their birth data. Otherwise the "your
+      // first reading" ceremony would re-fire every time they tweak
+      // their birth time.
+      if (!isEdit) {
+        try { window.localStorage.setItem('liraydhas.welcome.v1', '1'); } catch { /* ignore */ }
+        router.replace('/today');
+      } else {
+        router.replace('/chart');
+      }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
+      setError(friendlyError(e instanceof Error ? e.message : null));
       hapticWarn();
       setBusy(false);
     }

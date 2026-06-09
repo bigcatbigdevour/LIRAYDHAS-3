@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { SavedDay } from '@/lib/savedDays';
+import { localDateStr } from '@/lib/localDate';
 
 interface Props {
   days: SavedDay[];
@@ -34,7 +35,7 @@ export default function SavedHeatmap({ days, todayIso }: Props) {
     for (let i = totalDays - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = localDateStr(d);
       out.push({
         iso,
         day: map.get(iso),

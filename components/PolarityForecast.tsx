@@ -15,6 +15,9 @@ interface Props {
  * cycle's hue, opacity = brighter for rising / dimmer for descending.
  */
 export default function PolarityForecast({ birthIso, months = 12 }: Props) {
+  // Guard the degenerate input early — otherwise the date-range caption at
+  // the bottom would deref `cells[0]` and crash.
+  if (months <= 0) return null;
   const now = new Date();
   const cells: { age: number; date: Date; positions: CyclePosition[] }[] = [];
   for (let m = 0; m < months; m++) {
