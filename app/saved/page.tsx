@@ -157,6 +157,17 @@ export default function SavedPage() {
                               {d.headline}
                             </p>
                           )}
+                          {d.snapshot && (d.snapshot.moonPhase || d.snapshot.chapter || d.snapshot.ageYears != null) && (
+                            <p
+                              className="small-label caps text-ink-faint mt-0.5 text-[10px]"
+                              style={{ letterSpacing: '0.14em' }}
+                            >
+                              {d.snapshot.ageYears != null && <>age {d.snapshot.ageYears.toFixed(1)} · </>}
+                              {d.snapshot.moonPhase}
+                              {d.snapshot.moonSign && <> · moon in {d.snapshot.moonSign.toLowerCase()}</>}
+                              {d.snapshot.chapter && <> · {d.snapshot.chapter.toLowerCase()}</>}
+                            </p>
+                          )}
                         </div>
                         <button
                           type="button"

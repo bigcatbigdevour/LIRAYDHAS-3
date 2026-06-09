@@ -580,11 +580,18 @@ export default function TodayPage() {
           const headline = tightest
             ? `${tightest.transitPlanet} ${tightest.aspect} ${tightest.natalPlanet} · ${tightest.orb.toFixed(1)}°`
             : undefined;
+          const ch = currentChapter(ageInYears(blueprint.birth.iso));
           return (
             <SaveDayButton
               dateIso={todayIso}
               paragraph={daily.paragraph}
               headline={headline}
+              snapshot={{
+                moonPhase: moon?.name?.toLowerCase(),
+                moonSign: moon?.moonSign,
+                chapter: ch?.label,
+                ageYears: Math.round(ageInYears(blueprint.birth.iso) * 10) / 10,
+              }}
             />
           );
         })()}

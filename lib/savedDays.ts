@@ -23,6 +23,18 @@ export interface SavedDay {
   note?: string;
   /** Epoch ms the entry was created. */
   savedAt: number;
+  /**
+   * Snapshot of the sky / personal-cycle context the day this was saved.
+   * Optional because pre-existing saved days don't have it; new saves do.
+   * Stored alongside the reading so future anniversaries can compare
+   * "the moon was waxing then; it's waning now" without re-deriving.
+   */
+  snapshot?: {
+    moonPhase?: string;     // e.g. "waxing gibbous"
+    moonSign?: string;      // e.g. "Cancer"
+    chapter?: string;       // life chapter label, e.g. "Young adulthood"
+    ageYears?: number;      // user's age at save time, rounded to 1dp
+  };
 }
 
 const KEY = 'liraydhas.savedDays.v1';
