@@ -15,7 +15,12 @@
 export interface SavedDay {
   /** ISO date (YYYY-MM-DD) the reading was for. Unique per saved day. */
   dateIso: string;
-  /** The LLM-generated paragraph that was on screen when saved. */
+  /**
+   * The LLM-generated paragraph that was on screen when saved. Empty
+   * string for pure journal entries (the user wrote a note without
+   * saving a reading). Renderers should treat empty / missing as
+   * "no reading attached, this is a pure journal entry".
+   */
   paragraph: string;
   /** Tightest transit label, e.g. "Saturn square Sun" — for the list view. */
   headline?: string;
@@ -71,10 +76,30 @@ export function isSaved(dateIso: string): boolean {
   return read().some((d) => d.dateIso === dateIso);
 }
 
+/**
+ * Save (or merge into) an entry for `entry.dateIso`. Merging matters
+ * because a user may have composed a pure journal entry for today first
+ * and then later tapped ☆ on the daily reading — naive replace would
+ * wipe their note. Rules: incoming non-empty fields win; existing
+ * paragraph / note / headline / snapshot survive if the incoming entry
+ * left them blank.
+ */
 export function saveDay(entry: SavedDay): void {
-  const list = read().filter((d) => d.dateIso !== entry.dateIso);
-  list.push(entry);
-  write(list);
+  const list = read();
+  const existing = list.find((d) => d.dateIso === entry.dateIso);
+  const merged: SavedDay = existing
+    ? {
+        dateIso: entry.dateIso,
+        paragraph: entry.paragraph || existing.paragraph,
+        headline: entry.headline ?? existing.headline,
+        note: entry.note ?? existing.note,
+        snapshot: entry.snapshot ?? existing.snapshot,
+        savedAt: existing.savedAt, // preserve original save time
+      }
+    : entry;
+  const others = list.filter((d) => d.dateIso !== entry.dateIso);
+  others.push(merged);
+  write(others);
 }
 
 export function unsaveDay(dateIso: string): void {
@@ -181,16 +206,15 @@ export function exportToText(days: SavedDay[]): string {
         month: 'long',
         day: 'numeric',
       });
-      const out = [
-        date.toUpperCase(),
-        d.headline ? `(${d.headline})` : '',
-        '',
-        d.paragraph,
-      ];
-      if (d.note) {
-        out.push('', `— note —`, d.note);
+      const out: string[] = [date.toUpperCase()];
+      if (d.headline) out.push(`(${d.headline})`);
+      if (d.paragraph) {
+        out.push('', d.paragraph);
       }
-      return out.filter((l) => l !== '').join('\n');
+      if (d.note) {
+        out.push('', d.paragraph ? '— note —' : '— journal —', d.note);
+      }
+      return out.join('\n');
     })
     .join('\n\n────\n\n');
 }

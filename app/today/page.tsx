@@ -291,6 +291,17 @@ export default function TodayPage() {
           year: 'numeric',
         });
         const yearsLabel = anniversary.yearsAgo === 1 ? 'a year ago today' : `${anniversary.yearsAgo} years ago today`;
+        // "the sky then" caption — pulled from the snapshot if we have it.
+        const thenBits: string[] = [];
+        if (a.snapshot?.ageYears != null) thenBits.push(`age ${a.snapshot.ageYears.toFixed(1)}`);
+        if (a.snapshot?.moonPhase) {
+          thenBits.push(
+            a.snapshot.moonSign
+              ? `${a.snapshot.moonPhase} in ${a.snapshot.moonSign.toLowerCase()}`
+              : a.snapshot.moonPhase
+          );
+        }
+        if (a.snapshot?.chapter) thenBits.push(a.snapshot.chapter.toLowerCase());
         return (
           <section className="mb-8 border-l-2 border-accent pl-3 py-1">
             <p className="small-label caps text-accent" style={{ letterSpacing: '0.18em' }}>
@@ -300,12 +311,22 @@ export default function TodayPage() {
               {niceDate.toLowerCase()}
               {a.headline && <> · {a.headline}</>}
             </p>
-            <p className="serif text-[14px] text-ink-dim mt-2 leading-relaxed line-clamp-3">
-              {a.paragraph}
-            </p>
+            {a.paragraph && (
+              <p className="serif text-[14px] text-ink-dim mt-2 leading-relaxed line-clamp-3">
+                {a.paragraph}
+              </p>
+            )}
             {a.note && (
               <p className="serif italic text-[13px] text-ink mt-2 leading-relaxed line-clamp-2">
                 you wrote: "{a.note}"
+              </p>
+            )}
+            {thenBits.length > 0 && (
+              <p
+                className="small-label caps text-ink-faint mt-2 text-[10px]"
+                style={{ letterSpacing: '0.14em' }}
+              >
+                the sky then · {thenBits.join(' · ')}
               </p>
             )}
             <a href="/saved" className="small-label caps text-[10px] text-ink-faint hover:text-ink mt-2 inline-block">

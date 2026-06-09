@@ -6,6 +6,7 @@ import {
   listSavedDays,
   unsaveDay,
   updateNote,
+  saveDay,
   groupByMonth,
   searchSavedDays,
   exportToText,
@@ -20,6 +21,14 @@ export default function SavedPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [draftNote, setDraftNote] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
+
+  // Compose-entry state: a pure journal entry without a daily reading.
+  // User picks a date and writes a note. Used to backfill, or to journal
+  // on days they didn't read the reading.
+  const [composeOpen, setComposeOpen] = useState(false);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [composeDate, setComposeDate] = useState(todayIso);
+  const [composeBody, setComposeBody] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -67,13 +76,102 @@ export default function SavedPage() {
             )}
           </p>
         )}
+
+        <button
+          type="button"
+          onClick={() => {
+            hapticTap('light');
+            setComposeOpen((v) => !v);
+            if (!composeOpen) {
+              setComposeDate(todayIso);
+              setComposeBody('');
+            }
+          }}
+          className="small-label caps text-accent hover:underline mt-4 inline-block"
+          style={{ letterSpacing: '0.16em' }}
+          aria-expanded={composeOpen}
+        >
+          {composeOpen ? '× close' : '+ new entry'}
+        </button>
+
+        {composeOpen && (
+          <div className="mt-3 border-l-2 border-accent pl-3 py-2 fade-in">
+            <p
+              className="small-label caps text-accent"
+              style={{ letterSpacing: '0.14em' }}
+            >
+              write an entry
+            </p>
+            <p className="text-[12.5px] text-ink-dim serif mt-1 leading-relaxed">
+              For days you want to journal without a reading attached. Or to
+              backfill a past day.
+            </p>
+            <label className="block mt-3">
+              <span className="small-label caps text-ink-faint" style={{ letterSpacing: '0.14em' }}>
+                date
+              </span>
+              <input
+                type="date"
+                value={composeDate}
+                max={todayIso}
+                onChange={(e) => setComposeDate(e.currentTarget.value)}
+                className="block mt-1 bg-bg border border-hairline px-2 py-1 text-[13.5px] text-ink"
+              />
+            </label>
+            <label className="block mt-3">
+              <span className="small-label caps text-ink-faint" style={{ letterSpacing: '0.14em' }}>
+                note
+              </span>
+              <textarea
+                value={composeBody}
+                onChange={(e) => setComposeBody(e.currentTarget.value)}
+                rows={4}
+                placeholder="what's happening — a memory, an intention, what you noticed"
+                className="w-full mt-1 bg-bg border border-hairline p-2 text-[13.5px] text-ink serif leading-relaxed"
+                style={{ resize: 'vertical' }}
+              />
+            </label>
+            <div className="flex flex-wrap gap-3 mt-3 items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!composeBody.trim()) return;
+                  hapticTap('medium');
+                  saveDay({
+                    dateIso: composeDate,
+                    paragraph: '',
+                    note: composeBody.trim(),
+                    savedAt: Date.now(),
+                  });
+                  setDays(listSavedDays());
+                  setComposeOpen(false);
+                  setComposeBody('');
+                }}
+                disabled={!composeBody.trim()}
+                className="btn-ghost"
+              >
+                save entry
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setComposeOpen(false);
+                  setComposeBody('');
+                }}
+                className="small-label caps text-ink-faint hover:text-ink"
+              >
+                cancel
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
-      {days.length === 0 && (
+      {days.length === 0 && !composeOpen && (
         <section className="border border-hairline p-6 text-center">
           <p className="serif text-ink-dim text-[14px]">
             Nothing here yet. Tap <span className="text-ink">☆ save</span> on a
-            day's reading to keep it.
+            day's reading to keep it — or write a new entry above.
           </p>
           <Link href="/today" className="btn-ghost mt-4 inline-block">
             go to today →
@@ -184,19 +282,27 @@ export default function SavedPage() {
                         </button>
                       </header>
 
-                      <p className="serif text-[14.5px] text-ink leading-relaxed">
-                        {d.paragraph}
-                      </p>
+                      {d.paragraph && (
+                        <p className="serif text-[14.5px] text-ink leading-relaxed">
+                          {d.paragraph}
+                        </p>
+                      )}
+
+                      {!d.paragraph && !d.note && (
+                        <p className="serif text-[13px] text-ink-faint italic">
+                          (empty entry — add a note below)
+                        </p>
+                      )}
 
                       {!isEditing && d.note && (
-                        <div className="mt-3 border-l-2 border-accent pl-3 py-1">
+                        <div className={`${d.paragraph ? 'mt-3' : ''} border-l-2 border-accent pl-3 py-1`}>
                           <p
                             className="small-label caps text-accent mb-1"
                             style={{ letterSpacing: '0.12em' }}
                           >
-                            your note
+                            {d.paragraph ? 'your note' : 'journal'}
                           </p>
-                          <p className="serif text-[13.5px] text-ink-dim whitespace-pre-wrap leading-relaxed">
+                          <p className="serif text-[14px] text-ink whitespace-pre-wrap leading-relaxed">
                             {d.note}
                           </p>
                         </div>
