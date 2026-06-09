@@ -104,6 +104,7 @@ export default function AboutPage() {
       <div className="space-y-3">
         <Link href="/chart" className="btn-ghost block">go to your chart →</Link>
         <Link href="/year" className="btn-ghost block">your year ahead →</Link>
+        <Link href="/saved" className="btn-ghost block">saved readings →</Link>
         <Link href="/learn" className="btn-ghost block">learn the system →</Link>
         <Link href="/onboarding?edit=1" className="btn-ghost block">edit my birth data →</Link>
         <Link href="/privacy" className="btn-ghost block">privacy →</Link>

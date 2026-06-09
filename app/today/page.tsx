@@ -25,6 +25,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import FirstTimeIntro from '@/components/FirstTimeIntro';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
+import SaveDayButton from '@/components/SaveDayButton';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -519,6 +520,20 @@ export default function TodayPage() {
         <button className="btn-ghost" onClick={() => { hapticTap('light'); void fetchDaily(); }} disabled={loading}>
           {loading ? 'refreshing…' : 'refresh report'}
         </button>
+        {daily?.paragraph && (() => {
+          const todayIso = new Date().toISOString().slice(0, 10);
+          const tightest = (daily.transits ?? liveTransits)[0];
+          const headline = tightest
+            ? `${tightest.transitPlanet} ${tightest.aspect} ${tightest.natalPlanet} · ${tightest.orb.toFixed(1)}°`
+            : undefined;
+          return (
+            <SaveDayButton
+              dateIso={todayIso}
+              paragraph={daily.paragraph}
+              headline={headline}
+            />
+          );
+        })()}
         {daily?.paragraph && typeof navigator !== 'undefined' && 'share' in navigator && (
           <button
             className="btn-ghost"
