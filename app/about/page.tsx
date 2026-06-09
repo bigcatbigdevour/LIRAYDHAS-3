@@ -20,14 +20,16 @@ export default function AboutPage() {
       <section className="space-y-4 body-prose serif text-ink-dim">
         <p>
           Liraydhas is a daily reading of two systems at once: tropical
-          astrology and Human Design. Both are computed from your exact birth
-          moment and your exact birth location.
+          astrology and the body chart that comes out of your birth
+          moment. Both are computed from your exact birth time and your
+          exact birth location.
         </p>
         <p>
-          The math runs on your phone. The daily paragraph is written by a
-          language model fed your tightest current transits and the bare
-          outline of your design — sent over once per day. Your blueprint
-          itself lives only in this browser. Erase the app and it's gone.
+          The math runs on your phone. The daily paragraph is written by
+          a language model fed only your tightest current transits and
+          the outline of your chart — sent over once per day. Your
+          blueprint itself lives only in this browser. Erase the app and
+          it's gone.
         </p>
       </section>
 
@@ -36,7 +38,7 @@ export default function AboutPage() {
         <Item k="Today" v="One short paragraph from the live transits, your current sky, and a recap of the past week." />
         <Item k="Arcs"  v="Every cycle that returns over a human lifespan, drawn end to end. Solar, Mars, Jupiter, Saturn, Nodal, Chiron, Progressed Moon." />
         <Item k="Polarity" v="Whether each of those cycles is currently rising or descending. The stack reads as one weather." />
-        <Item k="Chart" v="Your Human Design bodygraph, the 26 activations that produced it, and your natal astrology wheel." />
+        <Item k="Chart" v="Your body chart, the 26 activations that produced it, and your natal astrology wheel." />
       </dl>
 
       <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Aspects, briefly.</h2>
@@ -48,16 +50,17 @@ export default function AboutPage() {
         <Item k="opposition" v="180° apart. A see-saw. Two themes pulling against each other across your chart." />
       </dl>
 
-      <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Human Design, briefly.</h2>
+      <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>The body chart, briefly.</h2>
       <p className="text-[14px] text-ink-dim serif leading-relaxed">
-        Two charts are computed: one at the moment of birth (the Personality,
-        right side, in white), one at the moment when the Sun was exactly 88°
-        of ecliptic longitude earlier (the Design, left side, in red). Each
-        chart contributes 13 activations — Sun, Earth, Moon, North &amp; South
-        Nodes, and the seven planets — totalling 26. Each activation maps to
-        one of 64 gates. A center is defined when both gates of a channel
-        terminating in it are activated. Type, authority, and profile fall
-        out of which centers and lines are lit.
+        Two charts are computed and overlaid: one at the moment of birth
+        (the conscious side, right column, cream), one at the moment when
+        the Sun was exactly 88° of ecliptic longitude earlier (the
+        unconscious side, left column, wine). Each chart contributes 13
+        activations — Sun, Earth, Moon, North &amp; South Nodes, and the
+        seven planets — totalling 26. Each activation maps to one of 64
+        gates. A center is defined when both gates of a channel
+        terminating in it are activated. Type, authority, and profile
+        fall out of which centers and lines are lit.
       </p>
 
       <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Polarity, briefly.</h2>

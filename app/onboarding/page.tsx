@@ -133,8 +133,8 @@ function OnboardingInner() {
             A daily reading<br />of the sky,<br />and your design.
           </h1>
           <p className="serif italic text-ink-dim text-[15px] max-w-sm leading-relaxed">
-            Real astrology. Full Human Design. Every major life cycle drawn
-            from age zero to ninety-two.
+            Real astrology. A full body chart. Every major life cycle
+            drawn from age zero to ninety-two.
           </p>
           <p className="text-ink-faint text-[12px] max-w-xs caps" style={{ letterSpacing: '0.16em' }}>
             Enter your birth data once · the math runs on your phone · nothing is stored anywhere but here

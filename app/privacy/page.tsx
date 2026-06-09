@@ -21,13 +21,13 @@ export default function PrivacyPage() {
         <h2 className="caps small-label pt-4">What leaves your device</h2>
         <p>
           When you load the daily, polarity, or chart-narrative reading,
-          the app sends your computed astrology + Human Design
-          blueprint &mdash; <em>not</em> your raw birth data &mdash; to
-          our server, which forwards a prompt to Anthropic&rsquo;s Claude
-          API to generate the paragraph. The blueprint contains your
-          natal planetary positions, defined centers, channels, type,
-          authority, and profile. It does not include your birth time,
-          birth city, or any identifier.
+          the app sends your computed blueprint &mdash; <em>not</em>{' '}
+          your raw birth data &mdash; to our server, which forwards a
+          prompt to Anthropic&rsquo;s Claude API to generate the
+          paragraph. The blueprint contains your natal planetary
+          positions, defined centers, channels, type, authority, and
+          profile. It does not include your birth time, birth city, or
+          any identifier.
         </p>
         <p>
           We do not log these requests. Anthropic processes the prompt

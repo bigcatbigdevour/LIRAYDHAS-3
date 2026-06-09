@@ -22,8 +22,9 @@ interface CenterDef {
   fill: string;
 }
 
-// Canonical HD center colors — toned down to suit the dark Co-Star aesthetic
-// while remaining recognisable to anyone who reads HD charts elsewhere.
+// Canonical body-chart center colors — toned down to suit the dark
+// background, while remaining recognisable to anyone who reads charts
+// elsewhere.
 const CENTERS: Record<CenterName, CenterDef> = {
   Head:        { cx: 160, cy: 55,  shape: 'triangle-up',   size: 38, fill: '#c49a3b' },  // gold
   Ajna:        { cx: 160, cy: 130, shape: 'triangle-down', size: 38, fill: '#5a7a4a' },  // green

@@ -13,32 +13,31 @@ Daily astrology, on your chart
 
 ## Promotional text (max 170 chars, editable without resubmission)
 
-A daily reading written from your transits, not a generic horoscope.
-Plus your full Human Design and a map of every life cycle from age 0
-to 92.
+A daily reading written from your exact birth chart, plus a body chart
+and a map of every life cycle from age 0 to 92.
 
 ## Keywords (max 100 chars, comma-separated)
 
-astrology,horoscope,human design,natal chart,transits,birth chart,
-co-star,daily,zodiac,bodygraph
+astrology,horoscope,natal chart,transits,birth chart,daily,zodiac,
+moon phase,life cycle
 
 ## Description
 
-Liraydhas is a quiet, daily astrology and Human Design app. It reads
-your real birth chart, computes today's transits to it, and writes
-you a short paragraph in a dry, direct, slightly mystical voice.
-Nothing generic. Nothing pulled from a sun-sign feed.
+Liraydhas reads your exact birth moment and produces a daily reading
+from real ephemeris math. A short paragraph each day, written in a
+direct, dry, slightly mystical voice. Anchored in your real chart, not
+in your sun sign.
 
 WHAT YOU GET
 
 - A daily paragraph anchored on your three tightest current transits,
-  the natal Human Design gates being touched today, and any channels
-  temporarily completing for you.
-- The full Co-Star-style "current sky" — your planets, the moon's
-  phase, and any retrogrades visible at a glance.
-- Your full Human Design bodygraph: type, strategy, authority,
-  profile, all 64 gates, all 36 channels, all 9 centers. Tap any
-  defined channel or center to see what it means.
+  the natal gates being touched today, and any channels temporarily
+  completing for you.
+- A "current sky" view — your planets, the moon's phase, and any
+  retrogrades visible at a glance.
+- A full body chart: type, strategy, profile, all 64 gates, all 36
+  channels, all 9 centers. Tap any defined channel or center to see
+  what it means.
 - Your natal astrology wheel with Placidus houses, the four angles,
   major aspects, and one-line interpretations of your Sun, Moon, and
   Rising.
@@ -122,7 +121,7 @@ PII (only the derived chart numbers).
 ## Screenshots (6.7" iPhone, required)
 
 [ ] 1. Today tab — daily paragraph + sky visual
-[ ] 2. Chart tab — bodygraph + narrative
+[ ] 2. Chart tab — body chart + narrative
 [ ] 3. Arcs tab — D3 cycles
 [ ] 4. Polarity tab — rising/descending bars
 [ ] 5. Onboarding — birth data entry

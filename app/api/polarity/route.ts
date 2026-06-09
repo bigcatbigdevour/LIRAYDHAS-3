@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     ? `\nKey events inside the next 12 months:\n` + upcoming.slice(0, 5).map((e) => `- ${e.title} (${e.detail}) in ${Math.round(e.daysAhead)}d`).join('\n')
     : '';
 
-  const prompt = `Interpret the following polarity stack for a single person, in the dry, slightly clinical, slightly mystical voice of Co-Star.
+  const prompt = `Interpret the following polarity stack for a single person, in a dry, slightly clinical, slightly mystical voice. Address the reader in the second person.
 
 ${lines}
 
@@ -81,9 +81,9 @@ Most recent flip: ${mostRecent?.cycle.label ?? 'none'} (${mostRecent ? `${Math.r
 Next flip: ${nextUp?.cycle.label ?? 'none'} (${nextUp ? `in ${Math.round(nextUp.daysUntilEnd)} days to ${nextUp.positive ? 'descending' : 'rising'}` : ''}).
 ${stationLine}${chapterLine}${upcomingLine}
 
-Write one paragraph, 80-120 words, addressing the person directly. Name what the overall stack tends to feel like. If a life-station is named above, lean on it. Otherwise lean on the most recent flip. End on a sentence that lands like a quiet observation.
+Write one paragraph, 80-120 words. Name what the overall stack tends to feel like. If a life-station is named above, lean on it. Otherwise lean on the most recent flip. End on a sentence that lands like a quiet observation.
 
-Hard bans: no "the universe", no "embrace", no "manifest", no "abundance", no "lean into", no emojis, no exclamation points, no rhetorical questions, no bullet points. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
+Hard bans: do NOT name the system ("Human Design", "HD", "bodygraph"), do NOT use "the universe", "embrace", "manifest", "abundance", "lean into", no emojis, no exclamation points, no rhetorical questions, no bullet points. Never compare this reading to other apps or to typical horoscopes. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
 
   try {
     const client = getClient();

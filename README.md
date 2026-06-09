@@ -1,12 +1,11 @@
 # Liraydhas
 
-A Co-Star-style daily astrology + Human Design + life-cycle visualization
-app. Enter your birth data once; get a real daily reading driven by today's
-transits to your natal chart, a full Human Design blueprint computed from
-ephemeris-accurate math, and a unique visual reading of every major life
-cycle drawn end to end across your lifespan. Built to feel like Co-Star —
-pitch-black background, large serif headings, sharp edges, slow film
-grain, one wine-red accent.
+A daily astrology + body-chart + life-cycle reader. Enter your birth data
+once; get a daily reading driven by today's transits to your natal chart,
+a full body chart computed from ephemeris-accurate math, and a visual
+reading of every major life cycle drawn end to end across your lifespan.
+Dark UI: pitch-black background, large serif headings, sharp edges, slow
+film grain, one wine-red accent.
 
 ## The four tabs
 
@@ -24,10 +23,10 @@ grain, one wine-red accent.
 - **Polarity** — every cycle has a polarity (rising or descending half).
   See the entire stack at a glance. Per-cycle bars with flip dates. Live
   12-month forecast heatmap (6m / 12m / 2y / 5y range). Unified
-  chronological timeline of upcoming events. HD-authority-specific
+  chronological timeline of upcoming events. Decision-style-specific
   guidance for relating to flips.
-- **Chart** — HD bodygraph (tap any defined center or channel for its
-  meaning), the 26 personality + design activations, type/profile/
+- **Chart** — body chart (tap any defined center or channel for its
+  meaning), the 26 conscious + unconscious activations, type/profile/
   authority/cross with expandable descriptions, natal astrology wheel
   with Placidus houses, sign meanings, numerology, current cycle status.
 
@@ -67,11 +66,11 @@ bar and a clean icon.
 | ----------------- | ------------------------------------------------------------ |
 | `/`               | Bounce to `/onboarding` or `/today` based on stored state    |
 | `/onboarding`     | Intro splash, then date/time/place form                      |
-| `/today`          | Daily Co-Star paragraph, current sky wheel, the week ahead   |
+| `/today`          | Daily reading, current sky wheel, the week ahead             |
 | `/arcs`           | Lifelong cycle arcs (D3) with today marker                   |
 | `/polarity`       | Rising/descending bars per cycle + LLM interpretation        |
-| `/chart`          | HD bodygraph, narrative, activations, natal wheel, numerology|
-| `/about`          | Glossary of tabs, aspects, HD basics                         |
+| `/chart`          | Body chart, narrative, activations, natal wheel, numerology  |
+| `/about`          | Glossary of tabs, aspects, chart basics                      |
 | `POST /api/daily` | LLM daily paragraph from `{ blueprint }`                     |
 | `POST /api/polarity`  | LLM cycle-stack interpretation (cached weekly)           |
 | `POST /api/narrative` | Once-per-blueprint personalised reading                  |
@@ -84,9 +83,9 @@ bar and a clean icon.
 - Next lunation hint ("full moon in 3 days") within a week of any quarter
 - Retrograde indicator (`℞ Mercury · Mars`) when any inner planet is retro
 - Solar-return banner on the user's birthday
-- LLM-generated Co-Star-voiced paragraph anchored on:
+- LLM-generated paragraph (direct, dry voice) anchored on:
   - the three tightest transits to natal chart
-  - any natal HD gates currently being touched by transiting planets
+  - any natal gates currently being touched by transiting planets
   - any HD channels temporarily completing today
   - current retrogrades
 - The "today, on your chart" section shows lit natal gates and
@@ -101,9 +100,9 @@ bar and a clean icon.
 
 ### Chart (`/chart`)
 
-- HD bodygraph with all 64 gate anchors, 36 channels, 9 centers — defined
-  centers filled in their (desaturated) traditional colors, defined
-  channels solid white, design-only gates in wine, personality in cream
+- Body chart with all 64 gate anchors, 36 channels, 9 centers — defined
+  centers filled in their canonical (desaturated) colors, defined
+  channels solid white, unconscious-only gates in wine, conscious in cream
 - Personalised one-time LLM narrative (cached, regenerates on reset)
 - Personality / Design two-column activations readout (26 rows)
 - Tap-to-expand details for Type, Authority, Profile (with line names)
@@ -158,7 +157,7 @@ bar and a clean icon.
 /scripts test-hd.mts verify.mts
 ```
 
-## How the Human Design calculation works
+## How the body-chart calculation works
 
 1. Compute geocentric tropical longitudes for Sun, Earth, Moon, North/South
    Nodes, and the seven planets at the birth instant (**personality chart**).

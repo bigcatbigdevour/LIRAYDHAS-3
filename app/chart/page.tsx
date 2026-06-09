@@ -108,22 +108,26 @@ export default function ChartPage() {
             Birth time unknown — profile and houses are soft
           </p>
         )}
-        <FirstTimeIntro storeKey="liraydhas.chart.intro.dismissed.v1" learnHref="/learn#hd">
+        <FirstTimeIntro storeKey="liraydhas.chart.intro.dismissed.v1" learnHref="/learn#chart">
           <p>
-            This is your Human Design <span className="text-ink">bodygraph</span>:
-            nine centers (the geometric shapes), 64 gates (the numbered
-            circles), 36 channels (the lines between gates). Centers fill in
-            when a channel completes across them — those are your{' '}
-            <span className="text-ink">defined</span> centers, the parts of
-            you that broadcast consistently. The open ones are where you
-            absorb from whoever's around you.
+            The chart below has nine{' '}
+            <span className="text-ink">centers</span> (the geometric
+            shapes), sixty-four <span className="text-ink">gates</span>{' '}
+            (the numbered circles attached to each center), and
+            thirty-six <span className="text-ink">channels</span> (the
+            lines that connect gates). When both gates of a channel are
+            active, the channel fills in solid and the two centers it
+            connects become <span className="text-ink">defined</span>.
+            Defined centers broadcast their energy consistently. Open
+            centers absorb and amplify from whoever you're around.
           </p>
           <p>
-            <span className="text-ink">Cream</span> dots come from your
-            Personality chart (the sky at your birth — your conscious self).{' '}
-            <span className="text-accent">Wine</span> dots come from your
-            Design chart (the sky 88° earlier — your unconscious body wisdom).
-            Tap any gate, channel, or center to read what it does.
+            <span className="text-ink">Cream</span> markers come from
+            the sky at the exact moment of your birth — the conscious
+            side. <span className="text-accent">Wine</span> markers come
+            from the sky at the moment the Sun was eighty-eight degrees
+            of arc earlier — the unconscious side. Tap any gate, channel,
+            or center for a plain reading of what it does.
           </p>
         </FirstTimeIntro>
       </header>

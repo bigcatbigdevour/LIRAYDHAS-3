@@ -129,26 +129,25 @@ export default function ArcsPage() {
           );
         })()}
         <p className="serif text-[14.5px] text-ink-dim mt-3 leading-relaxed max-w-xl">
-          Most astrology gives you a snapshot. This gives you the shape of
-          your whole life. Seven cycles — Solar, Mars, Jupiter, Saturn,
-          Nodal, Chiron, the Progressed Moon — drawn end to end across a
-          human lifespan. The brighter arcs are the ones you are currently
-          inside. The white line is right now.
+          Seven cycles — Solar, Mars, Jupiter, Saturn, Nodal, Chiron, and
+          the Progressed Moon — drawn end to end across a human lifespan.
+          The brighter arcs are the ones you are currently inside. The
+          white line is right now.
         </p>
         <FirstTimeIntro storeKey="liraydhas.arcs.intro.dismissed.v1" learnHref="/learn#cycles">
           <p>
-            Most astrology gives you a horoscope for today. This gives you the
-            shape of your whole life. Each colored arc below is one cycle of a
-            planet — and the slower the planet, the wider the arc. Saturn takes
-            29.5 years to return to where it was when you were born. Chiron
-            takes 50. The arcs are those orbits drawn end to end across your
-            lifespan.
+            Each colored arc below is one cycle of a planet around the
+            sky — and the slower the planet, the wider the arc. Saturn
+            takes 29.5 years to return to where it was when you were
+            born. Chiron takes 50. The arcs are those orbits, drawn end
+            to end across your lifespan.
           </p>
           <p>
-            The white vertical line is right now — where you are inside every
-            arc at once. The ◆ diamonds are the points where multiple cycles
-            cross at the same age (Saturn return, midlife, Chiron return) —
-            the "everyone goes through this at X" moments.
+            The white vertical line is right now — where you are inside
+            every arc at once. The ◆ diamonds are the points where
+            multiple cycles cross at the same age (Saturn return,
+            midlife, Chiron return) — the ages that nearly everyone
+            experiences as a structural shift.
           </p>
         </FirstTimeIntro>
         <div className="mt-3 border border-hairline p-3 text-[12.5px] text-ink-dim serif leading-relaxed max-w-md">

@@ -176,12 +176,11 @@ export default function TodayPage() {
         )}
         <FirstTimeIntro storeKey="liraydhas.today.intro.dismissed.v1" learnHref="/learn#astrology">
           <p>
-            Most horoscope apps show you the same paragraph as everyone with
-            your sun sign. This isn't that. The reading below is written from{' '}
+            The reading below is written from{' '}
             <span className="text-ink">your three tightest transits today</span>{' '}
-            (where today's planets sit relative to your natal chart), plus
-            any Human Design gates being touched right now, plus what's
-            happening in your life-cycles. It's specific to you.
+            — where the planets currently sit relative to your natal chart —
+            plus any natal gates being touched right now and the current
+            phase of your life cycles.
           </p>
           <p>
             Pull down anywhere on this screen to refresh the day's reading.

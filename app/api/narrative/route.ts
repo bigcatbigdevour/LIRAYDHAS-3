@@ -58,14 +58,14 @@ export async function POST(req: Request) {
   const chapter = currentChapter(age);
   const chapterLine = chapter ? `\nLife chapter: '${chapter.label}' (ages ${chapter.startAge}–${chapter.endAge}). ${chapter.description}` : '';
 
-  const prompt = `Write a 90-130 word standalone summary of this person's chart in the Co-Star voice — direct, dry, slightly clinical, slightly mystical. Anchor in the specific combination of:
+  const prompt = `Write a 90-130 word standalone summary of this person's chart in a direct, dry, slightly clinical, slightly mystical voice. Anchor in the specific combination of:
 
 - Sun in ${n.sun.sign} (gate ${n.sun.gate}.${n.sun.line})
 - Moon in ${n.moon.sign}
 ${ascSign ? `- Rising sign: ${ascSign}` : '- (birth time unknown — soft profile)'}
-- Human Design type: ${hd.type}
+- Type: ${hd.type}
 - Strategy: ${hd.strategy}
-- Authority: ${hd.authority}
+- Inner-decision style: ${hd.authority}
 - Profile: ${hd.profile} (${profileName(hd.profile)})
 - Definition: ${hd.definition}
 - Defined centers: ${centers}
@@ -74,7 +74,7 @@ ${ascSign ? `- Rising sign: ${ascSign}` : '- (birth time unknown — soft profil
 
 Speak to them in second person. Name the texture this combination creates — not a list of attributes but the actual feel of being them. If a named life-station applies, acknowledge it in one phrase. End with a sentence that lands like a quiet observation, not a command or pep talk.
 
-Hard bans: no "the universe", no "embrace", no "manifest", no "abundance", no "lean into", no "you are special", no "your gifts", no emojis, no exclamation points, no rhetorical questions. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
+Hard bans: do NOT name the system ("Human Design", "HD", "bodygraph"), do NOT use "the universe", "embrace", "manifest", "abundance", "lean into", "you are special", "your gifts", no emojis, no exclamation points, no rhetorical questions. Never compare this reading to other apps. No phrase that could appear in an airport-bookstore self-help book. Output only the paragraph.`;
 
   try {
     const client = getClient();
