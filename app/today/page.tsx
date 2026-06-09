@@ -26,6 +26,7 @@ import FirstTimeIntro from '@/components/FirstTimeIntro';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import SaveDayButton from '@/components/SaveDayButton';
+import { anniversaryDay } from '@/lib/savedDays';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -46,6 +47,12 @@ export default function TodayPage() {
   const [moonShift, setMoonShift] = useState<{ hours: number; nextSign: string } | null>(null);
   const [lunation, setLunation] = useState<UpcomingLunation | null>(null);
   const [solarReturnDays, setSolarReturnDays] = useState<number | null>(null);
+  // The "this day a year ago" callout. Computed in an effect so SSR
+  // doesn't try to read localStorage. null = "no anniversary entry exists".
+  const [anniversary, setAnniversary] = useState<{
+    yearsAgo: number;
+    day: ReturnType<typeof anniversaryDay>;
+  } | null>(null);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
@@ -89,6 +96,19 @@ export default function TodayPage() {
     if (!blueprint) return;
     setSolarReturnDays(daysUntilSolarReturn(blueprint.natal.sun.longitude));
   }, [blueprint]);
+
+  // Walk back up to 5 years and find the most-recent year-ago saved
+  // reading. Stops at the first hit, so "1 year ago today" is preferred
+  // over "5 years ago today".
+  useEffect(() => {
+    for (let n = 1; n <= 5; n++) {
+      const found = anniversaryDay(n);
+      if (found) {
+        setAnniversary({ yearsAgo: n, day: found });
+        return;
+      }
+    }
+  }, []);
 
   const isSolarReturnToday =
     solarReturnDays !== null && (solarReturnDays < 1 || solarReturnDays > 364.5);
@@ -260,6 +280,40 @@ export default function TodayPage() {
           <a href="/year" className="small-label caps text-[10px] text-ink-faint hover:text-ink mt-1 inline-block">see the year ahead →</a>
         </section>
       )}
+
+      {anniversary?.day && (() => {
+        const a = anniversary.day;
+        const date = new Date(a.dateIso + 'T12:00:00');
+        const niceDate = date.toLocaleDateString(undefined, {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        });
+        const yearsLabel = anniversary.yearsAgo === 1 ? 'a year ago today' : `${anniversary.yearsAgo} years ago today`;
+        return (
+          <section className="mb-8 border-l-2 border-accent pl-3 py-1">
+            <p className="small-label caps text-accent" style={{ letterSpacing: '0.18em' }}>
+              ✦ {yearsLabel}
+            </p>
+            <p className="small-label caps text-ink-faint mt-0.5" style={{ letterSpacing: '0.1em' }}>
+              {niceDate.toLowerCase()}
+              {a.headline && <> · {a.headline}</>}
+            </p>
+            <p className="serif text-[14px] text-ink-dim mt-2 leading-relaxed line-clamp-3">
+              {a.paragraph}
+            </p>
+            {a.note && (
+              <p className="serif italic text-[13px] text-ink mt-2 leading-relaxed line-clamp-2">
+                you wrote: "{a.note}"
+              </p>
+            )}
+            <a href="/saved" className="small-label caps text-[10px] text-ink-faint hover:text-ink mt-2 inline-block">
+              open in journal →
+            </a>
+          </section>
+        );
+      })()}
 
       <section className="min-h-[200px]">
         {loading && !daily && <DailyParagraphSkeleton />}

@@ -76,3 +76,109 @@ export function updateNote(dateIso: string, note: string): void {
   list[i] = { ...list[i], note };
   write(list);
 }
+
+export interface SavedMonth {
+  /** YYYY-MM key for sorting and React keys. */
+  key: string;
+  /** Display label like "March 2026". */
+  label: string;
+  days: SavedDay[];
+}
+
+/**
+ * Group saved days into months, newest month first, days within each month
+ * newest first. Empty months are not represented — only months containing
+ * saved days. The "books-on-a-shelf" view that makes the page feel like
+ * a journal rather than a flat list.
+ */
+export function groupByMonth(days: SavedDay[]): SavedMonth[] {
+  const buckets = new Map<string, SavedDay[]>();
+  for (const d of days) {
+    const date = new Date(d.dateIso + 'T12:00:00');
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const arr = buckets.get(key) ?? [];
+    arr.push(d);
+    buckets.set(key, arr);
+  }
+  return Array.from(buckets.entries())
+    .map(([key, arr]) => {
+      const [y, m] = key.split('-').map(Number);
+      const label = new Date(y, m - 1, 1).toLocaleString(undefined, {
+        month: 'long',
+        year: 'numeric',
+      });
+      return {
+        key,
+        label,
+        days: arr.slice().sort((a, b) => (b.dateIso < a.dateIso ? -1 : 1)),
+      };
+    })
+    .sort((a, b) => (b.key < a.key ? -1 : 1));
+}
+
+/**
+ * Lightweight search across paragraph + note + headline. Case-insensitive,
+ * matches if every space-separated query term appears somewhere. Returns
+ * the day list filtered (and in input order, so caller controls ordering).
+ */
+export function searchSavedDays(days: SavedDay[], query: string): SavedDay[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return days;
+  const terms = q.split(/\s+/).filter(Boolean);
+  return days.filter((d) => {
+    const hay = `${d.paragraph} ${d.note ?? ''} ${d.headline ?? ''}`.toLowerCase();
+    return terms.every((t) => hay.includes(t));
+  });
+}
+
+/**
+ * Find a saved day from N years ago today (within a 3-day window). Used by
+ * /today for the "this day a year ago" callout — the sticky daily-use hook
+ * that surfaces a saved reading exactly when the anniversary lands.
+ */
+export function anniversaryDay(yearsAgo: number, now = new Date()): SavedDay | null {
+  if (yearsAgo <= 0) return null;
+  const target = new Date(now);
+  target.setFullYear(target.getFullYear() - yearsAgo);
+  const list = read();
+  let best: SavedDay | null = null;
+  let bestDist = Infinity;
+  for (const d of list) {
+    const dt = new Date(d.dateIso + 'T12:00:00');
+    const distDays = Math.abs(dt.getTime() - target.getTime()) / 86400_000;
+    if (distDays < bestDist && distDays <= 3) {
+      best = d;
+      bestDist = distDays;
+    }
+  }
+  return best;
+}
+
+/**
+ * Render every saved day to plain text — for the "export all" share button.
+ * The user owns their journal; they should be able to take it with them.
+ */
+export function exportToText(days: SavedDay[]): string {
+  if (days.length === 0) return '(no saved days yet)';
+  const sorted = days.slice().sort((a, b) => (a.dateIso < b.dateIso ? -1 : 1));
+  return sorted
+    .map((d) => {
+      const date = new Date(d.dateIso + 'T12:00:00').toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const out = [
+        date.toUpperCase(),
+        d.headline ? `(${d.headline})` : '',
+        '',
+        d.paragraph,
+      ];
+      if (d.note) {
+        out.push('', `— note —`, d.note);
+      }
+      return out.filter((l) => l !== '').join('\n');
+    })
+    .join('\n\n────\n\n');
+}
