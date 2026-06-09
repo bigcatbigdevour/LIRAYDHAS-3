@@ -133,19 +133,26 @@ export default function TodayPage() {
 
   async function fetchDaily() {
     if (!blueprint) return;
+    // Capture the blueprint identity at call-time so we can detect if it
+    // changed (e.g. user erased blueprint mid-flight) and avoid writing
+    // a stale daily report to the new store state.
+    const startBlueprint = blueprint;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch('/api/daily', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ blueprint, localDate: localDateStr() }),
+        body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
       const data = (await res.json()) as DailyReport;
+      // If the user blew away or replaced their blueprint while the
+      // request was in flight, drop this response.
+      if (useStore.getState().blueprint !== startBlueprint) return;
       setDaily(data);
     } catch (e: unknown) {
       setError(friendlyError(e instanceof Error ? e.message : null));

@@ -94,8 +94,19 @@ WHAT TO INCLUDE IN THE PARAGRAPH
     });
     paragraph = textOf(msg);
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'unknown error';
-    return withCors(NextResponse.json({ error: message }, { status: 500 }), req);
+    // Log the real message server-side for debugging, but return a
+    // generic error to the client. Anthropic exceptions can include
+    // request IDs, model IDs, and stack frames that don't belong in
+    // a user-visible Network panel.
+    console.error('[api/daily] model call failed:', e);
+    const isOverload = e instanceof Error && /overloaded|rate|429/i.test(e.message);
+    const isAuth = e instanceof Error && /api[_ ]key|unauthorized|401/i.test(e.message);
+    const userMessage = isAuth
+      ? 'reading service not configured'
+      : isOverload
+        ? 'reading service is busy'
+        : 'reading service failed';
+    return withCors(NextResponse.json({ error: userMessage }, { status: 500 }), req);
   }
 
   const report: DailyReport = {

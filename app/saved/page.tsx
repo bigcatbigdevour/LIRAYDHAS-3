@@ -36,6 +36,15 @@ export default function SavedPage() {
   useEffect(() => {
     setMounted(true);
     setDays(listSavedDays());
+    // Sync across tabs: if the user saves in another tab, this page
+    // picks up the change automatically.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === 'liraydhas.savedDays.v1') {
+        setDays(listSavedDays());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   // Search filters before grouping so an entire month doesn't appear in

@@ -54,18 +54,22 @@ export default function ChartPage() {
 
   async function fetchNarrative() {
     if (!blueprint) return;
+    const startBlueprint = blueprint;
     setNarrativeLoading(true);
     setNarrativeError(null);
     try {
       const res = await fetch('/api/narrative', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ blueprint }),
+        body: JSON.stringify({ blueprint: startBlueprint }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
+      // Drop the response if the user replaced or erased the blueprint
+      // while the request was in flight.
+      if (useStore.getState().blueprint !== startBlueprint) return;
       setNarrative(await res.json());
     } catch (e: unknown) {
       setNarrativeError(friendlyError(e instanceof Error ? e.message : null));

@@ -47,6 +47,15 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
   useEffect(() => {
     setMounted(true);
     refresh();
+    // Cross-tab sync: if the user saves / unsaves / edits a note in
+    // another tab, this button reflects it immediately.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === 'liraydhas.savedDays.v1') {
+        refresh();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateIso]);
 

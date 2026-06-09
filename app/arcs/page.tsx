@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
@@ -19,6 +19,16 @@ export default function ArcsPage() {
   const [selected, setSelected] = useState<ArcSelection | null>(null);
   const [focusAge, _setFocusAge] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  // Track every in-flight scroll-to-station interval so we can clear
+  // them on unmount — otherwise a 1.2s animation kicked off right
+  // before navigation keeps firing setState on a dead component.
+  const activeIntervals = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    return () => {
+      activeIntervals.current.forEach((id) => window.clearInterval(id));
+      activeIntervals.current.clear();
+    };
+  }, []);
 
   // Wrap setFocusAge so it also reflects the value in the URL — gives
   // shareable deep-links like /arcs?age=29
@@ -64,7 +74,9 @@ export default function ArcsPage() {
       const progress = step / totalSteps;
       const a = startAge + (92 - startAge) * progress;
       if (a >= 92 || step >= totalSteps) {
-        _setFocusAge(92);
+        // Write the final age to the URL too so the play-finished
+        // state is shareable, not stuck on whatever ?age= was before.
+        setFocusAge(92);
         setPlaying(false);
         window.clearInterval(id);
         return;
@@ -528,9 +540,11 @@ export default function ArcsPage() {
                       _setFocusAge(a2);
                       if (step >= totalSteps) {
                         window.clearInterval(id);
+                        activeIntervals.current.delete(id);
                         setFocusAge(target);
                       }
                     }, 1000 / fps);
+                    activeIntervals.current.add(id);
                   }}
                 >
                   <div className="flex items-baseline justify-between">

@@ -111,19 +111,21 @@ export default function PolarityPage() {
 
   async function fetchPolarity() {
     if (!blueprint) return;
+    const startBlueprint = blueprint;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch('/api/polarity', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ blueprint }),
+        body: JSON.stringify({ blueprint: startBlueprint }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
       const data = (await res.json()) as PolarityReading;
+      if (useStore.getState().blueprint !== startBlueprint) return;
       setPolarity(data);
     } catch (e: unknown) {
       setError(friendlyError(e instanceof Error ? e.message : null));
@@ -696,22 +698,28 @@ export default function PolarityPage() {
 }
 
 async function downloadCalendar(blueprint: NonNullable<ReturnType<typeof useStore.getState>['blueprint']>, include: string[], baseName: string) {
-  const res = await fetch('/api/calendar', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ blueprint, include }),
-  });
-  if (!res.ok) {
-    console.error('calendar download failed', res.status);
-    return;
+  try {
+    const res = await fetch('/api/calendar', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ blueprint, include }),
+    });
+    if (!res.ok) {
+      console.error('calendar download failed', res.status);
+      alert("Calendar export didn't go through. Try again in a moment.");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `liraydhas-${baseName}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('calendar download error', e);
+    alert("Calendar export didn't go through. Check your connection and try again.");
   }
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `liraydhas-${baseName}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }

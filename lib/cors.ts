@@ -6,8 +6,12 @@
 
 import { NextResponse } from 'next/server';
 
+// Anchored on a `-` or `.` after the project name so a hypothetical
+// `liraydhas-3foo.vercel.app` (different project) cannot pass auth.
+// Matches: liraydhas-3.vercel.app, liraydhas-3-git-main-foo.vercel.app,
+// liraydhas-3-abc123.vercel.app — all Vercel-issued prefix patterns.
 const ALLOWED_PATTERNS: RegExp[] = [
-  /^https:\/\/liraydhas-3.*\.vercel\.app$/,
+  /^https:\/\/liraydhas-3(-[a-z0-9.-]+)?\.vercel\.app$/,
   /^https?:\/\/localhost(:\d+)?$/,
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^capacitor:\/\/localhost$/,

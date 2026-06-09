@@ -116,15 +116,26 @@ export default function SavedHeatmap({ days, todayIso }: Props) {
                   : '#8b3a3a99'
               : '#2a2a2a';
             const stroke = c.isToday ? '#f4f1ea' : 'none';
+            // Build a screen-reader-friendly label that distinguishes
+            // noted-vs-paragraph-only vs not-saved.
+            const status = !c.day
+              ? 'no entry'
+              : hasNote
+                ? 'saved with note'
+                : hasParagraph
+                  ? 'saved'
+                  : 'journal entry';
             return (
               <a
                 key={c.iso}
-                href={c.day ? `#m-${c.iso.slice(0, 7)}` : undefined}
+                // Anchor only when there's an entry to jump to — empty
+                // cells aren't keyboard-focusable, which is correct.
+                href={c.day ? `#d-${c.iso}` : undefined}
                 onMouseEnter={() => setHover({ iso: c.iso, day: c.day })}
                 onMouseLeave={() => setHover(null)}
                 onFocus={() => setHover({ iso: c.iso, day: c.day })}
                 onBlur={() => setHover(null)}
-                aria-label={`${c.iso}${c.day ? ' · saved' : ''}`}
+                aria-label={`${c.iso} · ${status}${c.isToday ? ' · today' : ''}`}
               >
                 <rect
                   x={x}
