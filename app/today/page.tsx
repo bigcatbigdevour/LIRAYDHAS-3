@@ -27,6 +27,7 @@ import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import SaveDayButton from '@/components/SaveDayButton';
 import { anniversaryDay } from '@/lib/savedDays';
+import { questionForDate } from '@/lib/dailyQuestion';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -589,6 +590,26 @@ export default function TodayPage() {
             </span>
           </a>
         </div>
+      </section>
+
+      {/* One quiet question for the evening — same question all day,
+          different one tomorrow. Voice-matched. */}
+      <section className="mt-12 border-t border-hairline pt-6">
+        <p
+          className="small-label caps text-ink-faint mb-2"
+          style={{ letterSpacing: '0.18em' }}
+        >
+          tonight's question
+        </p>
+        <p className="serif italic text-[16px] text-ink leading-relaxed">
+          {questionForDate(new Date().toISOString().slice(0, 10))}
+        </p>
+        <p
+          className="small-label caps text-ink-faint mt-2 text-[10px]"
+          style={{ letterSpacing: '0.14em' }}
+        >
+          sit with it · or add it to today's note above
+        </p>
       </section>
 
       {/* Deterministic 'today at a glance' — always present, copy-friendly */}
