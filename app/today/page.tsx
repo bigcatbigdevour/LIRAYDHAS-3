@@ -53,6 +53,10 @@ export default function TodayPage() {
     yearsAgo: number;
     day: ReturnType<typeof anniversaryDay>;
   } | null>(null);
+  // "Your first reading" ceremonial banner. True only on the very first
+  // /today visit after onboarding (flag set by the onboarding page).
+  // Self-clears after acknowledgement so future visits are uneventful.
+  const [showWelcome, setShowWelcome] = useState(false);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
@@ -107,6 +111,15 @@ export default function TodayPage() {
         setAnniversary({ yearsAgo: n, day: found });
         return;
       }
+    }
+  }, []);
+
+  // Read the welcome flag exactly once. SSR-safe via the existing client
+  // boundary.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.localStorage.getItem('liraydhas.welcome.v1') === '1') {
+      setShowWelcome(true);
     }
   }, []);
 
@@ -335,6 +348,36 @@ export default function TodayPage() {
           </section>
         );
       })()}
+
+      {showWelcome && (
+        <section className="mb-8 border border-accent p-4 fade-in">
+          <p
+            className="small-label caps text-accent"
+            style={{ letterSpacing: '0.18em' }}
+          >
+            ✦ your first reading
+          </p>
+          <p className="serif text-[14.5px] text-ink mt-2 leading-relaxed">
+            The reading below is for today only — it's built from your
+            chart and the sky right now. Save it with{' '}
+            <span className="text-ink">☆ save</span> if you want to keep
+            it. There's nothing here to learn first; this can just be
+            the start.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap('light');
+              try { window.localStorage.removeItem('liraydhas.welcome.v1'); } catch { /* ignore */ }
+              setShowWelcome(false);
+            }}
+            className="small-label caps text-ink-faint hover:text-ink mt-3"
+            style={{ letterSpacing: '0.16em' }}
+          >
+            begin
+          </button>
+        </section>
+      )}
 
       <section className="min-h-[200px]">
         {loading && !daily && <DailyParagraphSkeleton />}

@@ -33,12 +33,13 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>The four tabs.</h2>
+      <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>The five tabs.</h2>
       <dl className="space-y-3 text-[14px]">
         <Item k="Today" v="One short paragraph from the live transits, your current sky, and a recap of the past week." />
         <Item k="Arcs"  v="Every cycle that returns over a human lifespan, drawn end to end. Solar, Mars, Jupiter, Saturn, Nodal, Chiron, Progressed Moon." />
         <Item k="Polarity" v="Whether each of those cycles is currently rising or descending. The stack reads as one weather." />
         <Item k="Chart" v="Your body chart, the 26 activations that produced it, and your natal astrology wheel." />
+        <Item k="Saved" v="Days you marked, with optional notes. A private journal that lives on your phone. Anniversaries appear on Today." />
       </dl>
 
       <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Aspects, briefly.</h2>
@@ -127,6 +128,45 @@ export default function AboutPage() {
           </button>
         )}
         <div id="overview-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
+        <button
+          className="btn-ghost text-left"
+          onClick={() => {
+            // Clear every dismissed-intro flag so the first-time
+            // explainer panels reappear on each tab. Useful if you
+            // want to re-show the explainers to someone, or for testing.
+            try {
+              const keys: string[] = [];
+              for (let i = 0; i < window.localStorage.length; i++) {
+                const k = window.localStorage.key(i);
+                if (k && k.startsWith('liraydhas.') && k.includes('.intro.dismissed')) {
+                  keys.push(k);
+                }
+              }
+              keys.forEach((k) => window.localStorage.removeItem(k));
+              window.localStorage.removeItem('liraydhas.welcome.v1');
+              const el = document.getElementById('tutorials-toast');
+              if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+            } catch { /* ignore */ }
+          }}
+        >
+          show all tutorials again
+        </button>
+        <div id="tutorials-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>reset</div>
+        <button
+          className="btn-ghost text-left"
+          onClick={() => {
+            if (confirm('Erase every saved reading and journal note? This cannot be undone.')) {
+              try {
+                window.localStorage.removeItem('liraydhas.savedDays.v1');
+                const el = document.getElementById('journal-toast');
+                if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
+              } catch { /* ignore */ }
+            }
+          }}
+        >
+          clear saved journal
+        </button>
+        <div id="journal-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>cleared</div>
         {blueprint && (
           <button
             className="btn-ghost"

@@ -95,6 +95,10 @@ function OnboardingInner() {
       });
       setBlueprint(bp);
       hapticSuccess();
+      // Flag the very first arrival on /today so the page can show a
+      // small "your first reading" moment instead of dropping the user
+      // straight into the standard view.
+      try { window.localStorage.setItem('liraydhas.welcome.v1', '1'); } catch { /* ignore */ }
       router.replace('/today');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');

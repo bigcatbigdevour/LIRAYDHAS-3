@@ -204,6 +204,27 @@ export default function SavedPage() {
                 clear
               </button>
             )}
+            {days.length >= 3 && (
+              <button
+                type="button"
+                onClick={() => {
+                  hapticTap('light');
+                  // Pick a random saved day, scroll to it, and briefly
+                  // flash the entry so the page acts like a journal you
+                  // can flip open. Uses the day's month anchor as the
+                  // jump target (we don't have per-day anchors).
+                  const pick = days[Math.floor(Math.random() * days.length)];
+                  const anchor = `m-${pick.dateIso.slice(0, 7)}`;
+                  const el = document.getElementById(anchor);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="small-label caps text-ink-faint hover:text-ink shrink-0"
+                title="open the journal to a random day"
+                aria-label="show me a random saved day"
+              >
+                ↬ random
+              </button>
+            )}
           </div>
 
           {filtered.length === 0 && (
