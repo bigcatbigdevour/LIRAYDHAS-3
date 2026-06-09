@@ -10,6 +10,7 @@ const TABS = [
   { href: '/arcs',     label: 'Arcs',     Icon: ArcIcon },
   { href: '/polarity', label: 'Polarity', Icon: PolarityIcon },
   { href: '/chart',    label: 'Chart',    Icon: WheelIcon },
+  { href: '/saved',    label: 'Saved',    Icon: StarIcon },
 ];
 
 export default function TabBar() {
@@ -26,7 +27,7 @@ export default function TabBar() {
       className="fixed bottom-0 left-0 right-0 z-50 bg-bg border-t border-hairline"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {TABS.map(({ href, label, Icon }) => {
           const active = pathname === href;
           return (
@@ -84,6 +85,19 @@ function WheelIcon({ active }: { active: boolean }) {
       <circle cx="12" cy="12" r="9" stroke={c} strokeWidth="0.8" />
       <path d="M12 3 V21 M3 12 H21" stroke={c} strokeWidth="0.6" />
       <path d="M5 5 L19 19 M19 5 L5 19" stroke={c} strokeWidth="0.4" />
+    </svg>
+  );
+}
+function StarIcon({ active }: { active: boolean }) {
+  const c = active ? '#f4f1ea' : '#666';
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? c : 'none'}>
+      <path
+        d="M12 3 L13.9 9 L20 9 L15 13 L17 19 L12 15.5 L7 19 L9 13 L4 9 L10.1 9 Z"
+        stroke={c}
+        strokeWidth="0.9"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

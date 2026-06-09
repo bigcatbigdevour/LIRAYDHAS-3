@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, DM_Serif_Display } from 'next/font/google';
 import './globals.css';
 import TabBar from '@/components/TabBar';
-import AddToHomeScreen from '@/components/AddToHomeScreen';
+import InstallHint from '@/components/InstallHint';
 import PixelCreatures from '@/components/PixelCreatures';
 import OfflineBanner from '@/components/OfflineBanner';
 
@@ -63,7 +63,7 @@ export default function RootLayout({
         {children}
         <PixelCreatures />
         <TabBar />
-        <AddToHomeScreen />
+        <InstallHint />
       </body>
     </html>
   );
