@@ -12,6 +12,8 @@ import {
   exportToText,
   type SavedDay,
 } from '@/lib/savedDays';
+import SavedHeatmap from '@/components/SavedHeatmap';
+import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
 
 export default function SavedPage() {
@@ -56,6 +58,7 @@ export default function SavedPage() {
   if (!mounted) return null;
 
   return (
+    <PullToRefresh onRefresh={async () => { setDays(listSavedDays()); }}>
     <main className="page max-w-md mx-auto fade-in">
       <header className="pb-6">
         <p className="small-label caps">Saved</p>
@@ -181,6 +184,8 @@ export default function SavedPage() {
 
       {days.length > 0 && (
         <>
+          <SavedHeatmap days={days} todayIso={todayIso} />
+
           <div className="mb-6 flex items-center gap-2 border-b border-hairline pb-3">
             <input
               type="search"
@@ -433,5 +438,6 @@ export default function SavedPage() {
         <Link href="/about" className="btn-ghost block">about →</Link>
       </section>
     </main>
+    </PullToRefresh>
   );
 }
