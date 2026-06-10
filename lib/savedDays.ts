@@ -199,29 +199,6 @@ export function searchSavedDays(days: SavedDay[], query: string): SavedDay[] {
 }
 
 /**
- * Find a saved day from N years ago today (within a 3-day window). Used by
- * /today for the "this day a year ago" callout — the sticky daily-use hook
- * that surfaces a saved reading exactly when the anniversary lands.
- */
-export function anniversaryDay(yearsAgo: number, now = new Date()): SavedDay | null {
-  if (yearsAgo <= 0) return null;
-  const target = new Date(now);
-  target.setFullYear(target.getFullYear() - yearsAgo);
-  const list = read();
-  let best: SavedDay | null = null;
-  let bestDist = Infinity;
-  for (const d of list) {
-    const dt = new Date(d.dateIso + 'T12:00:00');
-    const distDays = Math.abs(dt.getTime() - target.getTime()) / 86400_000;
-    if (distDays < bestDist && distDays <= 3) {
-      best = d;
-      bestDist = distDays;
-    }
-  }
-  return best;
-}
-
-/**
  * Pick the best anniversary across all year-offsets up to `maxYearsAgo`,
  * preferring the SMALLEST day-distance — not the most recent year.
  * Otherwise an exact-match entry from 5 years ago is silently shadowed by
@@ -234,13 +211,16 @@ export function anniversaryDay(yearsAgo: number, now = new Date()): SavedDay | n
  */
 export function bestAnniversary(
   now: Date = new Date(),
-  maxYearsAgo = 5
+  maxYearsAgo = 5,
 ): { yearsAgo: number; day: SavedDay; distDays: number } | null {
+  // Read once, not once-per-year; localStorage is cheap but the JSON
+  // parse + normalization is not free either.
+  const list = read();
+  if (list.length === 0) return null;
   let best: { yearsAgo: number; day: SavedDay; distDays: number } | null = null;
   for (let n = 1; n <= maxYearsAgo; n++) {
     const target = new Date(now);
     target.setFullYear(target.getFullYear() - n);
-    const list = read();
     for (const d of list) {
       const dt = new Date(d.dateIso + 'T12:00:00');
       const distDays = Math.abs(dt.getTime() - target.getTime()) / 86400_000;

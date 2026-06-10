@@ -15,7 +15,7 @@ import {
 import SavedHeatmap from '@/components/SavedHeatmap';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
-import { localDateStr } from '@/lib/localDate';
+import { useToday } from '@/lib/localDate';
 
 export default function SavedPage() {
   const [mounted, setMounted] = useState(false);
@@ -29,7 +29,9 @@ export default function SavedPage() {
   // User picks a date and writes a note. Used to backfill, or to journal
   // on days they didn't read the reading.
   const [composeOpen, setComposeOpen] = useState(false);
-  const todayIso = localDateStr();
+  // useToday keeps the max-date and the heatmap "today" cell in sync
+  // even when the tab is left open across midnight.
+  const todayIso = useToday();
   const [composeDate, setComposeDate] = useState(todayIso);
   const [composeBody, setComposeBody] = useState('');
 

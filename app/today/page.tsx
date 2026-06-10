@@ -28,7 +28,7 @@ import { tap as hapticTap } from '@/lib/haptics';
 import SaveDayButton from '@/components/SaveDayButton';
 import { bestAnniversary } from '@/lib/savedDays';
 import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
-import { localDateStr } from '@/lib/localDate';
+import { localDateStr, useToday } from '@/lib/localDate';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -42,6 +42,10 @@ export default function TodayPage() {
   const daily = useStore((s) => s.daily);
   const history = useStore((s) => s.history);
   const setDaily = useStore((s) => s.setDaily);
+  // Reactive "today" — when a user leaves /today open across midnight, this
+  // hook triggers a re-render so the daily-fetch effect, the question, the
+  // save-button's dateIso, and the anniversary all use the new day.
+  const todayIso = useToday();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,9 +107,11 @@ export default function TodayPage() {
   // Look across the past 5 years for the journal entry closest in calendar
   // date to today. Closer day wins over more-recent year, so an exact
   // 5-year-ago anniversary isn't shadowed by a 3-days-off 1-year-ago one.
+  // Re-runs when the day rolls over so an overnight-open tab catches the
+  // new day's anniversary (and drops yesterday's).
   useEffect(() => {
     setAnniversary(bestAnniversary());
-  }, []);
+  }, [todayIso]);
 
   // Read the welcome flag exactly once. SSR-safe via the existing client
   // boundary.
@@ -126,10 +132,12 @@ export default function TodayPage() {
 
   useEffect(() => {
     if (!blueprint) return;
-    if (daily && daily.date === localDateStr()) return;
+    // Re-runs when the calendar date rolls over so the stale yesterday's
+    // reading on a kept-open tab gets refreshed automatically.
+    if (daily && daily.date === todayIso) return;
     void fetchDaily();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blueprint]);
+  }, [blueprint, todayIso]);
 
   async function fetchDaily() {
     if (!blueprint) return;
@@ -538,7 +546,7 @@ export default function TodayPage() {
 
       {(() => {
         const dates = history.map((h) => h.date);
-        const streak = readingStreak(dates, localDateStr());
+        const streak = readingStreak(dates, todayIso);
         if (streak < 2) return null;
         return (
           <section className="mt-10 text-center">
@@ -602,7 +610,7 @@ export default function TodayPage() {
           {questionLabelForHour(new Date().getHours())}
         </p>
         <p className="serif italic text-[16px] text-ink leading-relaxed">
-          {questionForDate(localDateStr())}
+          {questionForDate(todayIso)}
         </p>
         <p
           className="small-label caps text-ink-faint mt-2 text-[10px]"
@@ -656,7 +664,8 @@ export default function TodayPage() {
       </section>
 
       {daily?.paragraph && (() => {
-        const todayIso = localDateStr();
+        // (todayIso comes from useToday at the top of the component,
+        // so a midnight rollover updates the save button's dateIso.)
         const tightest = (daily.transits ?? liveTransits)[0];
         const headline = tightest
           ? `${tightest.transitPlanet} ${tightest.aspect} ${tightest.natalPlanet} · ${tightest.orb.toFixed(1)}°`
