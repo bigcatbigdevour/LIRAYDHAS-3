@@ -36,18 +36,30 @@ export const DEFAULT_PREFS: SubscriptionPrefs = {
   types: { daily: true, anniversary: true, weekly: true },
 };
 
-export interface StoredSubscription {
+/** Web push: VAPID-style PushSubscription. */
+export interface StoredWebSubscription {
+  kind: 'web';
   endpoint: string;
   keys: { p256dh: string; auth: string };
   createdAt: number;
-  /** User-controlled send-time + per-type toggles. Defaults applied if
-   *  missing (subscriptions saved before this field existed). */
   prefs?: SubscriptionPrefs;
 }
 
+/** Native iOS: APNs device token from Capacitor. */
+export interface StoredApnsSubscription {
+  kind: 'apns';
+  /** Hex device token from APNs. Used as the storage primary key. */
+  token: string;
+  createdAt: number;
+  prefs?: SubscriptionPrefs;
+}
+
+export type StoredSubscription = StoredWebSubscription | StoredApnsSubscription;
+
 interface Backend {
   add(sub: StoredSubscription): Promise<void>;
-  remove(endpoint: string): Promise<void>;
+  /** `key` is the endpoint for web subs or the token for APNs. */
+  remove(key: string): Promise<void>;
   list(): Promise<StoredSubscription[]>;
   /** True when this backend persists across requests. UI can warn otherwise. */
   isPersistent: boolean;
@@ -55,19 +67,22 @@ interface Backend {
 
 const KEY_PREFIX = 'liraydhas:push:sub:';
 
-// Vercel KV: one entry per subscription, key = prefix + endpoint hash.
+/** Subscription primary key — endpoint for web, token for APNs. */
+function primaryKey(sub: StoredSubscription): string {
+  return sub.kind === 'apns' ? sub.token : sub.endpoint;
+}
+
+// Vercel KV: one entry per subscription, key = prefix + hash(primaryKey).
 // Listing uses SCAN under the hood via kv.keys('pattern*'), which is
 // O(n) but fine for daily-reading audiences (tens of thousands tops).
 const vercelKvBackend: Backend = {
   isPersistent: true,
   async add(sub) {
-    // Hash endpoint to a short slug; endpoints can be 300+ chars and
-    // Redis keys behave better short.
-    const slug = await endpointSlug(sub.endpoint);
+    const slug = await endpointSlug(primaryKey(sub));
     await kv.set(`${KEY_PREFIX}${slug}`, sub);
   },
-  async remove(endpoint) {
-    const slug = await endpointSlug(endpoint);
+  async remove(key) {
+    const slug = await endpointSlug(key);
     await kv.del(`${KEY_PREFIX}${slug}`);
   },
   async list() {
@@ -78,15 +93,15 @@ const vercelKvBackend: Backend = {
   },
 };
 
-// In-memory: a Map keyed by endpoint. No persistence.
+// In-memory: a Map keyed by primary key. No persistence.
 const memorySubs = new Map<string, StoredSubscription>();
 const memoryBackend: Backend = {
   isPersistent: false,
   async add(sub) {
-    memorySubs.set(sub.endpoint, sub);
+    memorySubs.set(primaryKey(sub), sub);
   },
-  async remove(endpoint) {
-    memorySubs.delete(endpoint);
+  async remove(key) {
+    memorySubs.delete(key);
   },
   async list() {
     return Array.from(memorySubs.values());
@@ -118,8 +133,8 @@ export function addSub(sub: StoredSubscription): Promise<void> {
   return backend.add(sub);
 }
 
-export function removeSub(endpoint: string): Promise<void> {
-  return backend.remove(endpoint);
+export function removeSub(key: string): Promise<void> {
+  return backend.remove(key);
 }
 
 export function listSubs(): Promise<StoredSubscription[]> {
@@ -130,7 +145,8 @@ export function isPushStorePersistent(): boolean {
   return backend.isPersistent;
 }
 
-/** web-push shape accepted by webpush.sendNotification(). */
-export function toWebPush(sub: StoredSubscription): WebPushSub {
+/** web-push shape accepted by webpush.sendNotification(). Only valid for
+ *  web-kind subscriptions; callers should guard with sub.kind === 'web'. */
+export function toWebPush(sub: StoredWebSubscription): WebPushSub {
   return { endpoint: sub.endpoint, keys: sub.keys };
 }

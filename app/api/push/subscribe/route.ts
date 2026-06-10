@@ -10,8 +10,14 @@ export function OPTIONS(req: Request) {
 }
 
 interface SubscribeBody {
+  /** "apns" for native iOS, otherwise treated as web push. */
+  kind?: 'apns' | 'web';
+  /** Web push endpoint URL. */
   endpoint?: string;
+  /** Web push VAPID keys. */
   keys?: { p256dh?: string; auth?: string };
+  /** APNs device token (hex). */
+  token?: string;
   prefs?: Partial<SubscriptionPrefs>;
 }
 
@@ -44,6 +50,24 @@ export async function POST(req: Request) {
   } catch {
     return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
   }
+  if (body.kind === 'apns') {
+    // Native iOS subscription via Capacitor. APNs tokens are hex strings.
+    if (typeof body.token !== 'string' || !/^[0-9a-fA-F]+$/.test(body.token)) {
+      return withCors(
+        NextResponse.json({ error: 'missing or invalid APNs token' }, { status: 400 }),
+        req,
+      );
+    }
+    await addSub({
+      kind: 'apns',
+      token: body.token.toLowerCase(),
+      createdAt: Date.now(),
+      prefs: normalizePrefs(body.prefs),
+    });
+    return withCors(NextResponse.json({ ok: true }), req);
+  }
+
+  // Web push.
   if (
     !body.endpoint ||
     !body.keys ||
@@ -56,6 +80,7 @@ export async function POST(req: Request) {
     );
   }
   await addSub({
+    kind: 'web',
     endpoint: body.endpoint,
     keys: { p256dh: body.keys.p256dh, auth: body.keys.auth },
     createdAt: Date.now(),
@@ -71,9 +96,10 @@ export async function DELETE(req: Request) {
   } catch {
     return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
   }
-  if (!body.endpoint) {
-    return withCors(NextResponse.json({ error: 'missing endpoint' }, { status: 400 }), req);
+  const key = body.kind === 'apns' ? body.token : body.endpoint;
+  if (!key) {
+    return withCors(NextResponse.json({ error: 'missing endpoint / token' }, { status: 400 }), req);
   }
-  await removeSub(body.endpoint);
+  await removeSub(body.kind === 'apns' ? key.toLowerCase() : key);
   return withCors(NextResponse.json({ ok: true }), req);
 }

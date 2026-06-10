@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { installNativeListeners, isNativeRuntime } from '@/lib/nativePush';
 
 /**
  * Registers /sw.js on mount. Kept in its own component so the
@@ -16,6 +17,15 @@ import { useEffect } from 'react';
 export default function RegisterServiceWorker() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Native iOS / Android (Capacitor): no service worker, but wire up
+    // the APNs runtime listeners (foreground ping + background tap).
+    if (isNativeRuntime()) {
+      void installNativeListeners();
+      return;
+    }
+
+    // Web: register the service worker.
     if (!('serviceWorker' in navigator)) return;
     if (process.env.NODE_ENV !== 'production') return;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { listSubs, removeSub, toWebPush, DEFAULT_PREFS } from '@/lib/pushStore';
+import { sendApns, getApnsClient } from '@/lib/apnsClient';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,16 +36,21 @@ export async function GET(req: Request) {
     );
   }
 
+  // Configure web-push if VAPID is set (web subscribers will be skipped
+  // when it isn't). APNs is configured lazily by getApnsClient(); native
+  // subscribers are skipped when its env vars are missing.
   const pub = process.env.VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT;
-  if (!pub || !priv || !subject) {
+  const hasWeb = !!(pub && priv && subject);
+  const hasApns = !!getApnsClient();
+  if (!hasWeb && !hasApns) {
     return NextResponse.json(
-      { error: 'VAPID not configured' },
+      { error: 'no push provider configured (need VAPID_* or APNS_*)' },
       { status: 501 },
     );
   }
-  webpush.setVapidDetails(subject, pub, priv);
+  if (hasWeb) webpush.setVapidDetails(subject as string, pub as string, priv as string);
 
   const payload = JSON.stringify({
     title: 'Liraydhas',
@@ -71,18 +77,28 @@ export async function GET(req: Request) {
   await Promise.all(
     eligible.map(async (s) => {
       try {
-        await webpush.sendNotification(toWebPush(s), payload);
-        sent++;
+        if (s.kind === 'apns') {
+          if (!hasApns) return;
+          await sendApns({
+            token: s.token,
+            title: 'Liraydhas',
+            body: "today's reading is ready.",
+            url: '/today',
+          });
+          sent++;
+        } else {
+          if (!hasWeb) return;
+          await webpush.sendNotification(toWebPush(s), payload);
+          sent++;
+        }
       } catch (e: unknown) {
         failed++;
-        // 404 / 410 = subscription is gone (user uninstalled the app,
-        // revoked permission, etc.). Drop it from the store so we stop
-        // hammering a dead endpoint.
-        if (
-          e instanceof Error &&
-          /statusCode.{0,5}(404|410)/.test(e.message)
-        ) {
-          await removeSub(s.endpoint);
+        // Detect dead subscriptions on both transports.
+        const msg = e instanceof Error ? e.message : String(e);
+        const isWebDead = /statusCode.{0,5}(404|410)/.test(msg);
+        const isApnsDead = /BadDeviceToken|Unregistered|410|invalid token/i.test(msg);
+        if (isWebDead || isApnsDead) {
+          await removeSub(s.kind === 'apns' ? s.token : s.endpoint);
           pruned++;
         } else {
           console.error('[cron] send failed:', e);

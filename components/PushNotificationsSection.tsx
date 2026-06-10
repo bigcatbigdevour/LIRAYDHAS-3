@@ -10,6 +10,13 @@ import {
   type PushState,
   type ClientPrefs,
 } from '@/lib/push';
+import {
+  isNativeRuntime,
+  getNativePushState,
+  registerNativePush,
+  unregisterNativePush,
+  type NativePushState,
+} from '@/lib/nativePush';
 import { tap as hapticTap } from '@/lib/haptics';
 
 /**
@@ -21,10 +28,21 @@ import { tap as hapticTap } from '@/lib/haptics';
  * a "send test" button so the user can verify their device is reachable.
  */
 export default function PushNotificationsSection() {
+  // When we're inside the iOS app shell we use APNs (native push).
+  // In a browser we use web push. The two are stored together server-side
+  // so the cron + test endpoint don't need to care; only this UI
+  // distinguishes the kind to pick the right register/unregister path.
+  const native = isNativeRuntime();
   const [state, setState] = useState<PushState>({ kind: 'default' });
+  const [nativeState, setNativeState] = useState<NativePushState>(
+    native ? { kind: 'default' } : { kind: 'not-native' },
+  );
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<ClientPrefs>(() => readClientPrefs());
+
+  const isSubscribed =
+    state.kind === 'subscribed' || nativeState.kind === 'registered';
 
   function updatePrefs(patch: Partial<ClientPrefs>) {
     const next: ClientPrefs = {
@@ -35,8 +53,9 @@ export default function PushNotificationsSection() {
     setPrefs(next);
     writeClientPrefs(next);
     // If we're already subscribed, re-POST to update server-side prefs.
-    if (state.kind === 'subscribed') {
-      void subscribePush();
+    if (isSubscribed) {
+      if (native) void registerNativePush();
+      else void subscribePush();
     }
   }
 
@@ -45,15 +64,18 @@ export default function PushNotificationsSection() {
   }, []);
 
   async function refresh() {
-    const s = await getPushState();
-    setState(s);
+    if (native) {
+      setNativeState(await getNativePushState());
+    } else {
+      setState(await getPushState());
+    }
   }
 
   async function onEnable() {
     if (busy) return;
     setBusy(true);
     setMsg(null);
-    const r = await subscribePush();
+    const r = native ? await registerNativePush() : await subscribePush();
     if (r.ok) {
       setMsg("subscribed · you'll get the daily reading.");
       await refresh();
@@ -67,7 +89,11 @@ export default function PushNotificationsSection() {
     if (busy) return;
     setBusy(true);
     setMsg(null);
-    await unsubscribePush();
+    if (native) {
+      await unregisterNativePush();
+    } else {
+      await unsubscribePush();
+    }
     setMsg('reminders off.');
     await refresh();
     setBusy(false);
@@ -101,7 +127,7 @@ export default function PushNotificationsSection() {
     setBusy(false);
   }
 
-  if (state.kind === 'unsupported') {
+  if (!native && state.kind === 'unsupported') {
     return (
       <div className="border-l-2 border-hairline pl-3 py-1 text-[13px] text-ink-faint serif italic">
         Daily reminders aren't supported on this browser. On iOS, install the
@@ -110,11 +136,14 @@ export default function PushNotificationsSection() {
     );
   }
 
-  if (state.kind === 'denied') {
+  if (
+    (native && nativeState.kind === 'denied') ||
+    (!native && state.kind === 'denied')
+  ) {
     return (
       <div className="border-l-2 border-hairline pl-3 py-1 text-[13px] text-ink-dim serif">
-        Notification permission was declined. Re-enable in your browser /
-        system settings to turn reminders on.
+        Notification permission was declined. Re-enable in your iOS / browser
+        settings to turn reminders on.
       </div>
     );
   }
@@ -132,7 +161,7 @@ export default function PushNotificationsSection() {
         browser only; you can turn it off anytime.
       </p>
       <div className="flex flex-wrap gap-3 items-center">
-        {state.kind === 'subscribed' ? (
+        {isSubscribed ? (
           <>
             <button
               type="button"
@@ -169,7 +198,7 @@ export default function PushNotificationsSection() {
         </p>
       )}
 
-      {state.kind === 'subscribed' && (
+      {isSubscribed && (
         <div className="mt-3 pt-3 border-t border-hairline space-y-3">
           <div>
             <label

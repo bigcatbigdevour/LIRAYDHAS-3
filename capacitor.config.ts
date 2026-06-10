@@ -57,6 +57,11 @@ const config: CapacitorConfig = {
       backgroundColor: '#0a0a0a',
       overlaysWebView: true,
     },
+    PushNotifications: {
+      // Show the system banner even when the app is in the foreground.
+      // "alert" is the visible banner; "sound" + "badge" round it out.
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
   },
 };
 
