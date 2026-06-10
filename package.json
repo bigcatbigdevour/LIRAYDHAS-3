@@ -12,7 +12,8 @@
     "ios:sync": "cap sync ios",
     "ios:open": "cap open ios",
     "ios:run": "cap run ios",
-    "ios:assets": "capacitor-assets generate --ios"
+    "ios:assets": "capacitor-assets generate --ios",
+    "vapid": "node scripts/generate-vapid-keys.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -22,6 +23,7 @@
     "@capacitor/ios": "^6.2.1",
     "@capacitor/splash-screen": "^6.0.4",
     "@capacitor/status-bar": "^6.0.3",
+    "@vercel/kv": "^3.0.0",
     "astronomy-engine": "^2.1.19",
     "d3": "^7.9.0",
     "next": "14.2.35",

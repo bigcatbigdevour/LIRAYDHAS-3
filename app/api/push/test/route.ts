@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     url: body.url || '/today',
   });
 
-  const subs = listSubs();
+  const subs = await listSubs();
   if (subs.length === 0) {
     return withCors(NextResponse.json({ sent: 0, message: 'no subscribers' }), req);
   }
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
           e instanceof Error &&
           /statusCode.{0,5}(404|410)/.test(e.message)
         ) {
-          removeSub(s.endpoint);
+          await removeSub(s.endpoint);
         } else {
           console.error('[push test] send failed:', e);
         }

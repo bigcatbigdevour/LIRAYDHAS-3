@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       req,
     );
   }
-  addSub({
+  await addSub({
     endpoint: body.endpoint,
     keys: { p256dh: body.keys.p256dh, auth: body.keys.auth },
     createdAt: Date.now(),
@@ -58,6 +58,6 @@ export async function DELETE(req: Request) {
   if (!body.endpoint) {
     return withCors(NextResponse.json({ error: 'missing endpoint' }, { status: 400 }), req);
   }
-  removeSub(body.endpoint);
+  await removeSub(body.endpoint);
   return withCors(NextResponse.json({ ok: true }), req);
 }
