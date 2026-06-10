@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { fullOverviewText } from '@/lib/fullOverview';
+import { buildFullExport, exportFilename } from '@/lib/fullExport';
 
 export default function AboutPage() {
   const router = useRouter();
@@ -128,6 +129,27 @@ export default function AboutPage() {
           </button>
         )}
         <div id="overview-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
+        <button
+          className="btn-ghost text-left"
+          onClick={() => {
+            // Full snapshot of everything the app stores about the user
+            // on this device: blueprint, every saved journal entry, and
+            // intro/welcome UI flags. JSON for portability + future
+            // re-import.
+            const data = buildFullExport(blueprint ?? null);
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = exportFilename();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }}
+        >
+          download all my data (json)
+        </button>
         <button
           className="btn-ghost text-left"
           onClick={() => {
