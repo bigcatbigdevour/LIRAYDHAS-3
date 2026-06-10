@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import type { SavedDay } from '@/lib/savedDays';
 import { tap as hapticTap } from '@/lib/haptics';
+import PhotoStrip from './PhotoStrip';
 
 interface Props {
   day: SavedDay;
@@ -11,6 +12,8 @@ interface Props {
   onNext?: () => void;
   hasPrev: boolean;
   hasNext: boolean;
+  /** Called after a photo is added or removed from this entry. */
+  onPhotoChange?: () => void;
 }
 
 /**
@@ -28,6 +31,7 @@ export default function EntryReadMode({
   onNext,
   hasPrev,
   hasNext,
+  onPhotoChange,
 }: Props) {
   // Keyboard: ESC closes, arrows navigate. Locks body scroll so the page
   // behind doesn't scroll under the reader.
@@ -183,11 +187,18 @@ export default function EntryReadMode({
           </div>
         )}
 
-        {!day.paragraph && !day.note && (
+        {!day.paragraph && !day.note && (day.photoIds?.length ?? 0) === 0 && (
           <p className="serif italic text-ink-faint text-[14px]">
             (empty entry)
           </p>
         )}
+
+        <PhotoStrip
+          dateIso={day.dateIso}
+          photoIds={day.photoIds ?? []}
+          onChange={() => onPhotoChange?.()}
+          variant="reader"
+        />
 
         <footer className="mt-16 pt-6 border-t border-hairline">
           <p

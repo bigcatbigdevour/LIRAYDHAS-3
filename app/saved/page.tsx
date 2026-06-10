@@ -20,6 +20,7 @@ import { TAG_PALETTE, TAG_DESCRIPTIONS } from '@/lib/tags';
 import { highlightSegments } from '@/lib/highlight';
 import SavedHeatmap from '@/components/SavedHeatmap';
 import EntryReadMode from '@/components/EntryReadMode';
+import PhotoStrip from '@/components/PhotoStrip';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
 import { useToday } from '@/lib/localDate';
@@ -471,6 +472,12 @@ export default function SavedPage() {
           </div>
         )}
 
+        <PhotoStrip
+          dateIso={d.dateIso}
+          photoIds={d.photoIds ?? []}
+          onChange={() => setDays(listSavedDays())}
+        />
+
         <p
           className="small-label caps text-ink-faint mt-3 text-[10px]"
           style={{ letterSpacing: '0.14em' }}
@@ -856,6 +863,7 @@ export default function SavedPage() {
           onNext={() => setReading(days[idx + 1]?.dateIso ?? null)}
           hasPrev={idx > 0}
           hasNext={idx < days.length - 1}
+          onPhotoChange={() => setDays(listSavedDays())}
         />
       );
     })()}

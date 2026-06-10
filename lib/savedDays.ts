@@ -42,6 +42,14 @@ export interface SavedDay {
    */
   tags?: string[];
   /**
+   * Attachment ids for photos pinned to this entry. The blobs themselves
+   * live in IndexedDB (see lib/attachments.ts); this array carries only
+   * the keys so the journal export, search, and cross-tab sync stay
+   * lightweight. Capped at 4 photos per entry — beyond that the journal
+   * stops being a journal and starts being a photo roll.
+   */
+  photoIds?: string[];
+  /**
    * Snapshot of the sky / personal-cycle context the day this was saved.
    * Optional because pre-existing saved days don't have it; new saves do.
    * Stored alongside the reading so future anniversaries can compare
@@ -88,11 +96,16 @@ function read(): SavedDay[] {
               .filter((t) => t.length > 0),
           ),
         ).slice(0, 3);
+        const rawPhotos = Array.isArray(x.photoIds) ? x.photoIds : [];
+        const cleanPhotos = rawPhotos
+          .filter((p): p is string => typeof p === 'string' && p.length > 0)
+          .slice(0, 4);
         return {
           ...x,
           note: noteTrim.length > 0 ? noteTrim : undefined,
           snapshot: snap,
           tags: cleanTags.length > 0 ? cleanTags : undefined,
+          photoIds: cleanPhotos.length > 0 ? cleanPhotos : undefined,
         };
       });
   } catch {
@@ -144,6 +157,7 @@ export function saveDay(entry: SavedDay): void {
         note: entry.note ?? existing.note,
         pinned: entry.pinned ?? existing.pinned,
         tags: entry.tags ?? existing.tags,
+        photoIds: entry.photoIds ?? existing.photoIds,
         snapshot: mergedSnapshot,
         savedAt: existing.savedAt, // preserve original save time
       }
@@ -206,6 +220,44 @@ export function appendMoment(
     const next = existing.length > 0 ? `${existing}\n\n${block}` : block;
     list[i] = { ...list[i], note: next };
   }
+  write(list);
+}
+
+export const MAX_PHOTOS_PER_ENTRY = 4;
+
+/**
+ * Attach an already-stored attachment id to an entry. Caps at 4 photos
+ * per entry. Creates the entry as a pure journal entry if it doesn't
+ * exist yet.
+ */
+export function attachPhoto(dateIso: string, photoId: string): void {
+  const list = read();
+  const i = list.findIndex((d) => d.dateIso === dateIso);
+  if (i < 0) {
+    list.push({
+      dateIso,
+      paragraph: '',
+      photoIds: [photoId],
+      savedAt: Date.now(),
+    });
+  } else {
+    const cur = list[i].photoIds ?? [];
+    if (cur.length >= MAX_PHOTOS_PER_ENTRY) return;
+    if (cur.includes(photoId)) return;
+    list[i] = { ...list[i], photoIds: [...cur, photoId] };
+  }
+  write(list);
+}
+
+/** Detach a photo id from an entry. The caller should also delete the
+ *  blob from IndexedDB if no other entry references it. */
+export function detachPhoto(dateIso: string, photoId: string): void {
+  const list = read();
+  const i = list.findIndex((d) => d.dateIso === dateIso);
+  if (i < 0) return;
+  const cur = list[i].photoIds ?? [];
+  const next = cur.filter((p) => p !== photoId);
+  list[i] = { ...list[i], photoIds: next.length > 0 ? next : undefined };
   write(list);
 }
 

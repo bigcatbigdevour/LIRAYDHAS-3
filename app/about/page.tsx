@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { fullOverviewText } from '@/lib/fullOverview';
 import { buildFullExport, exportFilename } from '@/lib/fullExport';
+import { clearAllAttachments } from '@/lib/attachments';
 
 export default function AboutPage() {
   const router = useRouter();
@@ -177,9 +178,13 @@ export default function AboutPage() {
         <button
           className="btn-ghost text-left"
           onClick={() => {
-            if (confirm('Erase every saved reading and journal note? This cannot be undone.')) {
+            if (confirm('Erase every saved reading, journal note, and attached photo? This cannot be undone.')) {
               try {
                 window.localStorage.removeItem('liraydhas.savedDays.v1');
+                // Also wipe attached photos / audio from IndexedDB so a
+                // "clear" really is total — orphaned blobs would otherwise
+                // linger consuming storage with no UI to surface them.
+                void clearAllAttachments();
                 const el = document.getElementById('journal-toast');
                 if (el) { el.style.opacity = '1'; window.setTimeout(() => { el.style.opacity = '0'; }, 1500); }
               } catch { /* ignore */ }
