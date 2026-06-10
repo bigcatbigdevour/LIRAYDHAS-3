@@ -8,11 +8,14 @@ import {
   updateNote,
   saveDay,
   togglePin,
+  toggleTag,
+  MAX_TAGS_PER_ENTRY,
   groupByMonth,
   searchSavedDays,
   exportToText,
   type SavedDay,
 } from '@/lib/savedDays';
+import { TAG_PALETTE, TAG_DESCRIPTIONS } from '@/lib/tags';
 import SavedHeatmap from '@/components/SavedHeatmap';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
@@ -25,6 +28,11 @@ export default function SavedPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [draftNote, setDraftNote] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
+  // The entry whose tag picker is currently open. Only one at a time so
+  // the page stays calm — tags are commitment-free single-tap chips.
+  const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
+  // Tag filter: when set, the journal only shows entries with this tag.
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   // Compose-entry state: a pure journal entry without a daily reading.
   // User picks a date and writes a note. Used to backfill, or to journal
@@ -50,10 +58,27 @@ export default function SavedPage() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // Search filters before grouping so an entire month doesn't appear in
-  // the table of contents if none of its entries matched.
-  const filtered = useMemo(() => searchSavedDays(days, query), [days, query]);
+  // Search + tag-filter compose before grouping so an entire month doesn't
+  // appear in the table of contents if none of its entries matched.
+  const filtered = useMemo(() => {
+    let out = searchSavedDays(days, query);
+    if (tagFilter) {
+      out = out.filter((d) => d.tags?.includes(tagFilter));
+    }
+    return out;
+  }, [days, query, tagFilter]);
   const months = useMemo(() => groupByMonth(filtered), [filtered]);
+
+  // All tags actually used across the journal — drives the filter chip row.
+  const usedTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of days) {
+      for (const t of d.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag, count]) => ({ tag, count }));
+  }, [days]);
   // Pinned entries surface in their own section at the top, ordered most
   // recently saved first. They also still appear in their normal month
   // section below — pin is a discoverability shortcut, not a relocation.
@@ -207,6 +232,106 @@ export default function SavedPage() {
         >
           copied
         </span>
+
+        {/* Tag chips: the entry's current tags as small caps pills.
+            Tap a chip to remove. Always followed by "+" to open the
+            picker. Whole row collapses to just "+ tag" if no tags yet. */}
+        {(d.tags && d.tags.length > 0) || tagPickerFor === d.dateIso ? (
+          <div className="flex flex-wrap gap-1.5 mb-2 items-center">
+            {(d.tags ?? []).map((t) => (
+              <button
+                type="button"
+                key={t}
+                onClick={() => {
+                  hapticTap('light');
+                  toggleTag(d.dateIso, t);
+                  setDays(listSavedDays());
+                }}
+                className="small-label caps text-[10px] px-1.5 py-0.5 border border-accent text-accent hover:bg-accent hover:text-bg transition-colors"
+                style={{ letterSpacing: '0.14em' }}
+                title={`${t} — tap to remove`}
+                aria-label={`tag ${t}, tap to remove`}
+              >
+                {t}
+              </button>
+            ))}
+            {tagPickerFor !== d.dateIso && (d.tags?.length ?? 0) < MAX_TAGS_PER_ENTRY && (
+              <button
+                type="button"
+                onClick={() => {
+                  hapticTap('light');
+                  setTagPickerFor(d.dateIso);
+                }}
+                className="small-label caps text-[10px] px-1.5 py-0.5 border border-hairline text-ink-faint hover:text-ink hover:border-ink-faint"
+                style={{ letterSpacing: '0.14em' }}
+                aria-label="add a tag"
+              >
+                + tag
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap('light');
+              setTagPickerFor(d.dateIso);
+            }}
+            className="small-label caps text-ink-faint hover:text-ink mb-2"
+            style={{ letterSpacing: '0.14em' }}
+            aria-label="add a tag"
+          >
+            + tag this day
+          </button>
+        )}
+
+        {tagPickerFor === d.dateIso && (
+          <div className="mb-3 border-l-2 border-accent pl-3 py-1 fade-in">
+            <p
+              className="small-label caps text-accent mb-1.5"
+              style={{ letterSpacing: '0.14em' }}
+            >
+              what was it like — up to {MAX_TAGS_PER_ENTRY}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {TAG_PALETTE.map((t) => {
+                const isOn = d.tags?.includes(t) ?? false;
+                const atCap = !isOn && (d.tags?.length ?? 0) >= MAX_TAGS_PER_ENTRY;
+                return (
+                  <button
+                    type="button"
+                    key={t}
+                    disabled={atCap}
+                    onClick={() => {
+                      hapticTap('light');
+                      toggleTag(d.dateIso, t);
+                      setDays(listSavedDays());
+                    }}
+                    className={`small-label caps text-[10px] px-1.5 py-0.5 border transition-colors ${
+                      isOn
+                        ? 'border-accent text-accent'
+                        : atCap
+                          ? 'border-hairline text-ink-faint opacity-40 cursor-not-allowed'
+                          : 'border-hairline text-ink-faint hover:text-ink hover:border-ink-faint'
+                    }`}
+                    style={{ letterSpacing: '0.14em' }}
+                    title={TAG_DESCRIPTIONS[t]}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setTagPickerFor(null)}
+              className="small-label caps text-ink-faint hover:text-ink mt-2"
+              style={{ letterSpacing: '0.14em' }}
+            >
+              done
+            </button>
+          </div>
+        )}
 
         {d.paragraph && (
           <p className="serif text-[14.5px] text-ink leading-relaxed">
@@ -456,6 +581,50 @@ export default function SavedPage() {
       {days.length > 0 && (
         <>
           <SavedHeatmap days={days} todayIso={todayIso} />
+
+          {usedTags.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-1.5 items-center">
+              <span
+                className="small-label caps text-ink-faint text-[10px]"
+                style={{ letterSpacing: '0.14em' }}
+              >
+                filter ·
+              </span>
+              {usedTags.map(({ tag, count }) => {
+                const active = tagFilter === tag;
+                return (
+                  <button
+                    type="button"
+                    key={tag}
+                    onClick={() => {
+                      hapticTap('light');
+                      setTagFilter(active ? null : tag);
+                    }}
+                    className={`small-label caps text-[10px] px-1.5 py-0.5 border transition-colors ${
+                      active
+                        ? 'border-accent text-accent bg-accent/10'
+                        : 'border-hairline text-ink-faint hover:text-ink hover:border-ink-faint'
+                    }`}
+                    style={{ letterSpacing: '0.14em' }}
+                    title={`${count} entr${count === 1 ? 'y' : 'ies'} tagged "${tag}"`}
+                    aria-pressed={active}
+                  >
+                    {tag} <span className="opacity-60">{count}</span>
+                  </button>
+                );
+              })}
+              {tagFilter && (
+                <button
+                  type="button"
+                  onClick={() => setTagFilter(null)}
+                  className="small-label caps text-ink-faint hover:text-ink text-[10px]"
+                  style={{ letterSpacing: '0.14em' }}
+                >
+                  × clear
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="mb-6 flex items-center gap-2 border-b border-hairline pb-3">
             <input

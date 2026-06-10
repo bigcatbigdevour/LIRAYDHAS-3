@@ -35,6 +35,13 @@ export interface SavedDay {
    */
   pinned?: boolean;
   /**
+   * Optional tags (single words, lowercase) — picked from a fixed palette
+   * defined in lib/tags.ts. Capped at 3 per entry to keep the journal
+   * scannable. Stored as a deduped array; renderers should not assume
+   * presence.
+   */
+  tags?: string[];
+  /**
    * Snapshot of the sky / personal-cycle context the day this was saved.
    * Optional because pre-existing saved days don't have it; new saves do.
    * Stored alongside the reading so future anniversaries can compare
@@ -67,15 +74,25 @@ function read(): SavedDay[] {
       )
       .map((x) => {
         // Normalize legacy data: defensively drop empty-string notes
-        // (older writes stored '' instead of undefined) and validate
+        // (older writes stored '' instead of undefined), validate
         // snapshot shape (a malformed snapshot would crash downstream
-        // at .toFixed / .toLowerCase calls).
+        // at .toFixed / .toLowerCase calls), and clean tags arrays.
         const noteTrim = typeof x.note === 'string' ? x.note.trim() : '';
         const snap = x.snapshot && typeof x.snapshot === 'object' ? x.snapshot : undefined;
+        const rawTags = Array.isArray(x.tags) ? x.tags : [];
+        const cleanTags = Array.from(
+          new Set(
+            rawTags
+              .filter((t): t is string => typeof t === 'string')
+              .map((t) => t.trim().toLowerCase())
+              .filter((t) => t.length > 0),
+          ),
+        ).slice(0, 3);
         return {
           ...x,
           note: noteTrim.length > 0 ? noteTrim : undefined,
           snapshot: snap,
+          tags: cleanTags.length > 0 ? cleanTags : undefined,
         };
       });
   } catch {
@@ -126,6 +143,7 @@ export function saveDay(entry: SavedDay): void {
         headline: entry.headline ?? existing.headline,
         note: entry.note ?? existing.note,
         pinned: entry.pinned ?? existing.pinned,
+        tags: entry.tags ?? existing.tags,
         snapshot: mergedSnapshot,
         savedAt: existing.savedAt, // preserve original save time
       }
@@ -157,6 +175,32 @@ export function togglePin(dateIso: string): void {
   const i = list.findIndex((d) => d.dateIso === dateIso);
   if (i < 0) return;
   list[i] = { ...list[i], pinned: !list[i].pinned };
+  write(list);
+}
+
+/**
+ * Toggle a tag on an entry. Stores normalized (trim+lower), dedupes, and
+ * caps the tag count so an over-eager tapper can't bloat an entry into
+ * an unreadable wall of chips.
+ */
+export const MAX_TAGS_PER_ENTRY = 3;
+export function toggleTag(dateIso: string, tag: string): void {
+  const list = read();
+  const i = list.findIndex((d) => d.dateIso === dateIso);
+  if (i < 0) return;
+  const t = tag.trim().toLowerCase();
+  if (!t) return;
+  const cur = (list[i].tags ?? []).slice();
+  const at = cur.indexOf(t);
+  if (at >= 0) {
+    cur.splice(at, 1);
+  } else if (cur.length < MAX_TAGS_PER_ENTRY) {
+    cur.push(t);
+  } else {
+    // At cap — silently no-op rather than mutate. UI should warn.
+    return;
+  }
+  list[i] = { ...list[i], tags: cur.length > 0 ? cur : undefined };
   write(list);
 }
 
@@ -209,7 +253,8 @@ export function searchSavedDays(days: SavedDay[], query: string): SavedDay[] {
   if (!q) return days;
   const terms = q.split(/\s+/).filter(Boolean);
   return days.filter((d) => {
-    const hay = `${d.paragraph} ${d.note ?? ''} ${d.headline ?? ''}`.toLowerCase();
+    const tagText = (d.tags ?? []).join(' ');
+    const hay = `${d.paragraph} ${d.note ?? ''} ${d.headline ?? ''} ${tagText}`.toLowerCase();
     return terms.every((t) => hay.includes(t));
   });
 }
