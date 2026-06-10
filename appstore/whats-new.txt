@@ -1,0 +1,7 @@
+First release.
+
+· The four main tabs (Today, Chart, Polarity, Arcs) and the journal.
+· Daily reminder at the hour you pick.
+· Save any reading as a journal entry with a note, tag, photo, voice note.
+· "A year ago today" surfaces on the day a year later.
+· Everything stays on your device.

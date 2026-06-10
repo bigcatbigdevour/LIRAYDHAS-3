@@ -227,23 +227,81 @@ In REMOTE mode the .ipa also ships a tiny `ios-www/index.html`
 "Connecting…" splash — the WebView falls back to it if the Vercel URL
 is unreachable.
 
-### Going fully offline (later)
+### Going fully offline (App Store-friendly mode)
 
 To ship a self-contained app that doesn't depend on Vercel for the
-HTML/JS:
+HTML/JS (much safer for App Store guideline 4.2):
 
-1. Comment out the `server` block in `capacitor.config.ts`.
-2. Change `webDir` to `'out'` and add `output: 'export'` to
-   `next.config.js`.
-3. Set `NEXT_PUBLIC_API_BASE=https://liraydhas-3.vercel.app` so
-   client-side `fetch('/api/...')` calls get rewritten to absolute.
-4. `npm run build && npm run ios:sync && npm run ios:open`.
+```bash
+npm run ios:build
+```
 
-API routes always stay server-side (Vercel) — the static export only
-bundles the front-end.
+Under the hood: temporarily moves `app/api/` aside, runs
+`next build` with `BUILD_TARGET=ios` + `NEXT_PUBLIC_API_BASE`, produces
+`out/`, then `cap sync ios` and the Info.plist patch. The .ipa now
+contains every page as static HTML/JS; only `/api/*` requests reach
+Vercel.
+
+Toggle is automatic — `capacitor.config.ts` reads `BUILD_TARGET=ios`
+and switches `webDir` to `'out'` while removing the `server.url`.
 
 ### CORS
 
 All `/api/*` routes accept requests from the Capacitor WebView origin
 (`capacitor://localhost`) in addition to the regular Vercel and
 localhost origins. See `lib/cors.ts`.
+
+## Push notifications
+
+Two stacks share one server: web push (VAPID, Vercel KV, browsers +
+installed PWAs) and APNs (Capacitor, App Store builds). The cron
+endpoint sends to whichever each subscriber is.
+
+### Web push
+
+1. `npm run vapid -- you@example.com` — generates the key pair.
+2. Paste `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` into
+   Vercel env vars.
+3. Enable **Vercel KV** in the Storage tab of your project. Vercel
+   injects `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically.
+4. Redeploy. The hourly cron in `vercel.json` will fire each user's
+   reminder at their chosen local hour.
+
+### APNs (iOS App Store)
+
+1. Apple Developer portal → Keys → create a new key with **APNs**
+   enabled. Download the `.p8` (only chance).
+2. Note the **Key ID** (next to the key) and your **Team ID**
+   (top-right of the site).
+3. Xcode → your project → **Signing & Capabilities** → add the
+   **Push Notifications** capability.
+4. Paste these into Vercel env vars:
+   - `APNS_KEY_ID`
+   - `APNS_TEAM_ID`
+   - `APNS_BUNDLE_ID` (e.g. `com.liraydhas.app`)
+   - `APNS_ENVIRONMENT` (`production` for App Store, `development` for
+     debug builds)
+   - `APNS_KEY_P8` — the .p8 file on one line, literal `\n` for newlines.
+5. Redeploy.
+
+After this, every user who installs from the App Store, opens
+/about, and taps "enable reminders" gets their preferred daily ping.
+
+## App Store submission
+
+See `/appstore/` for description, keywords, what's-new copy,
+screenshot plan, and the App Review notes block. The brand voice is
+preserved throughout.
+
+`/about` now shows the build version + commit + date in a small caps
+footer — useful in App Review screenshots so the reviewer knows
+which build they're looking at.
+
+Account deletion (App Store guideline 5.1.1(v)) lives on /about as
+the "delete all my data" button. It removes the blueprint, every
+journal entry, every photo and voice note (IndexedDB), every
+preference flag, and unregisters push notifications.
+
+iOS usage descriptions for Camera, Photo Library, Microphone, and
+Notifications are inserted into `ios/App/App/Info.plist` automatically
+by `npm run ios:plist` (also run as part of `npm run ios:build`).

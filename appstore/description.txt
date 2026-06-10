@@ -1,0 +1,21 @@
+A daily reading of the sky, and your design.
+
+Liraydhas is a quiet observational tool that pairs your natal astrology with your Human Design body chart, then watches the sky for you and writes one short paragraph each day about how the two are meeting right now.
+
+It is not a horoscope. There are no zodiac sun-sign cards, no "Mercury is in microwave" jokes, no exclamation points. The voice is deliberately plain and observational, and every reading is anchored in your own chart's tightest transits and lit gates that day.
+
+What's inside
+
+· TODAY — one paragraph computed from your live transits, the gates currently lit on your design, and the current phase of your life cycles. Plus a single quiet question for the day.
+
+· CHART — your body chart (centers, channels, gates, type, authority, profile) overlaid on your tropical natal wheel. Tap any gate, channel, or aspect to read what it does.
+
+· ARCS — every cycle that returns over a human lifespan, drawn end to end. Saturn, Jupiter, Nodal, Chiron, Mars, Solar, Progressed Moon. Scrub to any age, watch it animate.
+
+· POLARITY — whether each of those cycles is currently rising or descending. The stack reads as one weather.
+
+· SAVED — a real private journal. Save any reading. Add notes, photos, voice notes, tags, pin entries you want to find again. Full-screen read mode. Anniversary surfacing on the day a year later.
+
+Daily reminders are optional. So is everything else. Your blueprint and journal live on your device.
+
+Math runs locally. The paragraph is written by an LLM with only your chart as context. Nothing is logged, nothing is sold.
