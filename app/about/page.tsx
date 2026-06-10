@@ -313,6 +313,12 @@ export default function AboutPage() {
         >
           build · {buildLabel()}
         </p>
+        <p
+          className="small-label caps text-ink-faint text-[10px]"
+          style={{ letterSpacing: '0.18em' }}
+        >
+          © {new Date().getFullYear()} liraydhas · all rights reserved
+        </p>
         <p className="text-[12px] text-ink-faint serif italic">
           Liraydhas is a personal-use observational tool. It is not a
           mental-health service, medical service, or substitute for one.

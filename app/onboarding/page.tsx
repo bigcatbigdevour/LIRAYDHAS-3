@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
 import { buildBlueprint } from '@/lib/blueprint';
-import { useStore } from '@/lib/store';
+import { useStore, useStoreHydrated } from '@/lib/store';
 import { success as hapticSuccess, warn as hapticWarn } from '@/lib/haptics';
 import { localDateStr } from '@/lib/localDate';
 import { friendlyError } from '@/lib/friendlyError';
@@ -26,6 +26,10 @@ function OnboardingInner() {
   const router = useRouter();
   const search = useSearchParams();
   const isEdit = search?.get('edit') === '1';
+  // Wait for Zustand to finish reading localStorage before we render
+  // anything. Without this gate, a returning user can briefly see the
+  // /onboarding intro on a cold start while the blueprint is loading.
+  const hydrated = useStoreHydrated();
   const blueprint = useStore((s) => s.blueprint);
   const setBlueprint = useStore((s) => s.setBlueprint);
 
@@ -66,15 +70,12 @@ function OnboardingInner() {
   const checked = useRef(false);
   useEffect(() => {
     if (isEdit) return; // never auto-bounce when editing
-    // already onboarded? skip ahead.
-    const t = setTimeout(() => {
-      if (blueprint && !checked.current) {
-        checked.current = true;
-        router.replace('/today');
-      }
-    }, 60);
-    return () => clearTimeout(t);
-  }, [blueprint, router, isEdit]);
+    if (!hydrated) return; // wait for localStorage to load
+    if (blueprint && !checked.current) {
+      checked.current = true;
+      router.replace('/today');
+    }
+  }, [hydrated, blueprint, router, isEdit]);
 
   const canSubmit =
     date.length === 10 &&
@@ -112,6 +113,29 @@ function OnboardingInner() {
       hapticWarn();
       setBusy(false);
     }
+  }
+
+  // Don't render ANYTHING until Zustand has read localStorage. Otherwise a
+  // returning user with a stored blueprint sees the intro flash for one
+  // frame before the redirect fires — feels like the app forgot them.
+  // Edit mode bypasses this gate because it intentionally re-displays
+  // the form even when the blueprint exists.
+  if (!isEdit && !hydrated) {
+    return (
+      <main className="page flex items-center justify-center min-h-screen">
+        <p className="caps small-label text-ink-faint">liraydhas</p>
+      </main>
+    );
+  }
+
+  // Returning user with a blueprint? The redirect effect above is already
+  // running — render the splash, not the intro, during the redirect tick.
+  if (!isEdit && hydrated && blueprint) {
+    return (
+      <main className="page flex items-center justify-center min-h-screen">
+        <p className="caps small-label text-ink-faint">liraydhas</p>
+      </main>
+    );
   }
 
   if (step === 'intro') {

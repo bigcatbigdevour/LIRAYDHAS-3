@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Blueprint, DailyReport, NarrativeReading, PolarityReading } from './types';
@@ -16,6 +17,28 @@ interface StoreState {
   setPolarity: (p: PolarityReading | null) => void;
   setNarrative: (n: NarrativeReading | null) => void;
   reset: () => void;
+}
+
+/**
+ * Hook that returns true once the persisted store has finished hydrating
+ * from localStorage. Use this on routes that need to wait for the
+ * blueprint to load before redirecting — otherwise a cold start can
+ * see `blueprint: null` for one render and bounce a returning user to
+ * /onboarding, which feels like "you logged me out."
+ */
+export function useStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    // If hydration already happened (it usually has by the time React
+    // gets here), flip immediately.
+    if (useStore.persist.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
+    const unsub = useStore.persist.onFinishHydration(() => setHydrated(true));
+    return () => unsub();
+  }, []);
+  return hydrated;
 }
 
 export const useStore = create<StoreState>()(

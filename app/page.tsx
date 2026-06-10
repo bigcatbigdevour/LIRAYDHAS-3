@@ -2,22 +2,31 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useStore } from '@/lib/store';
+import { useStore, useStoreHydrated } from '@/lib/store';
 
+/**
+ * Root route — bounces to /today if the user has a saved blueprint, or to
+ * /onboarding if not.
+ *
+ * Critical: WAIT for Zustand persist to finish reading localStorage before
+ * deciding. A returning user's blueprint sits in localStorage; if we read
+ * `blueprint` before hydration completes we'd see null and redirect them
+ * to /onboarding even though they're already onboarded. That feels like
+ * "the app logged me out" — and it would happen on every cold start.
+ */
 export default function Root() {
   const router = useRouter();
+  const hydrated = useStoreHydrated();
   const blueprint = useStore((s) => s.blueprint);
-  // zustand persist sets the value asynchronously on the client; wait one tick.
+
   useEffect(() => {
-    const t = setTimeout(() => {
-      router.replace(blueprint ? '/today' : '/onboarding');
-    }, 30);
-    return () => clearTimeout(t);
-  }, [router, blueprint]);
+    if (!hydrated) return;
+    router.replace(blueprint ? '/today' : '/onboarding');
+  }, [hydrated, blueprint, router]);
 
   return (
     <main className="page flex items-center justify-center">
-      <p className="caps small-label">liraydhas</p>
+      <p className="caps small-label text-ink-faint">liraydhas</p>
     </main>
   );
 }
