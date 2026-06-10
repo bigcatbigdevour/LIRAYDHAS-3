@@ -13,6 +13,8 @@
     "ios:open": "cap open ios",
     "ios:run": "cap run ios",
     "ios:assets": "capacitor-assets generate --ios",
+    "ios:plist": "node scripts/patch-ios-info-plist.js",
+    "ios:prep": "npm run ios:sync && npm run ios:assets && npm run ios:plist",
     "vapid": "node scripts/generate-vapid-keys.js"
   },
   "dependencies": {

@@ -258,6 +258,51 @@ export default function AboutPage() {
             erase blueprint (keeps journal)
           </button>
         )}
+        <button
+          className="btn-ghost text-left text-accent border border-accent/30"
+          onClick={async () => {
+            // App Store requirement: a single explicit "delete everything"
+            // action. Wipes blueprint, every saved-day entry, all IDB
+            // attachments (photos + voice notes), every UI flag, and
+            // unregisters push notifications so we stop sending to a
+            // device whose owner just said "remove me."
+            if (!confirm(
+              'Delete everything? This removes your blueprint, every saved reading, every note, every photo, every voice note, and unregisters notifications. It cannot be undone.',
+            )) return;
+            if (!confirm('Are you sure? This is final.')) return;
+            try {
+              // 1. Unregister any active push subscriptions before wiping
+              //    local state — otherwise we'd lose the endpoint.
+              try {
+                const { unsubscribePush } = await import('@/lib/push');
+                await unsubscribePush();
+              } catch {/* ignore */}
+              try {
+                const { unregisterNativePush, isNativeRuntime } = await import('@/lib/nativePush');
+                if (isNativeRuntime()) await unregisterNativePush();
+              } catch {/* ignore */}
+              // 2. Wipe IDB attachments.
+              await clearAllAttachments();
+              // 3. Wipe every liraydhas-namespaced localStorage key.
+              const toRemove: string[] = [];
+              for (let i = 0; i < window.localStorage.length; i++) {
+                const k = window.localStorage.key(i);
+                if (k && (k.startsWith('liraydhas') || k.startsWith('liraydhas-store'))) {
+                  toRemove.push(k);
+                }
+              }
+              toRemove.forEach((k) => window.localStorage.removeItem(k));
+              // 4. Reset Zustand state.
+              reset();
+              router.replace('/onboarding');
+            } catch (e) {
+              console.error('full wipe failed', e);
+              alert("Couldn't fully delete everything — try again.");
+            }
+          }}
+        >
+          delete all my data
+        </button>
       </div>
     </main>
   );
