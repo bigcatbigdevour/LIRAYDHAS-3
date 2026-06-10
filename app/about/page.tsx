@@ -5,13 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { fullOverviewText } from '@/lib/fullOverview';
 import { buildFullExport, exportFilename } from '@/lib/fullExport';
+import { importFromFile } from '@/lib/fullImport';
 import { clearAllAttachments } from '@/lib/attachments';
 import PushNotificationsSection from '@/components/PushNotificationsSection';
+import { useRef, useState } from 'react';
 
 export default function AboutPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
   const reset = useStore((s) => s.reset);
+  // Import flow state — file picker ref + last-result message.
+  const importFile = useRef<HTMLInputElement | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   return (
     <main className="page max-w-md mx-auto fade-in">
@@ -153,6 +158,50 @@ export default function AboutPage() {
         >
           download all my data (json)
         </button>
+        <label className="btn-ghost text-left cursor-pointer block">
+          import journal from a json file
+          <input
+            ref={importFile}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.currentTarget.files?.[0];
+              e.currentTarget.value = '';
+              if (!file) return;
+              setImportMsg('importing…');
+              const r = await importFromFile(file);
+              if (!r.ok) {
+                setImportMsg(r.reason);
+                return;
+              }
+              // The blueprint write went through localStorage directly,
+              // so refresh to pull it into the Zustand store too.
+              const parts: string[] = [];
+              if (r.blueprintReplaced) parts.push('blueprint updated');
+              if (r.addedDays > 0) parts.push(`${r.addedDays} new entries`);
+              if (r.updatedDays > 0) parts.push(`${r.updatedDays} updated`);
+              if (r.skippedDays > 0) parts.push(`${r.skippedDays} skipped (older)`);
+              setImportMsg(parts.join(' · ') || 'nothing new to import.');
+              // A soft reload picks up the new persist state + saved days.
+              setTimeout(() => window.location.reload(), 1200);
+            }}
+          />
+        </label>
+        {importMsg && (
+          <p
+            className="small-label caps text-ink-faint text-[10px] -mt-1"
+            style={{ letterSpacing: '0.16em' }}
+          >
+            {importMsg}
+          </p>
+        )}
+        <p
+          className="small-label caps text-ink-faint text-[10px] -mt-1"
+          style={{ letterSpacing: '0.14em' }}
+        >
+          export + import = manual cross-device sync · photos &amp; voice notes stay on the device they were captured on
+        </p>
         <button
           className="btn-ghost text-left"
           onClick={() => {
