@@ -28,6 +28,7 @@ import { tap as hapticTap } from '@/lib/haptics';
 import SaveDayButton from '@/components/SaveDayButton';
 import { bestAnniversary } from '@/lib/savedDays';
 import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
+import QuickNote from '@/components/QuickNote';
 import { localDateStr, useToday } from '@/lib/localDate';
 import type { DailyReport } from '@/lib/types';
 
@@ -612,12 +613,7 @@ export default function TodayPage() {
         <p className="serif italic text-[16px] text-ink leading-relaxed">
           {questionForDate(todayIso)}
         </p>
-        <p
-          className="small-label caps text-ink-faint mt-2 text-[10px]"
-          style={{ letterSpacing: '0.14em' }}
-        >
-          sit with it · or add it to today's note above
-        </p>
+        <QuickNote dateIso={todayIso} />
       </section>
 
       {/* Deterministic 'today at a glance' — always present, copy-friendly */}
