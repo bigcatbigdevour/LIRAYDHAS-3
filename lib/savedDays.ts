@@ -169,6 +169,46 @@ export function updateNote(dateIso: string, note: string): void {
   write(list);
 }
 
+/**
+ * Append a new timestamped moment to an entry's note. Each appended block
+ * is preceded by a divider like "— 4:32 pm —" so the chronology stays
+ * legible. Creates the entry if it doesn't exist yet.
+ *
+ * Why this instead of allowing multiple entries per day: the user already
+ * sees the pattern with the round-111 reflection nudge ("— later (4:32 pm) —").
+ * Extending it gives "multi-moment per day" journaling without a schema
+ * migration, without breaking pin/tag/anchor semantics, and without
+ * proliferating entries that all share the same date headline.
+ */
+export function appendMoment(
+  dateIso: string,
+  moment: string,
+  now: Date = new Date(),
+): void {
+  const text = moment.trim();
+  if (!text) return;
+  const stamp = now.toLocaleTimeString(undefined, {
+    hour: 'numeric', minute: '2-digit',
+  });
+  const list = read();
+  const i = list.findIndex((d) => d.dateIso === dateIso);
+  if (i < 0) {
+    // No entry yet — create one as a pure journal entry.
+    list.push({
+      dateIso,
+      paragraph: '',
+      note: `— ${stamp} —\n${text}`,
+      savedAt: now.getTime(),
+    });
+  } else {
+    const existing = list[i].note?.trim() ?? '';
+    const block = `— ${stamp} —\n${text}`;
+    const next = existing.length > 0 ? `${existing}\n\n${block}` : block;
+    list[i] = { ...list[i], note: next };
+  }
+  write(list);
+}
+
 /** Toggle the pin flag on an entry. No-op if the entry doesn't exist. */
 export function togglePin(dateIso: string): void {
   const list = read();

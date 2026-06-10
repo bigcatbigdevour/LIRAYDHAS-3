@@ -7,6 +7,7 @@ import {
   unsaveDay,
   updateNote,
   saveDay,
+  appendMoment,
   togglePin,
   toggleTag,
   MAX_TAGS_PER_ENTRY,
@@ -392,28 +393,48 @@ export default function SavedPage() {
         )}
 
         {!isEditing && (
-          <button
-            type="button"
-            onClick={() => {
-              // Only one entry can be edited at a time (single `editing`
-              // slot). If a draft is in progress elsewhere, ask before
-              // discarding.
-              if (
-                editing &&
-                editing !== d.dateIso &&
-                draftNote.trim() &&
-                !confirm('You have an unsaved note on another day. Discard it?')
-              ) {
-                return;
-              }
-              hapticTap('light');
-              setEditing(d.dateIso);
-              setDraftNote(d.note ?? '');
-            }}
-            className="small-label caps text-ink-faint hover:text-ink mt-3"
-          >
-            {d.note ? 'edit note' : '+ add a note'}
-          </button>
+          <div className="mt-3 flex flex-wrap gap-3 items-center">
+            <button
+              type="button"
+              onClick={() => {
+                // Only one entry can be edited at a time (single `editing`
+                // slot). If a draft is in progress elsewhere, ask before
+                // discarding.
+                if (
+                  editing &&
+                  editing !== d.dateIso &&
+                  draftNote.trim() &&
+                  !confirm('You have an unsaved note on another day. Discard it?')
+                ) {
+                  return;
+                }
+                hapticTap('light');
+                setEditing(d.dateIso);
+                setDraftNote(d.note ?? '');
+              }}
+              className="small-label caps text-ink-faint hover:text-ink"
+            >
+              {d.note ? 'edit note' : '+ add a note'}
+            </button>
+            {d.note && (
+              <button
+                type="button"
+                onClick={() => {
+                  // Append-a-moment path: instead of editing the existing
+                  // note, prompt for a fresh block that will get a
+                  // timestamp divider and append to the bottom.
+                  const m = window.prompt('Add a moment to this day:');
+                  if (!m) return;
+                  hapticTap('medium');
+                  appendMoment(d.dateIso, m);
+                  setDays(listSavedDays());
+                }}
+                className="small-label caps text-ink-faint hover:text-ink"
+              >
+                + moment
+              </button>
+            )}
+          </div>
         )}
 
         {isEditing && (

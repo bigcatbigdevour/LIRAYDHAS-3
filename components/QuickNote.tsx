@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { saveDay, isSaved, listSavedDays } from '@/lib/savedDays';
+import { saveDay, isSaved, listSavedDays, appendMoment } from '@/lib/savedDays';
 import { tap as hapticTap } from '@/lib/haptics';
 
 interface Props {
@@ -52,20 +52,33 @@ export default function QuickNote({ dateIso }: Props) {
 
   if (!mounted) return null;
 
-  // If today already has a note, the SaveDayButton above the page already
-  // surfaces it inline. We don't duplicate that here — just point the
-  // user back to it.
-  if (hasNote) {
+  // If today already has a note, offer a clean "+ another moment" path
+  // that appends a timestamped block to it, instead of duplicating the
+  // entry. The SaveDayButton above the page renders the existing note;
+  // this lets the user add to it without scrolling back up.
+  if (hasNote && !open) {
     return (
-      <p
-        className="small-label caps text-ink-faint mt-3 text-[10px]"
-        style={{ letterSpacing: '0.14em' }}
-      >
-        ✓ today is noted ·{' '}
-        <Link href="/saved" className="underline hover:text-ink">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            hapticTap('light');
+            setOpen(true);
+          }}
+          className="small-label caps text-ink-faint hover:text-ink"
+          style={{ letterSpacing: '0.16em' }}
+          aria-label="add another moment to today"
+        >
+          + another moment
+        </button>
+        <Link
+          href="/saved"
+          className="small-label caps text-ink-faint hover:text-ink text-[10px]"
+          style={{ letterSpacing: '0.16em' }}
+        >
           open journal →
         </Link>
-      </p>
+      </div>
     );
   }
 
@@ -91,14 +104,18 @@ export default function QuickNote({ dateIso }: Props) {
         className="small-label caps text-accent mb-1.5"
         style={{ letterSpacing: '0.14em' }}
       >
-        today's note
+        {hasNote ? 'another moment' : "today's note"}
       </p>
       <textarea
         ref={ref}
         value={draft}
         onChange={(e) => setDraft(e.currentTarget.value)}
         rows={3}
-        placeholder="what's happening — a memory, a context, something to remember"
+        placeholder={
+          hasNote
+            ? 'what changed since you last wrote — appended with a timestamp'
+            : "what's happening — a memory, a context, something to remember"
+        }
         className="w-full bg-bg border border-hairline p-2 text-[13.5px] text-ink serif leading-relaxed"
         style={{ resize: 'vertical' }}
       />
@@ -108,14 +125,22 @@ export default function QuickNote({ dateIso }: Props) {
           onClick={() => {
             if (!draft.trim()) return;
             hapticTap('medium');
-            // Merge-aware save: if today's reading is already saved, this
-            // attaches the note; otherwise creates a pure-journal entry.
-            saveDay({
-              dateIso,
-              paragraph: '',
-              note: draft.trim(),
-              savedAt: Date.now(),
-            });
+            if (hasNote) {
+              // Existing note → append a timestamped block so the day's
+              // chronology stays legible. Multi-moment journaling in
+              // place, no schema migration needed.
+              appendMoment(dateIso, draft.trim());
+            } else {
+              // First write of the day → create the entry. Merge-aware,
+              // so this still attaches the note even if SaveDayButton
+              // already saved the reading first.
+              saveDay({
+                dateIso,
+                paragraph: '',
+                note: draft.trim(),
+                savedAt: Date.now(),
+              });
+            }
             setOpen(false);
             setDraft('');
             refresh();
@@ -123,7 +148,7 @@ export default function QuickNote({ dateIso }: Props) {
           disabled={!draft.trim()}
           className="btn-ghost"
         >
-          save
+          {hasNote ? 'add moment' : 'save'}
         </button>
         <button
           type="button"
