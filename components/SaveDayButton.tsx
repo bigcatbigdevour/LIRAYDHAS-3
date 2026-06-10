@@ -33,6 +33,11 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
   const [existingNote, setExistingNote] = useState<string | undefined>(undefined);
   const [noteOpen, setNoteOpen] = useState(false);
   const [draftNote, setDraftNote] = useState('');
+  // Reflection nudge: 5 minutes after the user commits a note, we surface
+  // a small "what landed since you wrote this?" prompt. Once per save
+  // event, per page life — never persisted across reloads.
+  const [showReflection, setShowReflection] = useState(false);
+  const reflectionTimer = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Refresh the saved/note state from storage. Called on mount and after
@@ -67,6 +72,28 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     }
   }, [noteOpen]);
 
+  // Schedule a reflection nudge `delayMs` from now. Cancels any pending
+  // nudge first so a quick edit-save-edit-save sequence doesn't fire
+  // multiple times.
+  function scheduleReflection(delayMs: number = 5 * 60_000) {
+    if (reflectionTimer.current !== null) {
+      window.clearTimeout(reflectionTimer.current);
+    }
+    reflectionTimer.current = window.setTimeout(() => {
+      setShowReflection(true);
+      reflectionTimer.current = null;
+    }, delayMs);
+  }
+
+  // Clean up any pending reflection on unmount.
+  useEffect(() => {
+    return () => {
+      if (reflectionTimer.current !== null) {
+        window.clearTimeout(reflectionTimer.current);
+      }
+    };
+  }, []);
+
   if (!mounted) return null;
 
   const onSave = () => {
@@ -96,6 +123,10 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     updateNote(dateIso, draftNote.trim());
     setNoteOpen(false);
     refresh();
+    // Schedule a soft "what landed since you wrote this?" prompt for
+    // five minutes from now. Captures reflection-after-the-fact, when
+    // the day has had time to settle.
+    scheduleReflection();
   };
 
   return (
@@ -113,6 +144,21 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
         </span>
         <span>{saved ? 'saved' : 'save'}</span>
       </button>
+
+      {/* Reflection nudge — surfaces 5min after a note commit. One-time
+          per page-life; dismissed reflections don't return. Saves any
+          added text as an APPENDED line to the existing note (so the
+          original write isn't overwritten). */}
+      {showReflection && existingNote && !noteOpen && (
+        <ReflectionPrompt
+          dateIso={dateIso}
+          existingNote={existingNote}
+          onDone={() => {
+            setShowReflection(false);
+            refresh();
+          }}
+        />
+      )}
 
       {/* If already saved with a note and the editor isn't open, show
           the note quietly inline so the user can re-read what they
@@ -199,6 +245,81 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Soft reflection prompt that surfaces a few minutes after a note save.
+ * "What landed since you wrote this?" The user can write a follow-up
+ * (appended to the original note with a divider) or dismiss with skip.
+ * Self-contained so the parent doesn't carry extra state.
+ */
+function ReflectionPrompt({
+  dateIso,
+  existingNote,
+  onDone,
+}: {
+  dateIso: string;
+  existingNote: string;
+  onDone: () => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+  return (
+    <div className="mt-3 border-l-2 border-accent pl-3 py-1 fade-in w-full max-w-md">
+      <p
+        className="small-label caps text-accent mb-1.5"
+        style={{ letterSpacing: '0.14em' }}
+      >
+        anything land since you wrote this?
+      </p>
+      <textarea
+        ref={ref}
+        value={draft}
+        onChange={(e) => setDraft(e.currentTarget.value)}
+        rows={2}
+        placeholder="a follow-up thought — appended to your note below"
+        className="w-full bg-bg border border-hairline p-2 text-[13.5px] text-ink serif leading-relaxed"
+        style={{ resize: 'vertical' }}
+      />
+      <div className="flex flex-wrap gap-3 mt-2 items-center">
+        <button
+          type="button"
+          onClick={() => {
+            if (!draft.trim()) {
+              onDone();
+              return;
+            }
+            hapticTap('medium');
+            // Append with a dashed divider so the original note remains
+            // legible as the original write, with the reflection clearly
+            // dated below.
+            const stamp = new Date().toLocaleTimeString(undefined, {
+              hour: 'numeric', minute: '2-digit',
+            });
+            const appended = `${existingNote}\n\n— later (${stamp}) —\n${draft.trim()}`;
+            updateNote(dateIso, appended);
+            onDone();
+          }}
+          disabled={!draft.trim()}
+          className="btn-ghost"
+        >
+          add to note
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onDone();
+          }}
+          className="small-label caps text-ink-faint hover:text-ink"
+        >
+          skip
+        </button>
+      </div>
     </div>
   );
 }
