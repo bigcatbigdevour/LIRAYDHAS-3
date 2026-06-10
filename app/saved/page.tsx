@@ -7,6 +7,7 @@ import {
   unsaveDay,
   updateNote,
   saveDay,
+  togglePin,
   groupByMonth,
   searchSavedDays,
   exportToText,
@@ -53,6 +54,13 @@ export default function SavedPage() {
   // the table of contents if none of its entries matched.
   const filtered = useMemo(() => searchSavedDays(days, query), [days, query]);
   const months = useMemo(() => groupByMonth(filtered), [filtered]);
+  // Pinned entries surface in their own section at the top, ordered most
+  // recently saved first. They also still appear in their normal month
+  // section below — pin is a discoverability shortcut, not a relocation.
+  const pinned = useMemo(
+    () => filtered.filter((d) => d.pinned).sort((a, b) => (b.dateIso < a.dateIso ? -1 : 1)),
+    [filtered],
+  );
 
   const stats = useMemo(() => {
     if (days.length === 0) return null;
@@ -64,8 +72,236 @@ export default function SavedPage() {
       (new Date().getMonth() - firstDate.getMonth()) +
       1;
     const withNotes = days.filter((d) => d.note && d.note.trim().length > 0).length;
-    return { count: days.length, monthsSpanned: Math.max(1, monthsSpanned), withNotes };
+    const pinnedCount = days.filter((d) => d.pinned).length;
+    return { count: days.length, monthsSpanned: Math.max(1, monthsSpanned), withNotes, pinnedCount };
   }, [days]);
+
+  // Render one saved-day entry. Pulled into a function so the same JSX
+  // serves both the Pinned section (keyPrefix='p', withId=false: the
+  // canonical anchor lives in the month section below) and the regular
+  // month sections (keyPrefix='', withId=true).
+  function renderEntry(
+    d: SavedDay,
+    opts: { keyPrefix: string; withId: boolean },
+  ) {
+    const date = new Date(d.dateIso + 'T12:00:00');
+    const dateStr = date.toLocaleDateString(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
+    const isEditing = editing === d.dateIso;
+    const fullDate = date.toLocaleDateString(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return (
+      <article
+        key={(opts.keyPrefix ? `${opts.keyPrefix}-` : '') + d.dateIso}
+        // Only the canonical (month-section) render gets the id anchor —
+        // duplicate ids would break #d-{iso} jumps from the heatmap.
+        id={opts.withId ? `d-${d.dateIso}` : undefined}
+        className={`pl-3 py-1 scroll-mt-4 border-l-2 ${d.pinned ? 'border-accent' : 'border-hairline'}`}
+      >
+        <header className="flex items-baseline justify-between gap-3 mb-2">
+          <div>
+            <p className="serif text-[15px] text-ink">
+              {d.pinned && (
+                <span
+                  aria-hidden
+                  className="text-accent mr-1.5"
+                  style={{ fontSize: 11 }}
+                  title="pinned"
+                >
+                  ◆
+                </span>
+              )}
+              {dateStr}
+            </p>
+            {d.headline && (
+              <p
+                className="small-label caps text-ink-faint mt-0.5"
+                style={{ letterSpacing: '0.1em' }}
+              >
+                {d.headline}
+              </p>
+            )}
+            {d.snapshot && (d.snapshot.moonPhase || d.snapshot.chapter || d.snapshot.ageYears != null) && (
+              <p
+                className="small-label caps text-ink-faint mt-0.5 text-[10px]"
+                style={{ letterSpacing: '0.14em' }}
+              >
+                {d.snapshot.ageYears != null && <>age {d.snapshot.ageYears.toFixed(1)} · </>}
+                {d.snapshot.moonPhase}
+                {d.snapshot.moonSign && <> · moon in {d.snapshot.moonSign.toLowerCase()}</>}
+                {d.snapshot.chapter && <> · {d.snapshot.chapter.toLowerCase()}</>}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                hapticTap('light');
+                togglePin(d.dateIso);
+                setDays(listSavedDays());
+              }}
+              className={`small-label caps ${d.pinned ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
+              aria-pressed={d.pinned ?? false}
+              aria-label={d.pinned ? 'unpin this entry' : 'pin this entry'}
+              title={d.pinned ? 'pinned · tap to unpin' : 'pin to top'}
+            >
+              {d.pinned ? '◆ pinned' : 'pin'}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                hapticTap('light');
+                const lines = [
+                  fullDate.toUpperCase(),
+                  d.headline ? `(${d.headline})` : '',
+                  '',
+                  d.paragraph || '',
+                  d.note ? '\n— note —\n' + d.note : '',
+                ].filter(Boolean).join('\n');
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: fullDate, text: lines });
+                  } else {
+                    await navigator.clipboard.writeText(lines);
+                    const el = document.getElementById(`copy-${d.dateIso}`);
+                    if (el) {
+                      el.style.opacity = '1';
+                      window.setTimeout(() => { el.style.opacity = '0'; }, 1500);
+                    }
+                  }
+                } catch {/* cancelled */}
+              }}
+              className="small-label caps text-ink-faint hover:text-ink"
+              aria-label="share this entry"
+            >
+              share
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                hapticTap('light');
+                if (!confirm('Remove this day from saved?')) return;
+                unsaveDay(d.dateIso);
+                setDays(listSavedDays());
+              }}
+              className="small-label caps text-ink-faint hover:text-accent"
+              aria-label="remove from saved"
+            >
+              remove
+            </button>
+          </div>
+        </header>
+        <span
+          id={opts.withId ? `copy-${d.dateIso}` : undefined}
+          className="small-label caps text-accent block text-right -mt-2 mb-1"
+          style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}
+          aria-hidden
+        >
+          copied
+        </span>
+
+        {d.paragraph && (
+          <p className="serif text-[14.5px] text-ink leading-relaxed">
+            {d.paragraph}
+          </p>
+        )}
+
+        {!d.paragraph && !d.note && (
+          <p className="serif text-[13px] text-ink-faint italic">
+            (empty entry — add a note below)
+          </p>
+        )}
+
+        {!isEditing && d.note && (
+          <div className={`${d.paragraph ? 'mt-3' : ''} border-l-2 border-accent pl-3 py-1`}>
+            <p
+              className="small-label caps text-accent mb-1"
+              style={{ letterSpacing: '0.12em' }}
+            >
+              {d.paragraph ? 'your note' : 'journal'}
+            </p>
+            <p className="serif text-[14px] text-ink whitespace-pre-wrap leading-relaxed">
+              {d.note}
+            </p>
+          </div>
+        )}
+
+        {!isEditing && (
+          <button
+            type="button"
+            onClick={() => {
+              // Only one entry can be edited at a time (single `editing`
+              // slot). If a draft is in progress elsewhere, ask before
+              // discarding.
+              if (
+                editing &&
+                editing !== d.dateIso &&
+                draftNote.trim() &&
+                !confirm('You have an unsaved note on another day. Discard it?')
+              ) {
+                return;
+              }
+              hapticTap('light');
+              setEditing(d.dateIso);
+              setDraftNote(d.note ?? '');
+            }}
+            className="small-label caps text-ink-faint hover:text-ink mt-3"
+          >
+            {d.note ? 'edit note' : '+ add a note'}
+          </button>
+        )}
+
+        {isEditing && (
+          <div className="mt-3">
+            <textarea
+              value={draftNote}
+              onChange={(e) => setDraftNote(e.currentTarget.value)}
+              rows={3}
+              placeholder="what was happening on this day — a memory, a context, something you want to remember"
+              className="w-full bg-bg border border-hairline p-2 text-[13.5px] text-ink serif leading-relaxed"
+              style={{ resize: 'vertical' }}
+            />
+            <div className="flex gap-3 mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  hapticTap('medium');
+                  updateNote(d.dateIso, draftNote.trim());
+                  setEditing(null);
+                  setDays(listSavedDays());
+                }}
+                className="btn-ghost"
+              >
+                save note
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="small-label caps text-ink-faint hover:text-ink"
+              >
+                cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <p
+          className="small-label caps text-ink-faint mt-3 text-[10px]"
+          style={{ letterSpacing: '0.14em' }}
+        >
+          saved {new Date(d.savedAt).toLocaleDateString()}
+        </p>
+      </article>
+    );
+  }
 
   if (!mounted) return null;
 
@@ -87,6 +323,12 @@ export default function SavedPage() {
               <>
                 <span className="mx-1.5">·</span>
                 <span className="text-ink">{stats.withNotes}</span> with notes
+              </>
+            )}
+            {stats.pinnedCount > 0 && (
+              <>
+                <span className="mx-1.5">·</span>
+                <span className="text-accent">◆ {stats.pinnedCount}</span> pinned
               </>
             )}
           </p>
@@ -283,6 +525,21 @@ export default function SavedPage() {
             </nav>
           )}
 
+          {pinned.length > 0 && (
+            <section className="mb-10">
+              <h2
+                className="small-label caps text-accent border-b border-hairline pb-1.5 mb-4 flex items-center gap-2"
+                style={{ letterSpacing: '0.2em' }}
+              >
+                <span aria-hidden>◆</span>
+                pinned
+              </h2>
+              <div className="space-y-6">
+                {pinned.map((d) => renderEntry(d, { keyPrefix: 'p', withId: false }))}
+              </div>
+            </section>
+          )}
+
           {months.map((month) => (
             <section key={month.key} id={`m-${month.key}`} className="mb-10 scroll-mt-4">
               <h2
@@ -292,200 +549,7 @@ export default function SavedPage() {
                 {month.label.toLowerCase()}
               </h2>
               <div className="space-y-6">
-                {month.days.map((d) => {
-                  const date = new Date(d.dateIso + 'T12:00:00');
-                  const dateStr = date.toLocaleDateString(undefined, {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                  });
-                  const isEditing = editing === d.dateIso;
-                  return (
-                    <article
-                      key={d.dateIso}
-                      id={`d-${d.dateIso}`}
-                      className="border-l-2 border-hairline pl-3 py-1 scroll-mt-4"
-                    >
-                      <header className="flex items-baseline justify-between gap-3 mb-2">
-                        <div>
-                          <p className="serif text-[15px] text-ink">{dateStr}</p>
-                          {d.headline && (
-                            <p
-                              className="small-label caps text-ink-faint mt-0.5"
-                              style={{ letterSpacing: '0.1em' }}
-                            >
-                              {d.headline}
-                            </p>
-                          )}
-                          {d.snapshot && (d.snapshot.moonPhase || d.snapshot.chapter || d.snapshot.ageYears != null) && (
-                            <p
-                              className="small-label caps text-ink-faint mt-0.5 text-[10px]"
-                              style={{ letterSpacing: '0.14em' }}
-                            >
-                              {d.snapshot.ageYears != null && <>age {d.snapshot.ageYears.toFixed(1)} · </>}
-                              {d.snapshot.moonPhase}
-                              {d.snapshot.moonSign && <> · moon in {d.snapshot.moonSign.toLowerCase()}</>}
-                              {d.snapshot.chapter && <> · {d.snapshot.chapter.toLowerCase()}</>}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              hapticTap('light');
-                              // Shared text needs the year so recipients
-                              // know the date in absolute terms (inline
-                              // we omit it because month headers carry it).
-                              const fullDate = date.toLocaleDateString(undefined, {
-                                weekday: 'long',
-                                month: 'long',
-                                day: 'numeric',
-                                year: 'numeric',
-                              });
-                              const lines = [
-                                fullDate.toUpperCase(),
-                                d.headline ? `(${d.headline})` : '',
-                                '',
-                                d.paragraph || '',
-                                d.note ? '\n— note —\n' + d.note : '',
-                              ].filter(Boolean).join('\n');
-                              try {
-                                if (navigator.share) {
-                                  await navigator.share({ title: fullDate, text: lines });
-                                } else {
-                                  await navigator.clipboard.writeText(lines);
-                                  const el = document.getElementById(`copy-${d.dateIso}`);
-                                  if (el) {
-                                    el.style.opacity = '1';
-                                    window.setTimeout(() => { el.style.opacity = '0'; }, 1500);
-                                  }
-                                }
-                              } catch {/* cancelled */}
-                            }}
-                            className="small-label caps text-ink-faint hover:text-ink"
-                            aria-label="share this entry"
-                          >
-                            share
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              hapticTap('light');
-                              if (!confirm('Remove this day from saved?')) return;
-                              unsaveDay(d.dateIso);
-                              setDays(listSavedDays());
-                            }}
-                            className="small-label caps text-ink-faint hover:text-accent"
-                            aria-label="remove from saved"
-                          >
-                            remove
-                          </button>
-                        </div>
-                      </header>
-                      <span
-                        id={`copy-${d.dateIso}`}
-                        className="small-label caps text-accent block text-right -mt-2 mb-1"
-                        style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}
-                        aria-hidden
-                      >
-                        copied
-                      </span>
-
-                      {d.paragraph && (
-                        <p className="serif text-[14.5px] text-ink leading-relaxed">
-                          {d.paragraph}
-                        </p>
-                      )}
-
-                      {!d.paragraph && !d.note && (
-                        <p className="serif text-[13px] text-ink-faint italic">
-                          (empty entry — add a note below)
-                        </p>
-                      )}
-
-                      {!isEditing && d.note && (
-                        <div className={`${d.paragraph ? 'mt-3' : ''} border-l-2 border-accent pl-3 py-1`}>
-                          <p
-                            className="small-label caps text-accent mb-1"
-                            style={{ letterSpacing: '0.12em' }}
-                          >
-                            {d.paragraph ? 'your note' : 'journal'}
-                          </p>
-                          <p className="serif text-[14px] text-ink whitespace-pre-wrap leading-relaxed">
-                            {d.note}
-                          </p>
-                        </div>
-                      )}
-
-                      {!isEditing && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Only one entry can be edited at a time
-                            // (single `editing` slot). If a draft is in
-                            // progress elsewhere, ask before discarding.
-                            if (
-                              editing &&
-                              editing !== d.dateIso &&
-                              draftNote.trim() &&
-                              !confirm('You have an unsaved note on another day. Discard it?')
-                            ) {
-                              return;
-                            }
-                            hapticTap('light');
-                            setEditing(d.dateIso);
-                            setDraftNote(d.note ?? '');
-                          }}
-                          className="small-label caps text-ink-faint hover:text-ink mt-3"
-                        >
-                          {d.note ? 'edit note' : '+ add a note'}
-                        </button>
-                      )}
-
-                      {isEditing && (
-                        <div className="mt-3">
-                          <textarea
-                            value={draftNote}
-                            onChange={(e) => setDraftNote(e.currentTarget.value)}
-                            rows={3}
-                            placeholder="what was happening on this day — a memory, a context, something you want to remember"
-                            className="w-full bg-bg border border-hairline p-2 text-[13.5px] text-ink serif leading-relaxed"
-                            style={{ resize: 'vertical' }}
-                          />
-                          <div className="flex gap-3 mt-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                hapticTap('medium');
-                                updateNote(d.dateIso, draftNote.trim());
-                                setEditing(null);
-                                setDays(listSavedDays());
-                              }}
-                              className="btn-ghost"
-                            >
-                              save note
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditing(null)}
-                              className="small-label caps text-ink-faint hover:text-ink"
-                            >
-                              cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      <p
-                        className="small-label caps text-ink-faint mt-3 text-[10px]"
-                        style={{ letterSpacing: '0.14em' }}
-                      >
-                        saved {new Date(d.savedAt).toLocaleDateString()}
-                      </p>
-                    </article>
-                  );
-                })}
+                {month.days.map((d) => renderEntry(d, { keyPrefix: '', withId: true }))}
               </div>
             </section>
           ))}

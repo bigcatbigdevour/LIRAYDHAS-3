@@ -115,7 +115,11 @@ export default function SavedHeatmap({ days, todayIso }: Props) {
                   ? '#8b3a3a55' // faint accent for paragraph-only
                   : '#8b3a3a99'
               : '#2a2a2a';
-            const stroke = c.isToday ? '#f4f1ea' : 'none';
+            // Pinned days get a wine outline. Today gets a cream outline.
+            // Today + pinned: today's outline wins because it's brighter.
+            const isPinned = c.day?.pinned;
+            const stroke = c.isToday ? '#f4f1ea' : isPinned ? '#b22a2a' : 'none';
+            const strokeWidth = c.isToday ? 0.8 : isPinned ? 0.8 : 0;
             // Build a screen-reader-friendly label that distinguishes
             // noted-vs-paragraph-only vs not-saved.
             const status = !c.day
@@ -135,7 +139,7 @@ export default function SavedHeatmap({ days, todayIso }: Props) {
                 onMouseLeave={() => setHover(null)}
                 onFocus={() => setHover({ iso: c.iso, day: c.day })}
                 onBlur={() => setHover(null)}
-                aria-label={`${c.iso} · ${status}${c.isToday ? ' · today' : ''}`}
+                aria-label={`${c.iso} · ${status}${isPinned ? ' · pinned' : ''}${c.isToday ? ' · today' : ''}`}
               >
                 <rect
                   x={x}
@@ -144,7 +148,7 @@ export default function SavedHeatmap({ days, todayIso }: Props) {
                   height={cellSize}
                   fill={fill}
                   stroke={stroke}
-                  strokeWidth={c.isToday ? 0.8 : 0}
+                  strokeWidth={strokeWidth}
                 />
               </a>
             );

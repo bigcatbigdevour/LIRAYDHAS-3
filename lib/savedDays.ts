@@ -29,6 +29,12 @@ export interface SavedDay {
   /** Epoch ms the entry was created. */
   savedAt: number;
   /**
+   * If true, this entry surfaces in the "Pinned" section at the top of
+   * /saved and shows a star in the heatmap. The user is telling the app
+   * "I want to find this one again." Independent of save/note state.
+   */
+  pinned?: boolean;
+  /**
    * Snapshot of the sky / personal-cycle context the day this was saved.
    * Optional because pre-existing saved days don't have it; new saves do.
    * Stored alongside the reading so future anniversaries can compare
@@ -119,6 +125,7 @@ export function saveDay(entry: SavedDay): void {
         paragraph: entry.paragraph || existing.paragraph,
         headline: entry.headline ?? existing.headline,
         note: entry.note ?? existing.note,
+        pinned: entry.pinned ?? existing.pinned,
         snapshot: mergedSnapshot,
         savedAt: existing.savedAt, // preserve original save time
       }
@@ -141,6 +148,15 @@ export function updateNote(dateIso: string, note: string): void {
   // '' would silently keep the entry counted as noted.
   const cleaned = note.trim();
   list[i] = { ...list[i], note: cleaned.length > 0 ? cleaned : undefined };
+  write(list);
+}
+
+/** Toggle the pin flag on an entry. No-op if the entry doesn't exist. */
+export function togglePin(dateIso: string): void {
+  const list = read();
+  const i = list.findIndex((d) => d.dateIso === dateIso);
+  if (i < 0) return;
+  list[i] = { ...list[i], pinned: !list[i].pinned };
   write(list);
 }
 
