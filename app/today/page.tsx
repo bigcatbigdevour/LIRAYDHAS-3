@@ -31,6 +31,7 @@ import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
 import QuickNote from '@/components/QuickNote';
 import { localDateStr, useToday } from '@/lib/localDate';
 import { getLastVisit, markVisited, changesSince, prettyGap, type ChangedBit } from '@/lib/lastVisit';
+import { buildWeeklyDigest, shouldShowWeeklyDigest, markWeeklyShown, type WeeklyDigest } from '@/lib/weeklyDigest';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -66,6 +67,9 @@ export default function TodayPage() {
   // first visit. Filled = polarity flips / chapter steps since last visit.
   const [lastVisit, setLastVisit] = useState<Date | null>(null);
   const [whatsNew, setWhatsNew] = useState<ChangedBit[]>([]);
+  // Weekly digest: once per ISO week, surface "the week behind" with
+  // saved-entries + flips + tag counts. Null = don't show this week.
+  const [digest, setDigest] = useState<WeeklyDigest | null>(null);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
@@ -141,6 +145,16 @@ export default function TodayPage() {
       setWhatsNew(changesSince(blueprint.birth.iso, prev));
     }
     markVisited();
+  }, [blueprint]);
+
+  // Weekly digest — once per ISO week, show "the week behind" until
+  // dismissed. The shouldShow gate prevents the card from re-appearing
+  // for the rest of the week even after a page reload.
+  useEffect(() => {
+    if (!blueprint) return;
+    if (!shouldShowWeeklyDigest()) return;
+    const d = buildWeeklyDigest(blueprint.birth.iso);
+    if (d) setDigest(d);
   }, [blueprint]);
 
   const isSolarReturnToday =
@@ -432,6 +446,68 @@ export default function TodayPage() {
           >
             begin
           </button>
+        </section>
+      )}
+
+      {digest && (
+        <section className="mb-8 border border-hairline p-3 fade-in" aria-label="weekly digest">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <p
+              className="small-label caps text-accent"
+              style={{ letterSpacing: '0.18em' }}
+            >
+              ◆ {digest.label}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                hapticTap('light');
+                markWeeklyShown();
+                setDigest(null);
+              }}
+              className="small-label caps text-ink-faint hover:text-ink text-[10px]"
+              style={{ letterSpacing: '0.16em' }}
+              aria-label="dismiss weekly digest"
+            >
+              dismiss
+            </button>
+          </div>
+          {digest.recentEntries.length > 0 && (
+            <p className="serif text-[14px] text-ink-dim leading-relaxed">
+              You marked{' '}
+              <a href="/saved" className="text-ink hover:text-accent">
+                {digest.recentEntries.length} day{digest.recentEntries.length === 1 ? '' : 's'}
+              </a>
+              {digest.tagCounts.length > 0 && (
+                <>
+                  {' '}— mostly{' '}
+                  <span className="text-ink">
+                    {digest.tagCounts.slice(0, 2).map((t) => t.tag).join(' / ')}
+                  </span>
+                </>
+              )}
+              .
+            </p>
+          )}
+          {digest.recentFlips.length > 0 && (
+            <ul className="mt-1.5 space-y-0.5">
+              {digest.recentFlips.map((f, i) => (
+                <li
+                  key={i}
+                  className="text-[13px] text-ink-dim serif leading-relaxed"
+                >
+                  <span
+                    className="small-label caps text-[10px] text-ink-faint mr-1.5"
+                    style={{ letterSpacing: '0.16em' }}
+                  >
+                    TIDE
+                  </span>
+                  {f.cycleLabel} flipped to <span className="text-ink">{f.positive ? 'rising' : 'descending'}</span>
+                  <span className="text-ink-faint"> · {f.daysAgo}d ago</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 
