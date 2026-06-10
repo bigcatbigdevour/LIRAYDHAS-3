@@ -18,6 +18,7 @@ import {
   type NativePushState,
 } from '@/lib/nativePush';
 import { tap as hapticTap } from '@/lib/haptics';
+import { api } from '@/lib/apiBase';
 
 /**
  * Settings panel for daily reminders. Renders on /about.
@@ -104,7 +105,7 @@ export default function PushNotificationsSection() {
     setBusy(true);
     setMsg(null);
     try {
-      const r = await fetch('/api/push/test', {
+      const r = await fetch(api('/api/push/test'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

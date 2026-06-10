@@ -27,6 +27,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import FirstTimeIntro from '@/components/FirstTimeIntro';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
+import { api } from '@/lib/apiBase';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -58,7 +59,7 @@ export default function ChartPage() {
     setNarrativeLoading(true);
     setNarrativeError(null);
     try {
-      const res = await fetch('/api/narrative', {
+      const res = await fetch(api('/api/narrative'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),

@@ -20,18 +20,30 @@ import type { CapacitorConfig } from '@capacitor/cli';
  *    to `/api/*` need to be routed to a remote API base — set
  *    `NEXT_PUBLIC_API_BASE` for the build.
  */
+// Toggle build mode via BUILD_TARGET=ios when running ios:build.
+// In static mode the .ipa ships its own HTML/JS in `out/` and only the
+// /api/* calls hit Vercel; in remote mode the WebView loads the
+// Vercel URL directly (faster iteration, more App Review risk).
+const STATIC_BUILD = process.env.BUILD_TARGET === 'ios';
+
 const config: CapacitorConfig = {
   appId: 'com.liraydhas.app',
   appName: 'Liraydhas',
-  // Lightweight fallback shipped in the .ipa. Used by WKWebView only if
-  // server.url below is unreachable. Switch to 'out' when going STATIC.
-  webDir: 'ios-www',
-  // Comment out the server block when shipping a fully-offline static
-  // build. With this present, the iOS app loads the Vercel URL.
-  server: {
-    url: 'https://liraydhas-3.vercel.app',
-    cleartext: false,
-  },
+  // STATIC mode → `out/` is produced by `next build --output export`
+  //   and contains every page as standalone HTML.
+  // REMOTE mode → `ios-www/` is a lightweight fallback (a "Connecting…"
+  //   splash) used only if server.url is unreachable.
+  webDir: STATIC_BUILD ? 'out' : 'ios-www',
+  // Only set server.url in remote mode. In static mode the app loads
+  // its own bundled JS/HTML — App Store guideline 4.2 friendly.
+  ...(STATIC_BUILD
+    ? {}
+    : {
+        server: {
+          url: 'https://liraydhas-3.vercel.app',
+          cleartext: false,
+        },
+      }),
   ios: {
     backgroundColor: '#0a0a0a',
     // Allow inline media on iOS WebView

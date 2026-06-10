@@ -15,6 +15,7 @@
     "ios:assets": "capacitor-assets generate --ios",
     "ios:plist": "node scripts/patch-ios-info-plist.js",
     "ios:prep": "npm run ios:sync && npm run ios:assets && npm run ios:plist",
+    "ios:build": "node scripts/build-ios.js",
     "vapid": "node scripts/generate-vapid-keys.js"
   },
   "dependencies": {

@@ -12,6 +12,8 @@
  * rotation doesn't require a client redeploy).
  */
 
+import { api } from './apiBase';
+
 const SUBSCRIPTION_FLAG = 'liraydhas.push.subscribed.v1';
 
 export type PushState =
@@ -105,7 +107,7 @@ export async function subscribePush(): Promise<{ ok: true } | { ok: false; reaso
   // can't be addressed by the server.
   let vapidPublic: string;
   try {
-    const r = await fetch('/api/push/vapid');
+    const r = await fetch(api('/api/push/vapid'));
     const j = (await r.json()) as { key?: string };
     if (!j.key) {
       return {
@@ -124,7 +126,7 @@ export async function subscribePush(): Promise<{ ok: true } | { ok: false; reaso
       applicationServerKey: urlBase64ToArrayBuffer(vapidPublic),
     });
     const prefs = readClientPrefs();
-    const res = await fetch('/api/push/subscribe', {
+    const res = await fetch(api('/api/push/subscribe'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -157,7 +159,7 @@ export async function unsubscribePush(): Promise<void> {
       await sub.unsubscribe();
       // Best-effort tell the server to forget us too.
       try {
-        await fetch('/api/push/subscribe', {
+        await fetch(api('/api/push/subscribe'), {
           method: 'DELETE',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ endpoint }),

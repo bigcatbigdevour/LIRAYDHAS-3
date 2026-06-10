@@ -9,6 +9,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import FirstTimeIntro from '@/components/FirstTimeIntro';
 import ScrollHint from '@/components/ScrollHint';
 import { friendlyError } from '@/lib/friendlyError';
+import { api } from '@/lib/apiBase';
 import { tap as hapticTap } from '@/lib/haptics';
 import Link from 'next/link';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
@@ -115,7 +116,7 @@ export default function PolarityPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/polarity', {
+      const res = await fetch(api('/api/polarity'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),
@@ -699,7 +700,7 @@ export default function PolarityPage() {
 
 async function downloadCalendar(blueprint: NonNullable<ReturnType<typeof useStore.getState>['blueprint']>, include: string[], baseName: string) {
   try {
-    const res = await fetch('/api/calendar', {
+    const res = await fetch(api('/api/calendar'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ blueprint, include }),

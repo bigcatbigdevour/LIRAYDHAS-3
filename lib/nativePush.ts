@@ -24,6 +24,7 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { readClientPrefs, type ClientPrefs } from './push';
+import { api } from './apiBase';
 
 const TOKEN_KEY = 'liraydhas.apns.token.v1';
 
@@ -111,7 +112,7 @@ export async function registerNativePush(): Promise<
   // kind: 'apns'. Server stores them in the same KV namespace.
   const prefs = readClientPrefs();
   try {
-    const res = await fetch('/api/push/subscribe', {
+    const res = await fetch(api('/api/push/subscribe'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -140,7 +141,7 @@ export async function unregisterNativePush(): Promise<void> {
     const token = window.localStorage.getItem(TOKEN_KEY);
     if (token) {
       try {
-        await fetch('/api/push/subscribe', {
+        await fetch(api('/api/push/subscribe'), {
           method: 'DELETE',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ kind: 'apns', token }),

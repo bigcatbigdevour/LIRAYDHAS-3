@@ -30,6 +30,7 @@ import { bestAnniversary } from '@/lib/savedDays';
 import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
 import QuickNote from '@/components/QuickNote';
 import { localDateStr, useToday } from '@/lib/localDate';
+import { api } from '@/lib/apiBase';
 import { getLastVisit, markVisited, changesSince, prettyGap, type ChangedBit } from '@/lib/lastVisit';
 import { buildWeeklyDigest, shouldShowWeeklyDigest, markWeeklyShown, type WeeklyDigest } from '@/lib/weeklyDigest';
 import type { DailyReport } from '@/lib/types';
@@ -183,7 +184,7 @@ export default function TodayPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/daily', {
+      const res = await fetch(api('/api/daily'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
