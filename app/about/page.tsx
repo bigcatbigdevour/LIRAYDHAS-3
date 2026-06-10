@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store';
 import { fullOverviewText } from '@/lib/fullOverview';
 import { buildFullExport, exportFilename } from '@/lib/fullExport';
 import { clearAllAttachments } from '@/lib/attachments';
+import PushNotificationsSection from '@/components/PushNotificationsSection';
 
 export default function AboutPage() {
   const router = useRouter();
@@ -104,7 +105,8 @@ export default function AboutPage() {
       </dl>
 
       <h2 className="h-display serif mt-12 mb-3" style={{ fontSize: '1.5rem' }}>Settings.</h2>
-      <div className="space-y-3">
+      <PushNotificationsSection />
+      <div className="space-y-3 mt-4">
         <Link href="/chart" className="btn-ghost block">go to your chart →</Link>
         <Link href="/year" className="btn-ghost block">your year ahead →</Link>
         <Link href="/saved" className="btn-ghost block">saved readings →</Link>

@@ -89,6 +89,49 @@ const LLM_ENDPOINTS = new Set([
   '/api/narrative',
 ]);
 
+// === Push notifications ===
+// The server-sent push payload should be JSON with at minimum:
+//   { title, body, url? }
+// `url` defaults to /today if absent.
+self.addEventListener('push', (event) => {
+  let data = { title: 'Liraydhas', body: 'Your reading is ready.', url: '/today' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    // payload wasn't JSON — fall back to a plain text body
+    try {
+      const txt = event.data ? event.data.text() : '';
+      if (txt) data.body = txt;
+    } catch { /* ignore */ }
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/apple-icon',
+      badge: '/icon',
+      data: { url: data.url || '/today' },
+      // Keep the notification quiet — this app's voice doesn't shout.
+      silent: false,
+      requireInteraction: false,
+    }),
+  );
+});
+
+// Clicking the notification focuses an existing tab on the right route,
+// or opens a new one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/today';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if (w.url.endsWith(url) && 'focus' in w) return w.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    }),
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
