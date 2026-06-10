@@ -17,6 +17,7 @@ import {
 } from '@/lib/savedDays';
 import { TAG_PALETTE, TAG_DESCRIPTIONS } from '@/lib/tags';
 import SavedHeatmap from '@/components/SavedHeatmap';
+import EntryReadMode from '@/components/EntryReadMode';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
 import { useToday } from '@/lib/localDate';
@@ -33,6 +34,8 @@ export default function SavedPage() {
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
   // Tag filter: when set, the journal only shows entries with this tag.
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  // dateIso of the entry currently open in full-screen read mode, or null.
+  const [reading, setReading] = useState<string | null>(null);
 
   // Compose-entry state: a pure journal entry without a daily reading.
   // User picks a date and writes a note. Used to backfill, or to journal
@@ -166,6 +169,18 @@ export default function SavedPage() {
             )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                hapticTap('light');
+                setReading(d.dateIso);
+              }}
+              className="small-label caps text-ink-faint hover:text-ink"
+              aria-label="open entry in read mode"
+              title="read this entry full-screen"
+            >
+              read
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -431,6 +446,7 @@ export default function SavedPage() {
   if (!mounted) return null;
 
   return (
+    <>
     <PullToRefresh onRefresh={async () => { setDays(listSavedDays()); }}>
     <main className="page max-w-md mx-auto fade-in">
       <header className="pb-6">
@@ -788,5 +804,23 @@ export default function SavedPage() {
       </section>
     </main>
     </PullToRefresh>
+    {reading && (() => {
+      // Reader navigates through the user's full days list in
+      // most-recent-first order — same order as listSavedDays().
+      const idx = days.findIndex((d) => d.dateIso === reading);
+      if (idx < 0) return null;
+      const day = days[idx];
+      return (
+        <EntryReadMode
+          day={day}
+          onClose={() => setReading(null)}
+          onPrev={() => setReading(days[idx - 1]?.dateIso ?? null)}
+          onNext={() => setReading(days[idx + 1]?.dateIso ?? null)}
+          hasPrev={idx > 0}
+          hasNext={idx < days.length - 1}
+        />
+      );
+    })()}
+    </>
   );
 }
