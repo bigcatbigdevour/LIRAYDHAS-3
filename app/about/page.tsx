@@ -7,6 +7,7 @@ import { fullOverviewText } from '@/lib/fullOverview';
 import { buildFullExport, exportFilename } from '@/lib/fullExport';
 import { importFromFile } from '@/lib/fullImport';
 import { clearAllAttachments } from '@/lib/attachments';
+import { buildLabel } from '@/lib/buildInfo';
 import PushNotificationsSection from '@/components/PushNotificationsSection';
 import { useRef, useState } from 'react';
 
@@ -304,6 +305,19 @@ export default function AboutPage() {
           delete all my data
         </button>
       </div>
+
+      <footer className="mt-16 pb-2 border-t border-hairline pt-6 space-y-2">
+        <p
+          className="small-label caps text-ink-faint text-[10px]"
+          style={{ letterSpacing: '0.18em' }}
+        >
+          build · {buildLabel()}
+        </p>
+        <p className="text-[12px] text-ink-faint serif italic">
+          Liraydhas is a personal-use observational tool. It is not a
+          mental-health service, medical service, or substitute for one.
+        </p>
+      </footer>
     </main>
   );
 }

@@ -19,9 +19,38 @@
 
 const isIosBuild = process.env.BUILD_TARGET === 'ios';
 
+// Build-time stamps surfaced on /about. The git SHA resolves at build
+// time; if we're inside a Vercel build, Vercel sets the env var for us.
+function gitShortSha() {
+  if (process.env.NEXT_PUBLIC_BUILD_COMMIT) {
+    return process.env.NEXT_PUBLIC_BUILD_COMMIT;
+  }
+  if (process.env.VERCEL_GIT_COMMIT_SHA) {
+    return process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7);
+  }
+  try {
+    const { execSync } = require('child_process');
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'dev';
+  }
+}
+
+const buildVersion =
+  process.env.NEXT_PUBLIC_BUILD_VERSION ||
+  require('./package.json').version ||
+  '0.0.0';
+const buildCommit = gitShortSha();
+const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE || new Date().toISOString();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_BUILD_VERSION: buildVersion,
+    NEXT_PUBLIC_BUILD_COMMIT: buildCommit,
+    NEXT_PUBLIC_BUILD_DATE: buildDate,
+  },
   ...(isIosBuild
     ? {
         // Static export. App Router static export works for everything
