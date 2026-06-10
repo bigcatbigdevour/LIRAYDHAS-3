@@ -21,6 +21,7 @@ import { highlightSegments } from '@/lib/highlight';
 import SavedHeatmap from '@/components/SavedHeatmap';
 import EntryReadMode from '@/components/EntryReadMode';
 import PhotoStrip from '@/components/PhotoStrip';
+import VoiceNoteStrip from '@/components/VoiceNoteStrip';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
 import { useToday } from '@/lib/localDate';
@@ -475,6 +476,12 @@ export default function SavedPage() {
         <PhotoStrip
           dateIso={d.dateIso}
           photoIds={d.photoIds ?? []}
+          onChange={() => setDays(listSavedDays())}
+        />
+
+        <VoiceNoteStrip
+          dateIso={d.dateIso}
+          audioIds={d.audioIds ?? []}
           onChange={() => setDays(listSavedDays())}
         />
 

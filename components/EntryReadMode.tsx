@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import type { SavedDay } from '@/lib/savedDays';
 import { tap as hapticTap } from '@/lib/haptics';
 import PhotoStrip from './PhotoStrip';
+import VoiceNoteStrip from './VoiceNoteStrip';
 
 interface Props {
   day: SavedDay;
@@ -198,6 +199,12 @@ export default function EntryReadMode({
           photoIds={day.photoIds ?? []}
           onChange={() => onPhotoChange?.()}
           variant="reader"
+        />
+
+        <VoiceNoteStrip
+          dateIso={day.dateIso}
+          audioIds={day.audioIds ?? []}
+          onChange={() => onPhotoChange?.()}
         />
 
         <footer className="mt-16 pt-6 border-t border-hairline">

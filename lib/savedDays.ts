@@ -50,6 +50,13 @@ export interface SavedDay {
    */
   photoIds?: string[];
   /**
+   * Attachment ids for voice notes pinned to this entry. Same IndexedDB
+   * storage as photos; same cap rationale. A voice note is a quick
+   * audio capture (MediaRecorder; webm/opus by default in Chromium and
+   * audio/mp4 in Safari) that lives next to the written note.
+   */
+  audioIds?: string[];
+  /**
    * Snapshot of the sky / personal-cycle context the day this was saved.
    * Optional because pre-existing saved days don't have it; new saves do.
    * Stored alongside the reading so future anniversaries can compare
@@ -100,12 +107,17 @@ function read(): SavedDay[] {
         const cleanPhotos = rawPhotos
           .filter((p): p is string => typeof p === 'string' && p.length > 0)
           .slice(0, 4);
+        const rawAudio = Array.isArray(x.audioIds) ? x.audioIds : [];
+        const cleanAudio = rawAudio
+          .filter((p): p is string => typeof p === 'string' && p.length > 0)
+          .slice(0, 4);
         return {
           ...x,
           note: noteTrim.length > 0 ? noteTrim : undefined,
           snapshot: snap,
           tags: cleanTags.length > 0 ? cleanTags : undefined,
           photoIds: cleanPhotos.length > 0 ? cleanPhotos : undefined,
+          audioIds: cleanAudio.length > 0 ? cleanAudio : undefined,
         };
       });
   } catch {
@@ -158,6 +170,7 @@ export function saveDay(entry: SavedDay): void {
         pinned: entry.pinned ?? existing.pinned,
         tags: entry.tags ?? existing.tags,
         photoIds: entry.photoIds ?? existing.photoIds,
+        audioIds: entry.audioIds ?? existing.audioIds,
         snapshot: mergedSnapshot,
         savedAt: existing.savedAt, // preserve original save time
       }
@@ -258,6 +271,37 @@ export function detachPhoto(dateIso: string, photoId: string): void {
   const cur = list[i].photoIds ?? [];
   const next = cur.filter((p) => p !== photoId);
   list[i] = { ...list[i], photoIds: next.length > 0 ? next : undefined };
+  write(list);
+}
+
+export const MAX_AUDIO_PER_ENTRY = 4;
+
+export function attachAudio(dateIso: string, audioId: string): void {
+  const list = read();
+  const i = list.findIndex((d) => d.dateIso === dateIso);
+  if (i < 0) {
+    list.push({
+      dateIso,
+      paragraph: '',
+      audioIds: [audioId],
+      savedAt: Date.now(),
+    });
+  } else {
+    const cur = list[i].audioIds ?? [];
+    if (cur.length >= MAX_AUDIO_PER_ENTRY) return;
+    if (cur.includes(audioId)) return;
+    list[i] = { ...list[i], audioIds: [...cur, audioId] };
+  }
+  write(list);
+}
+
+export function detachAudio(dateIso: string, audioId: string): void {
+  const list = read();
+  const i = list.findIndex((d) => d.dateIso === dateIso);
+  if (i < 0) return;
+  const cur = list[i].audioIds ?? [];
+  const next = cur.filter((p) => p !== audioId);
+  list[i] = { ...list[i], audioIds: next.length > 0 ? next : undefined };
   write(list);
 }
 
