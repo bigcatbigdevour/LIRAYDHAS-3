@@ -16,6 +16,7 @@ import {
   type SavedDay,
 } from '@/lib/savedDays';
 import { TAG_PALETTE, TAG_DESCRIPTIONS } from '@/lib/tags';
+import { highlightSegments } from '@/lib/highlight';
 import SavedHeatmap from '@/components/SavedHeatmap';
 import EntryReadMode from '@/components/EntryReadMode';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -350,7 +351,15 @@ export default function SavedPage() {
 
         {d.paragraph && (
           <p className="serif text-[14.5px] text-ink leading-relaxed">
-            {d.paragraph}
+            {highlightSegments(d.paragraph, query).map((s, i) =>
+              s.hit ? (
+                <mark key={i} className="bg-accent/30 text-ink rounded-sm px-0.5">
+                  {s.text}
+                </mark>
+              ) : (
+                <span key={i}>{s.text}</span>
+              ),
+            )}
           </p>
         )}
 
@@ -369,7 +378,15 @@ export default function SavedPage() {
               {d.paragraph ? 'your note' : 'journal'}
             </p>
             <p className="serif text-[14px] text-ink whitespace-pre-wrap leading-relaxed">
-              {d.note}
+              {highlightSegments(d.note, query).map((s, i) =>
+                s.hit ? (
+                  <mark key={i} className="bg-accent/30 text-ink rounded-sm px-0.5">
+                    {s.text}
+                  </mark>
+                ) : (
+                  <span key={i}>{s.text}</span>
+                ),
+              )}
             </p>
           </div>
         )}
