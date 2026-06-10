@@ -21,22 +21,44 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <main className="page max-w-md mx-auto fade-in">
-      <header className="pb-6">
-        <p className="small-label caps">Something broke</p>
-        <h1 className="h-display serif mt-3">A small fault.</h1>
-      </header>
-      <p className="serif text-[14.5px] text-ink-dim leading-relaxed">
-        This page hit something it didn't expect. Your saved journal and
-        chart are fine — they live separately.
-      </p>
-      {error.digest && (
-        <p className="small-label caps text-ink-faint mt-3" style={{ letterSpacing: '0.14em' }}>
-          ref · {error.digest}
+    <main className="page max-w-md mx-auto fade-in min-h-screen flex flex-col">
+      <div className="flex-1 flex flex-col items-center justify-center text-center gap-8">
+        {/* A small "fault line" atmospheric mark — a circle interrupted
+            by a single break, voice-matched to the calm-fault feeling. */}
+        <svg viewBox="0 0 80 80" className="w-16 h-16" aria-hidden>
+          <circle cx="40" cy="40" r="30" fill="none" stroke="#f4f1ea" strokeWidth="0.5" opacity="0.45" />
+          <path d="M 20 40 L 36 40 M 44 40 L 60 40" stroke="#8b3a3a" strokeWidth="0.8" opacity="0.85" />
+          <path d="M 36 30 L 44 50" stroke="#8b3a3a" strokeWidth="0.8" opacity="0.85" />
+        </svg>
+        <div>
+          <p
+            className="small-label caps text-ink-faint"
+            style={{ letterSpacing: '0.22em' }}
+          >
+            something broke
+          </p>
+          <h1
+            className="h-display serif mt-3"
+            style={{ fontSize: 'clamp(1.8rem, 6vw, 2.4rem)', lineHeight: 1.2 }}
+          >
+            A small fault.
+          </h1>
+        </div>
+        <p className="serif text-[14.5px] text-ink-dim leading-relaxed max-w-xs">
+          This page hit something it didn't expect. Your saved journal and
+          chart are fine — they live separately.
         </p>
-      )}
-      <div className="mt-8 space-y-2">
-        <button onClick={() => reset()} className="btn-ghost block w-full text-left">
+        {error.digest && (
+          <p className="small-label caps text-ink-faint text-[10px]" style={{ letterSpacing: '0.18em' }}>
+            ref · {error.digest}
+          </p>
+        )}
+      </div>
+      <div className="pb-8 space-y-2">
+        <button
+          onClick={() => reset()}
+          className="btn-ghost block w-full text-left"
+        >
           try again
         </button>
         <Link href="/today" className="btn-ghost block">go to today →</Link>
