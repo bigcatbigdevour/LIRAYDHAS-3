@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getPushState, subscribePush, unsubscribePush, type PushState } from '@/lib/push';
+import {
+  getPushState,
+  subscribePush,
+  unsubscribePush,
+  readClientPrefs,
+  writeClientPrefs,
+  type PushState,
+  type ClientPrefs,
+} from '@/lib/push';
 import { tap as hapticTap } from '@/lib/haptics';
 
 /**
@@ -16,6 +24,21 @@ export default function PushNotificationsSection() {
   const [state, setState] = useState<PushState>({ kind: 'default' });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<ClientPrefs>(() => readClientPrefs());
+
+  function updatePrefs(patch: Partial<ClientPrefs>) {
+    const next: ClientPrefs = {
+      ...prefs,
+      ...patch,
+      types: { ...prefs.types, ...(patch.types ?? {}) },
+    };
+    setPrefs(next);
+    writeClientPrefs(next);
+    // If we're already subscribed, re-POST to update server-side prefs.
+    if (state.kind === 'subscribed') {
+      void subscribePush();
+    }
+  }
 
   useEffect(() => {
     void refresh();
@@ -144,6 +167,59 @@ export default function PushNotificationsSection() {
         <p className="small-label caps text-ink-faint text-[10px] mt-1" style={{ letterSpacing: '0.16em' }}>
           {msg}
         </p>
+      )}
+
+      {state.kind === 'subscribed' && (
+        <div className="mt-3 pt-3 border-t border-hairline space-y-3">
+          <div>
+            <label
+              className="small-label caps text-ink-faint text-[10px] block mb-1"
+              style={{ letterSpacing: '0.16em' }}
+            >
+              ping me at
+            </label>
+            <select
+              value={prefs.hourLocal}
+              onChange={(e) => updatePrefs({ hourLocal: parseInt(e.currentTarget.value, 10) })}
+              className="bg-bg border border-hairline px-2 py-1 text-[13px] text-ink"
+            >
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>
+                  {h.toString().padStart(2, '0')}:00 ({h === 0 ? '12 am' : h < 12 ? `${h} am` : h === 12 ? '12 pm' : `${h - 12} pm`})
+                </option>
+              ))}
+            </select>
+            <span
+              className="small-label caps text-ink-faint text-[9px] ml-2"
+              style={{ letterSpacing: '0.14em' }}
+            >
+              your local time
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            <p
+              className="small-label caps text-ink-faint text-[10px]"
+              style={{ letterSpacing: '0.16em' }}
+            >
+              what to send
+            </p>
+            {([
+              ['daily', 'daily reading'],
+              ['anniversary', 'a year ago today'],
+              ['weekly', 'monday week-behind'],
+            ] as const).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2 text-[13px] text-ink-dim cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={prefs.types[k]}
+                  onChange={(e) => updatePrefs({ types: { ...prefs.types, [k]: e.currentTarget.checked } })}
+                  className="accent-accent"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -47,6 +47,48 @@ function urlBase64ToArrayBuffer(base64: string): ArrayBuffer {
   return buf;
 }
 
+export interface ClientPrefs {
+  hourLocal: number;
+  types: { daily: boolean; anniversary: boolean; weekly: boolean };
+}
+
+export const DEFAULT_CLIENT_PREFS: ClientPrefs = {
+  hourLocal: 8,
+  types: { daily: true, anniversary: true, weekly: true },
+};
+
+const PREFS_KEY = 'liraydhas.push.prefs.v1';
+
+export function readClientPrefs(): ClientPrefs {
+  if (typeof window === 'undefined') return DEFAULT_CLIENT_PREFS;
+  try {
+    const raw = window.localStorage.getItem(PREFS_KEY);
+    if (!raw) return DEFAULT_CLIENT_PREFS;
+    const parsed = JSON.parse(raw) as Partial<ClientPrefs>;
+    return {
+      hourLocal: Math.max(0, Math.min(23, Math.floor(parsed.hourLocal ?? 8))),
+      types: {
+        daily: parsed.types?.daily ?? true,
+        anniversary: parsed.types?.anniversary ?? true,
+        weekly: parsed.types?.weekly ?? true,
+      },
+    };
+  } catch {
+    return DEFAULT_CLIENT_PREFS;
+  }
+}
+
+export function writeClientPrefs(p: ClientPrefs): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+}
+
+/** Local timezone offset in minutes, east-positive. JS getTimezoneOffset is
+ *  west-positive (sign-inverted) so flip it. */
+function currentTzOffsetMin(): number {
+  return -new Date().getTimezoneOffset();
+}
+
 export async function subscribePush(): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (typeof window === 'undefined') return { ok: false, reason: 'no window' };
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
@@ -81,10 +123,18 @@ export async function subscribePush(): Promise<{ ok: true } | { ok: false; reaso
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToArrayBuffer(vapidPublic),
     });
+    const prefs = readClientPrefs();
     const res = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(sub.toJSON()),
+      body: JSON.stringify({
+        ...sub.toJSON(),
+        prefs: {
+          hourLocal: prefs.hourLocal,
+          tzOffsetMin: currentTzOffsetMin(),
+          types: prefs.types,
+        },
+      }),
     });
     if (!res.ok) {
       return { ok: false, reason: `server rejected the subscription (${res.status})` };

@@ -17,10 +17,32 @@
 import { kv } from '@vercel/kv';
 import type { PushSubscription as WebPushSub } from 'web-push';
 
+export interface SubscriptionPrefs {
+  /** Local hour the user wants the daily reminder, 0..23. */
+  hourLocal: number;
+  /** Minutes that hourLocal is offset from UTC. Positive = east of UTC. */
+  tzOffsetMin: number;
+  /** Which kinds of notifications to send. */
+  types: {
+    daily: boolean;
+    anniversary: boolean;
+    weekly: boolean;
+  };
+}
+
+export const DEFAULT_PREFS: SubscriptionPrefs = {
+  hourLocal: 8,
+  tzOffsetMin: 0,
+  types: { daily: true, anniversary: true, weekly: true },
+};
+
 export interface StoredSubscription {
   endpoint: string;
   keys: { p256dh: string; auth: string };
   createdAt: number;
+  /** User-controlled send-time + per-type toggles. Defaults applied if
+   *  missing (subscriptions saved before this field existed). */
+  prefs?: SubscriptionPrefs;
 }
 
 interface Backend {

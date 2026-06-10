@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { addSub, removeSub } from '@/lib/pushStore';
+import { addSub, removeSub, DEFAULT_PREFS, type SubscriptionPrefs } from '@/lib/pushStore';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,6 +12,21 @@ export function OPTIONS(req: Request) {
 interface SubscribeBody {
   endpoint?: string;
   keys?: { p256dh?: string; auth?: string };
+  prefs?: Partial<SubscriptionPrefs>;
+}
+
+function normalizePrefs(p: Partial<SubscriptionPrefs> | undefined): SubscriptionPrefs {
+  const merged = { ...DEFAULT_PREFS, ...(p ?? {}) };
+  // Clamp hour 0..23 and tzOffset -720..840 (-12h to +14h covers all
+  // real timezones including Kiritimati at +14).
+  merged.hourLocal = Math.max(0, Math.min(23, Math.floor(merged.hourLocal)));
+  merged.tzOffsetMin = Math.max(-720, Math.min(840, Math.floor(merged.tzOffsetMin)));
+  merged.types = {
+    daily: !!merged.types?.daily,
+    anniversary: !!merged.types?.anniversary,
+    weekly: !!merged.types?.weekly,
+  };
+  return merged;
 }
 
 /**
@@ -44,6 +59,7 @@ export async function POST(req: Request) {
     endpoint: body.endpoint,
     keys: { p256dh: body.keys.p256dh, auth: body.keys.auth },
     createdAt: Date.now(),
+    prefs: normalizePrefs(body.prefs),
   });
   return withCors(NextResponse.json({ ok: true }), req);
 }

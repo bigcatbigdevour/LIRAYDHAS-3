@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { listSubs, removeSub, toWebPush } from '@/lib/pushStore';
+import { listSubs, removeSub, toWebPush, DEFAULT_PREFS } from '@/lib/pushStore';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,11 +53,23 @@ export async function GET(req: Request) {
   });
 
   const subs = await listSubs();
+  // Cron runs hourly (vercel.json). Each subscriber gets the ping when
+  // their LOCAL hour matches their preferred hour. We compute "their
+  // current local hour" as (UTC hour + tzOffsetMin/60) mod 24.
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const eligible = subs.filter((s) => {
+    const p = s.prefs ?? DEFAULT_PREFS;
+    if (!p.types.daily) return false;
+    const localHour = ((utcHour + Math.floor(p.tzOffsetMin / 60)) % 24 + 24) % 24;
+    return localHour === p.hourLocal;
+  });
+
   let sent = 0;
   let failed = 0;
   let pruned = 0;
   await Promise.all(
-    subs.map(async (s) => {
+    eligible.map(async (s) => {
       try {
         await webpush.sendNotification(toWebPush(s), payload);
         sent++;
@@ -81,6 +93,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ranAt: new Date().toISOString(),
     subscribers: subs.length,
+    eligible: eligible.length,
     sent,
     failed,
     pruned,
