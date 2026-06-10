@@ -30,6 +30,7 @@ import { bestAnniversary } from '@/lib/savedDays';
 import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
 import QuickNote from '@/components/QuickNote';
 import { localDateStr, useToday } from '@/lib/localDate';
+import { getLastVisit, markVisited, changesSince, prettyGap, type ChangedBit } from '@/lib/lastVisit';
 import type { DailyReport } from '@/lib/types';
 
 const PRETTY_ASPECT: Record<string, string> = {
@@ -61,6 +62,10 @@ export default function TodayPage() {
   // /today visit after onboarding (flag set by the onboarding page).
   // Self-clears after acknowledgement so future visits are uneventful.
   const [showWelcome, setShowWelcome] = useState(false);
+  // "Since you were last here" card. Empty list = no notable changes, or
+  // first visit. Filled = polarity flips / chapter steps since last visit.
+  const [lastVisit, setLastVisit] = useState<Date | null>(null);
+  const [whatsNew, setWhatsNew] = useState<ChangedBit[]>([]);
   const [todayHd, setTodayHd] = useState<UserTransits | null>(null);
   const [forecast, setForecast] = useState<UpcomingAspect[] | null>(null);
   const [retrogrades, setRetrogrades] = useState<PlanetName[]>([]);
@@ -122,6 +127,21 @@ export default function TodayPage() {
       setShowWelcome(true);
     }
   }, []);
+
+  // "What changed since last visit" — read the previous timestamp BEFORE
+  // overwriting it, compute the diff, then mark this visit. Gap < 1h is
+  // treated as the same visit (no card) so back-and-forth navigation
+  // doesn't keep firing this.
+  useEffect(() => {
+    if (!blueprint) return;
+    const prev = getLastVisit();
+    const gapMs = prev ? Date.now() - prev.getTime() : Infinity;
+    if (prev && gapMs >= 3600_000) {
+      setLastVisit(prev);
+      setWhatsNew(changesSince(blueprint.birth.iso, prev));
+    }
+    markVisited();
+  }, [blueprint]);
 
   const isSolarReturnToday =
     solarReturnDays !== null && (solarReturnDays < 1 || solarReturnDays > 364.5);
@@ -357,6 +377,33 @@ export default function TodayPage() {
           </section>
         );
       })()}
+
+      {whatsNew.length > 0 && lastVisit && !showWelcome && (
+        <section className="mb-8 border-l-2 border-accent pl-3 py-1 fade-in">
+          <p
+            className="small-label caps text-accent"
+            style={{ letterSpacing: '0.18em' }}
+          >
+            since you were last here · {prettyGap(lastVisit)}
+          </p>
+          <ul className="mt-1.5 space-y-0.5">
+            {whatsNew.map((b, i) => (
+              <li
+                key={i}
+                className="text-[13.5px] text-ink-dim serif leading-relaxed"
+              >
+                <span
+                  className="small-label caps text-[10px] text-ink-faint mr-1.5"
+                  style={{ letterSpacing: '0.16em' }}
+                >
+                  {b.kind}
+                </span>
+                {b.text}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {showWelcome && (
         <section className="mb-8 border border-accent p-4 fade-in">
