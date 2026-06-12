@@ -6,6 +6,7 @@ import InstallHint from '@/components/InstallHint';
 import PixelCreatures from '@/components/PixelCreatures';
 import OfflineBanner from '@/components/OfflineBanner';
 import RegisterServiceWorker from '@/components/RegisterServiceWorker';
+import Announcer from '@/components/Announcer';
 
 const sans = Inter({
   subsets: ['latin'],
@@ -64,6 +65,7 @@ export default function RootLayout({
         <TabBar />
         <InstallHint />
         <RegisterServiceWorker />
+        <Announcer />
       </body>
     </html>
   );

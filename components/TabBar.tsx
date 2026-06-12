@@ -35,13 +35,15 @@ export default function TabBar() {
               <Link
                 href={href}
                 onClick={() => { if (!active) tap('light'); }}
-                className={`flex flex-col items-center justify-center gap-1 py-3 text-[10px] ${
+                className={`flex flex-col items-center justify-center gap-1 py-3 text-[10px] tap-target ${
                   active ? 'text-ink' : 'text-ink-faint'
                 }`}
                 style={{ letterSpacing: '0.18em' }}
+                aria-current={active ? 'page' : undefined}
+                aria-label={`${label}${active ? ' (current page)' : ''}`}
               >
                 <Icon active={active} />
-                <span className="uppercase">{label}</span>
+                <span className="uppercase" aria-hidden>{label}</span>
               </Link>
             </li>
           );

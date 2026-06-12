@@ -179,10 +179,42 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   animation: station-flash 2s ease-out;
 }
 
-/* keyboard focus ring — visible without being loud */
+/* keyboard focus ring — visible without being loud. Accent for high
+   contrast against the dark background; offset so it doesn't hug the
+   character glyph. Inputs get a thicker ring because they're frequently
+   the focus target on forms. */
 *:focus-visible {
-  outline: 1px solid var(--ink-dim);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 2px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Screen-reader-only utility — hide visually but keep accessible. Used
+   for live regions and labels we don't want to render visually. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Minimum touch target — applies to standalone tap buttons that would
+   otherwise be smaller than Apple's 44pt guideline. Opt-in via the
+   .tap-target class so we don't bloat dense list rows. */
+.tap-target {
+  min-width: 44px;
+  min-height: 44px;
 }
 
 /* respect prefers-reduced-motion: kill ambient/continuous animations,

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { isSaved, saveDay, unsaveDay, updateNote, listSavedDays, type SavedDay } from '@/lib/savedDays';
 import { tap as hapticTap } from '@/lib/haptics';
 import { rescheduleAnniversaries } from '@/lib/localNotifications';
+import { announce } from './Announcer';
 
 interface Props {
   /** ISO date (YYYY-MM-DD) for the reading. */
@@ -108,6 +109,7 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     });
     refresh();
     setNoteOpen(true);
+    announce('reading saved to journal');
     // Update local-notification anniversaries so this new entry's "one
     // year from now" ping joins the schedule. No-op on web.
     void rescheduleAnniversaries();
@@ -115,6 +117,7 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
 
   const onUnsave = () => {
     hapticTap('light');
+    announce('reading removed from journal');
     // Schedule a reshuffle so the unsaved day's anniversary stops firing.
     void rescheduleAnniversaries();
     if (noteOpen && draftNote.trim() && !confirm('Discard your unsaved note and remove this day?')) return;
@@ -129,6 +132,7 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     updateNote(dateIso, draftNote.trim());
     setNoteOpen(false);
     refresh();
+    announce(existingNote ? 'note updated' : 'note added');
     // Schedule a soft "what landed since you wrote this?" prompt for
     // five minutes from now. Captures reflection-after-the-fact, when
     // the day has had time to settle.
