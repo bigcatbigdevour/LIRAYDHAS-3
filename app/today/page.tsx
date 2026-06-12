@@ -29,6 +29,7 @@ import SaveDayButton from '@/components/SaveDayButton';
 import AskTheDay from '@/components/AskTheDay';
 import ProGate from '@/components/ProGate';
 import UpgradeNudge from '@/components/UpgradeNudge';
+import WelcomeTour from '@/components/WelcomeTour';
 import { bestAnniversary } from '@/lib/savedDays';
 import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
 import QuickNote from '@/components/QuickNote';
@@ -424,33 +425,12 @@ export default function TodayPage() {
       )}
 
       {showWelcome && (
-        <section className="mb-8 border border-accent p-4 fade-in">
-          <p
-            className="small-label caps text-accent"
-            style={{ letterSpacing: '0.18em' }}
-          >
-            ✦ your first reading
-          </p>
-          <p className="serif text-[14.5px] text-ink mt-2 leading-relaxed">
-            The reading below is for today only — it's built from your
-            chart and the sky right now. Save it with{' '}
-            <span className="text-ink">☆ save</span> if you want to keep
-            it. There's nothing here to learn first; this can just be
-            the start.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              hapticTap('light');
-              try { window.localStorage.removeItem('liraydhas.welcome.v1'); } catch { /* ignore */ }
-              setShowWelcome(false);
-            }}
-            className="small-label caps text-ink-faint hover:text-ink mt-3"
-            style={{ letterSpacing: '0.16em' }}
-          >
-            begin
-          </button>
-        </section>
+        <WelcomeTour
+          onDone={() => {
+            try { window.localStorage.removeItem('liraydhas.welcome.v1'); } catch { /* ignore */ }
+            setShowWelcome(false);
+          }}
+        />
       )}
 
       {digest && (
