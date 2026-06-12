@@ -27,6 +27,8 @@ import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import SaveDayButton from '@/components/SaveDayButton';
 import AskTheDay from '@/components/AskTheDay';
+import ProGate from '@/components/ProGate';
+import UpgradeNudge from '@/components/UpgradeNudge';
 import { bestAnniversary } from '@/lib/savedDays';
 import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
 import QuickNote from '@/components/QuickNote';
@@ -817,7 +819,17 @@ export default function TodayPage() {
                 ageYears: Math.round(ageInYears(blueprint.birth.iso) * 10) / 10,
               }}
             />
-            <AskTheDay blueprint={blueprint} />
+            <ProGate
+              feature="Ask the day grounds chart-specific answers to your one-line questions in today's transits."
+              fallback={
+                <UpgradeNudge
+                  label="+ ask the day"
+                  caption="Pro · type a context, get a paragraph"
+                />
+              }
+            >
+              <AskTheDay blueprint={blueprint} />
+            </ProGate>
           </section>
         );
       })()}

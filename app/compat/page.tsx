@@ -19,6 +19,7 @@ import { localDateStr } from '@/lib/localDate';
 import { ageInYears } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import FirstTimeIntro from '@/components/FirstTimeIntro';
+import ProGate from '@/components/ProGate';
 import type { GeocodeResult, SynastryReading } from '@/lib/types';
 
 const RELATIONS = ['partner', 'family', 'friend', 'colleague', 'ex', 'other'] as const;
@@ -129,6 +130,16 @@ export default function CompatPage() {
           </p>
         </FirstTimeIntro>
       </header>
+
+      <ProGate
+        feature="Compatibility pairs two charts AND the moment each person is in their own life. Add as many partners as you want."
+        features={[
+          'Add partner, family, friend, ex, colleague — anyone whose chart you want next to yours.',
+          'Cross-chart aspects, electric channels that complete only between you, plus the life-stage context that changes how the connection lands.',
+          'Each partner reading regenerates on demand.',
+          'Partners live only on your device — no sharing, no inviting.',
+        ]}
+      >
 
       {/* Partner list */}
       {partners.length > 0 && !showAdd && (
@@ -363,6 +374,8 @@ export default function CompatPage() {
           </button>
         </section>
       )}
+
+      </ProGate>
 
       <section className="mt-12 space-y-2">
         <Link href="/today" className="btn-ghost block">today →</Link>

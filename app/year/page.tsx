@@ -12,6 +12,8 @@ import { yearGlanceText } from '@/lib/yearGlance';
 import { api } from '@/lib/apiBase';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
+import { useSubState, isPro } from '@/lib/subscription';
+import ProGate from '@/components/ProGate';
 import type { YearReading } from '@/lib/types';
 
 export default function YearPage() {
@@ -19,6 +21,8 @@ export default function YearPage() {
   const blueprint = useStore((s) => s.blueprint);
   const year = useStore((s) => s.year);
   const setYear = useStore((s) => s.setYear);
+  const sub = useSubState();
+  const pro = isPro(sub);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,9 +58,13 @@ export default function YearPage() {
 
   useEffect(() => {
     if (!blueprint || year) return;
+    // Don't auto-burn an LLM call for a non-Pro user — they'll see the
+    // paywall instead. When they subscribe, the effect re-runs and
+    // fetches.
+    if (!pro) return;
     void fetchYear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blueprint, year]);
+  }, [blueprint, year, pro]);
 
   const events = useMemo(() => {
     if (!blueprint) return [];
@@ -131,46 +139,50 @@ export default function YearPage() {
       </header>
 
       <section className="mt-6 min-h-[120px]">
-        {loading && !year && (
-          <div>
-            <p
-              className="small-label caps text-ink-faint mb-3"
-              style={{ letterSpacing: '0.18em' }}
-            >
-              composing your year reading
-            </p>
-            <div className="space-y-2 animate-pulse">
-              <div className="h-4 bg-hairline w-11/12" />
-              <div className="h-4 bg-hairline w-10/12" />
-              <div className="h-4 bg-hairline w-9/12" />
-              <div className="h-4 bg-hairline w-8/12" />
+        <ProGate
+          feature="A year-ahead reading that pulls together your upcoming stations, returns, and polarity flips into one paragraph."
+        >
+          {loading && !year && (
+            <div>
+              <p
+                className="small-label caps text-ink-faint mb-3"
+                style={{ letterSpacing: '0.18em' }}
+              >
+                composing your year reading
+              </p>
+              <div className="space-y-2 animate-pulse">
+                <div className="h-4 bg-hairline w-11/12" />
+                <div className="h-4 bg-hairline w-10/12" />
+                <div className="h-4 bg-hairline w-9/12" />
+                <div className="h-4 bg-hairline w-8/12" />
+              </div>
             </div>
-          </div>
-        )}
-        {error && (
-          <div className="border border-hairline p-3">
-            <p className="text-accent text-[13px]">{error}</p>
+          )}
+          {error && (
+            <div className="border border-hairline p-3">
+              <p className="text-accent text-[13px]">{error}</p>
+              <button
+                className="btn-ghost mt-2"
+                onClick={() => { hapticTap('light'); void fetchYear(); }}
+              >
+                try again
+              </button>
+            </div>
+          )}
+          {year?.paragraph && (
+            <p className="body-prose serif text-ink">{year.paragraph}</p>
+          )}
+          {year?.paragraph && (
             <button
-              className="btn-ghost mt-2"
-              onClick={() => { hapticTap('light'); void fetchYear(); }}
+              type="button"
+              onClick={() => { hapticTap('light'); setYear(null); void fetchYear(); }}
+              className="small-label caps text-ink-faint hover:text-ink mt-3 text-[10px]"
+              style={{ letterSpacing: '0.16em' }}
             >
-              try again
+              refresh reading
             </button>
-          </div>
-        )}
-        {year?.paragraph && (
-          <p className="body-prose serif text-ink">{year.paragraph}</p>
-        )}
-        {year?.paragraph && (
-          <button
-            type="button"
-            onClick={() => { hapticTap('light'); setYear(null); void fetchYear(); }}
-            className="small-label caps text-ink-faint hover:text-ink mt-3 text-[10px]"
-            style={{ letterSpacing: '0.16em' }}
-          >
-            refresh reading
-          </button>
-        )}
+          )}
+        </ProGate>
       </section>
 
       {headlines.length > 0 && (

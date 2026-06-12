@@ -22,6 +22,8 @@ import SavedHeatmap from '@/components/SavedHeatmap';
 import EntryReadMode from '@/components/EntryReadMode';
 import PhotoStrip from '@/components/PhotoStrip';
 import VoiceNoteStrip from '@/components/VoiceNoteStrip';
+import ProGate from '@/components/ProGate';
+import UpgradeNudge from '@/components/UpgradeNudge';
 import RecentReadingsStrip from '@/components/RecentReadingsStrip';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
@@ -474,17 +476,37 @@ export default function SavedPage() {
           </div>
         )}
 
-        <PhotoStrip
-          dateIso={d.dateIso}
-          photoIds={d.photoIds ?? []}
-          onChange={() => setDays(listSavedDays())}
-        />
+        <ProGate
+          feature="Pin a photo or a voice note to any journal entry. Everything stays on your device."
+          fallback={
+            (d.photoIds?.length ?? 0) + (d.audioIds?.length ?? 0) > 0 ? (
+              // Existing attachments stay visible as read-only — strips
+              // still render their content but the add buttons are
+              // suppressed by their own gating below in render time.
+              <UpgradeNudge
+                label="+ photo · voice note"
+                caption="Pro · attachments locked while not subscribed"
+              />
+            ) : (
+              <UpgradeNudge
+                label="+ photo · voice note"
+                caption="Pro · attach to any entry"
+              />
+            )
+          }
+        >
+          <PhotoStrip
+            dateIso={d.dateIso}
+            photoIds={d.photoIds ?? []}
+            onChange={() => setDays(listSavedDays())}
+          />
 
-        <VoiceNoteStrip
-          dateIso={d.dateIso}
-          audioIds={d.audioIds ?? []}
-          onChange={() => setDays(listSavedDays())}
-        />
+          <VoiceNoteStrip
+            dateIso={d.dateIso}
+            audioIds={d.audioIds ?? []}
+            onChange={() => setDays(listSavedDays())}
+          />
+        </ProGate>
 
         <p
           className="small-label caps text-ink-faint mt-3 text-[10px]"

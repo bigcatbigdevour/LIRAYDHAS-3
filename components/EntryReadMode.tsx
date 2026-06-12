@@ -5,6 +5,8 @@ import type { SavedDay } from '@/lib/savedDays';
 import { tap as hapticTap } from '@/lib/haptics';
 import PhotoStrip from './PhotoStrip';
 import VoiceNoteStrip from './VoiceNoteStrip';
+import ProGate from './ProGate';
+import UpgradeNudge from './UpgradeNudge';
 
 interface Props {
   day: SavedDay;
@@ -194,18 +196,28 @@ export default function EntryReadMode({
           </p>
         )}
 
-        <PhotoStrip
-          dateIso={day.dateIso}
-          photoIds={day.photoIds ?? []}
-          onChange={() => onPhotoChange?.()}
-          variant="reader"
-        />
+        <ProGate
+          feature="Pin a photo or a voice note to any journal entry. Everything stays on your device."
+          fallback={
+            <UpgradeNudge
+              label="+ photo · voice note"
+              caption="Pro · attach to any entry"
+            />
+          }
+        >
+          <PhotoStrip
+            dateIso={day.dateIso}
+            photoIds={day.photoIds ?? []}
+            onChange={() => onPhotoChange?.()}
+            variant="reader"
+          />
 
-        <VoiceNoteStrip
-          dateIso={day.dateIso}
-          audioIds={day.audioIds ?? []}
-          onChange={() => onPhotoChange?.()}
-        />
+          <VoiceNoteStrip
+            dateIso={day.dateIso}
+            audioIds={day.audioIds ?? []}
+            onChange={() => onPhotoChange?.()}
+          />
+        </ProGate>
 
         <footer className="mt-16 pt-6 border-t border-hairline">
           <p
