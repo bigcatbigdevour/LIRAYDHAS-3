@@ -212,6 +212,54 @@ Submit for Review.
 
 ---
 
+## If you ship Pro (in-app subscription)
+
+The codebase ships a Paywall + ProGate + /pro page already wired to
+`lib/subscription.ts`. The wiring is currently a stub — to make real
+purchases work you need:
+
+### In App Store Connect
+
+- [ ] **My Apps → your app → Subscriptions** → **+** → create a new
+      Subscription Group called "Liraydhas Pro".
+- [ ] Inside the group create two subscriptions:
+      - `com.liraydhas.app.pro.monthly` (Auto-Renewable, monthly tier)
+      - `com.liraydhas.app.pro.annual` (Auto-Renewable, annual tier)
+      Set localized names, descriptions, and screenshots of the
+      paywall.
+- [ ] Generate an **App Store Server API** key:
+      **Users and Access → Keys → In-App Purchase** → **+** → name
+      it. Download the `.p8` (only chance). Note the Key ID + your
+      Issuer ID at the top of the Keys page.
+- [ ] Set Vercel env vars:
+      `APP_STORE_KEY_ID`, `APP_STORE_ISSUER_ID`,
+      `APP_STORE_PRIVATE_KEY` (.p8 file as one line, literal `\n`).
+
+### In the codebase
+
+- [ ] Install a Capacitor IAP plugin. Recommended: **RevenueCat**.
+      ```
+      npm install @revenuecat/purchases-capacitor
+      ```
+      Then in `lib/subscription.ts`, replace the stubbed `purchase()`
+      and `restore()` bodies with the RevenueCat calls noted in the
+      doc comments inside that file.
+- [ ] In `app/api/iap/validate/route.ts`, the real App Store Server
+      API path is sketched in the file's pseudo-code block. Implement
+      it before going to TestFlight.
+- [ ] Wrap any feature you want to gate in `<ProGate>`:
+      ```tsx
+      import ProGate from '@/components/ProGate';
+      <ProGate feature="Ask the day answers your one-line questions
+                        through today's transits.">
+        <AskTheDay blueprint={blueprint} />
+      </ProGate>
+      ```
+
+### In Xcode
+
+- [ ] **Signing & Capabilities → + Capability** → **In-App Purchase**.
+
 ## Common pitfalls
 
 - **"Untrusted Developer" on first install via TestFlight** — Settings →
