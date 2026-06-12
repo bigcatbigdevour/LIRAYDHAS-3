@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { TYPE_DESCRIPTIONS, AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { CENTER_MEANINGS } from '@/lib/humandesign/centerMeanings';
 import { CYCLES } from '@/lib/cycles';
+import { LIFE_STATIONS } from '@/lib/lifeStations';
 
 // Light-weight collapsible — no library, no animation lib, just a button
 // + a div. Each section is independently expandable so a reader can dip
@@ -75,8 +76,11 @@ export default function LearnPage() {
         <a href="#astrology" className="hover:text-ink">astrology</a>
         <a href="#chart" className="hover:text-ink">the body chart</a>
         <a href="#cycles" className="hover:text-ink">cycles</a>
+        <a href="#stations" className="hover:text-ink">life-stations</a>
         <a href="#polarity" className="hover:text-ink">polarity</a>
+        <a href="#compat" className="hover:text-ink">compatibility</a>
         <a href="#math" className="hover:text-ink">the math</a>
+        <a href="#glossary" className="hover:text-ink">glossary</a>
       </nav>
 
       {/* === ASTROLOGY === */}
@@ -357,6 +361,55 @@ export default function LearnPage() {
         </Collapse>
       </section>
 
+      {/* === LIFE STATIONS === */}
+      <section id="stations" className="mt-12 scroll-mt-4">
+        <h2 className="h-display serif mb-2" style={{ fontSize: '1.6rem' }}>
+          Life-stations.
+        </h2>
+        <p className="text-[14px] text-ink-dim serif leading-relaxed mb-4">
+          The Arcs tab marks fourteen named ages where multiple cycles
+          converge — the moments that nearly everyone experiences as a
+          structural shift. They aren't deterministic; they describe a
+          recognisable shape, not a script.
+        </p>
+
+        <Collapse title="What each station tends to bring" subtitle="not a forecast — a recognised shape" defaultOpen>
+          {LIFE_STATIONS.map((s) => (
+            <div key={s.age} className="border-l-2 border-hairline pl-3 py-1.5">
+              <p className="serif text-[14px] text-ink">
+                Age {s.age}: <span className="text-ink-dim italic">{s.label}</span>
+              </p>
+              <p
+                className="small-label caps text-[10px] text-ink-faint mt-0.5"
+                style={{ letterSpacing: '0.1em' }}
+              >
+                {s.convergence}
+              </p>
+              <p className="text-[13px] text-ink-dim serif leading-relaxed mt-1">
+                {s.description}
+              </p>
+            </div>
+          ))}
+        </Collapse>
+
+        <Collapse title="What they don't mean" subtitle="reading the math without superstition">
+          <p>
+            A life-station is a moment when several of the cycles
+            you&apos;re inside happen to cross on the same age. It tells
+            you something predictable about TIMING — that change is more
+            likely to arrive — without prescribing the CONTENT of that
+            change. Two people born a year apart hit the same station
+            at the same calendar age and live entirely different things
+            inside it.
+          </p>
+          <p>
+            They aren&apos;t doom or destiny. They&apos;re a structural
+            heads-up: the system is asking for an upgrade right around
+            now. What that upgrade looks like is yours.
+          </p>
+        </Collapse>
+      </section>
+
       {/* === POLARITY === */}
       <section id="polarity" className="mt-12 scroll-mt-4">
         <h2 className="h-display serif mb-2" style={{ fontSize: '1.6rem' }}>
@@ -394,6 +447,77 @@ export default function LearnPage() {
             years. Chiron every ~25. The Polarity tab shows recent flips
             (last 14 days), upcoming flips, and a forecast 6 months / 12
             months / 2 years / 5 years ahead.
+          </p>
+        </Collapse>
+      </section>
+
+      {/* === COMPATIBILITY === */}
+      <section id="compat" className="mt-12 scroll-mt-4">
+        <h2 className="h-display serif mb-2" style={{ fontSize: '1.6rem' }}>
+          Compatibility.
+        </h2>
+        <p className="text-[14px] text-ink-dim serif leading-relaxed mb-4">
+          The Compatibility tab pairs your chart with another person&apos;s
+          and writes about how the two meet — but it always layers in
+          where each of you is in your own life at the same moment. The
+          same chart contact lands differently when one of you is
+          approaching a Saturn return and the other is mid-Chiron.
+        </p>
+
+        <Collapse title="What it looks at" defaultOpen>
+          <ul className="space-y-2">
+            <li>
+              <span className="text-ink">Cross-chart contacts</span>{' '}
+              — the tightest aspects between your Sun, Moon, Mercury,
+              Venus, Mars, and North Node and theirs. The slow outer
+              planets are skipped because their cross-chart aspects are
+              generational, not personal.
+            </li>
+            <li>
+              <span className="text-ink">Electric channels</span>{' '}
+              — channels where you carry one gate, they carry the other,
+              and neither of you carries both. The current only flows
+              when you&apos;re connected. Useful when something
+              meaningfully changes about how you operate when this
+              specific person is in the room.
+            </li>
+            <li>
+              <span className="text-ink">Life-stage context</span>{' '}
+              — your current age, life chapter, and polarity stack
+              alongside theirs. A reading marks whether you&apos;re in
+              the same chapter or different ones, and the age gap.
+            </li>
+          </ul>
+        </Collapse>
+
+        <Collapse title="What it deliberately doesn't do">
+          <ul className="space-y-2">
+            <li>It does not predict whether the relationship works.</li>
+            <li>
+              It does not use the words &ldquo;soulmate&rdquo;,
+              &ldquo;twin flame&rdquo;, &ldquo;karmic&rdquo;,
+              &ldquo;destined&rdquo;, or &ldquo;meant to be.&rdquo;
+            </li>
+            <li>
+              It does not tell you what to do with someone. It tells
+              you what the connection is currently shaped like, given
+              who you each are right now.
+            </li>
+          </ul>
+        </Collapse>
+
+        <Collapse title="Who to add" subtitle="anyone whose chart you want next to yours">
+          <p>
+            Partner, child, parent, sibling, close friend, ex, boss,
+            collaborator. Anyone. The tab doesn&apos;t assume romance.
+            You can add as many people as you want; each lives on your
+            device.
+          </p>
+          <p>
+            You only need their birth date, time (if known), and place.
+            If birth time is unknown the reading is still useful; the
+            chart is computed for noon at their birth place and the
+            rising-sign-dependent contacts are skipped.
           </p>
         </Collapse>
       </section>
@@ -461,6 +585,26 @@ export default function LearnPage() {
         </Collapse>
       </section>
 
+      {/* === GLOSSARY === */}
+      <section id="glossary" className="mt-12 scroll-mt-4">
+        <h2 className="h-display serif mb-2" style={{ fontSize: '1.6rem' }}>
+          Glossary.
+        </h2>
+        <p className="text-[14px] text-ink-dim serif leading-relaxed mb-4">
+          Words this app uses, in the order you&apos;ll hit them.
+        </p>
+        <dl className="space-y-3 text-[13.5px] serif">
+          {GLOSSARY_TERMS.map(({ term, def }) => (
+            <div key={term} className="border-l-2 border-hairline pl-3 py-1">
+              <dt className="small-label caps text-ink" style={{ letterSpacing: '0.14em' }}>
+                {term}
+              </dt>
+              <dd className="text-ink-dim mt-1 leading-relaxed">{def}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
       <div className="mt-12 pt-6 border-t border-hairline">
         <p className="text-[12px] text-ink-faint serif">
           Every reading in the app is built from the pieces explained on
@@ -506,4 +650,36 @@ const PLANETS: [string, string][] = [
   ['Pluto',   'Underworld, power, what compulsively transforms in you. Slow, irreversible.'],
   ['North Node', 'The direction your life is pulling you toward — uncomfortably new.'],
   ['Chiron',  'The original wound that becomes, with work, the original teaching.'],
+];
+
+/**
+ * Glossary entries — added as the user encounters them in the app.
+ * Roughly ordered by first encounter (onboarding → /today → /chart →
+ * /polarity → /arcs → /compat).
+ */
+const GLOSSARY_TERMS: Array<{ term: string; def: string }> = [
+  { term: 'Blueprint', def: 'The full computed picture of you from your birth data: your natal astrology chart plus your body chart. Lives only on this device.' },
+  { term: 'Natal chart', def: 'The map of the sky at the exact moment you were born — every planet, the sun, the moon, the angles. The basis of every reading.' },
+  { term: 'Transit', def: 'Where a planet is right now relative to its position when you were born. "Saturn square Sun" means transiting Saturn is currently 90° from where your natal Sun is.' },
+  { term: 'Aspect', def: 'A specific angular relationship between two planets. Conjunction (same place), sextile (60°), square (90°), trine (120°), opposition (180°). Each has a feel.' },
+  { term: 'Orb', def: 'How close to exact an aspect is, in degrees. A 0.4° orb is much tighter and more felt than a 6° one.' },
+  { term: 'Rising sign', def: 'The zodiac sign on the eastern horizon when you were born. Shapes how you arrive in a room — your first-impression layer.' },
+  { term: 'Body chart', def: 'The Human Design chart — nine centres connected by thirty-six channels, sixty-four gates. Tells you how you make decisions and where you broadcast vs. absorb.' },
+  { term: 'Gate', def: 'One of 64 specific zones of the zodiac wheel that maps to the I Ching hexagrams. Each gate brings a specific theme.' },
+  { term: 'Channel', def: 'Two connected gates between two centres. When both gates are active (in your natal chart), the channel is defined and the centres are connected.' },
+  { term: 'Defined centre', def: 'A centre with at least one fully-active channel terminating in it. Broadcasts its energy consistently — you feel reliably "yourself" in that domain.' },
+  { term: 'Open centre', def: 'A centre with no fully-active channel terminating in it. Absorbs and amplifies whoever you\'re around. The site of much of your conditioning.' },
+  { term: 'Type', def: 'The five Human Design types — Manifestor, Generator, Manifesting Generator, Projector, Reflector. Determined by which centres are defined.' },
+  { term: 'Authority', def: 'How your body knows what\'s right for you. Sacral, Splenic, Emotional, Ego, Self-projected, Mental, Lunar. Not a thinking process.' },
+  { term: 'Profile', def: 'Two numbers, e.g. 6/2, made from the lines of your Sun gates. A high-level description of how you move through the world.' },
+  { term: 'Cycle', def: 'A planet\'s orbital period — Saturn returns every ~29.5 years, Jupiter every ~12. You are inside multiple cycles at every age.' },
+  { term: 'Return', def: 'The moment a planet finishes one full orbit since you were born. Saturn return at ~29, Chiron return at ~50.' },
+  { term: 'Rising / Descending', def: 'A cycle\'s first half is "rising" — building, accumulating. The second half is "descending" — completing, releasing. Both halves are necessary.' },
+  { term: 'Flip', def: 'The midpoint of a cycle — the exact moment rising switches to descending or back. The slow cycles\' flips are felt as mood shifts.' },
+  { term: 'Polarity stack', def: 'The total picture of which of your cycles are currently rising and which are descending. A mostly-rising stack feels like an opening season.' },
+  { term: 'Life-station', def: 'A named age where multiple cycles converge (e.g. Saturn return at 29, midlife around 45). The structural moments nearly everyone hits at roughly the same age.' },
+  { term: 'Life chapter', def: 'A larger arc that spans several stations — childhood, adolescence, young adulthood, midlife, late life, elderhood. Coarser than a station, deeper than a cycle.' },
+  { term: 'Synastry', def: 'The set of cross-chart aspects between two people\'s natal charts. What this app calls the Compatibility tab.' },
+  { term: 'Electric channel', def: 'A Human Design channel where you carry one gate, the other person carries the other, and neither of you has both. The current only flows when you\'re connected.' },
+  { term: 'Takeaway', def: 'The one-line italic that appears above your daily reading. The reading distilled to a glance, written by the same model that wrote the paragraph below.' },
 ];
