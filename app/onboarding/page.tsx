@@ -10,7 +10,7 @@ import { localDateStr } from '@/lib/localDate';
 import { friendlyError } from '@/lib/friendlyError';
 import type { GeocodeResult } from '@/lib/types';
 
-type Step = 'intro' | 'form';
+type Step = 'intro' | 'disclaim' | 'form';
 
 export default function Onboarding() {
   // useSearchParams requires a Suspense boundary in the App Router; the
@@ -176,9 +176,93 @@ function OnboardingInner() {
           </p>
         </div>
         <div className="pb-10">
-          <button className="btn-primary" onClick={() => setStep('form')}>
+          <button className="btn-primary" onClick={() => setStep('disclaim')}>
             Begin
           </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (step === 'disclaim') {
+    // A small "what this is and isn't" interstitial before the form.
+    // Heads off App Review concerns about astrology / spirituality apps
+    // making health, financial, or predictive claims. Also sets honest
+    // expectations for the user before they invest birth data.
+    return (
+      <main className="page max-w-md mx-auto fade-in min-h-screen flex flex-col">
+        <header className="pt-2 pb-4">
+          <button
+            onClick={() => setStep('intro')}
+            className="small-label caps text-ink-faint hover:text-ink"
+          >
+            ← back
+          </button>
+        </header>
+        <div className="flex-1 flex flex-col gap-6 justify-center max-w-sm mx-auto">
+          <div>
+            <p
+              className="small-label caps text-accent mb-3"
+              style={{ letterSpacing: '0.22em' }}
+            >
+              before you enter your birth data
+            </p>
+            <h2
+              className="serif text-ink"
+              style={{ fontSize: 'clamp(1.4rem, 5vw, 1.7rem)', lineHeight: 1.25 }}
+            >
+              What this is, and isn't.
+            </h2>
+          </div>
+          <ul className="space-y-3 text-[14px] text-ink-dim serif leading-relaxed">
+            <li className="flex gap-2">
+              <span className="text-accent" aria-hidden>·</span>
+              <span>
+                <span className="text-ink">An observational tool</span> for
+                pairing your natal astrology with your body chart and
+                watching where the sky moves through them.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-accent" aria-hidden>·</span>
+              <span>
+                <span className="text-ink">Your data lives on this device.</span>{' '}
+                Birth blueprint and journal stay in this app's local
+                storage. The math runs locally; only the day's prompt
+                goes to the language model that writes the paragraph.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-ink-faint" aria-hidden>×</span>
+              <span className="text-ink-faint">
+                Not a medical, mental-health, financial, or legal service.
+                Not a prediction. Not a substitute for professional support.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-ink-faint" aria-hidden>×</span>
+              <span className="text-ink-faint">
+                Not "your sign means…" — readings are computed from your
+                full chart and today's transits, not a sun-sign blanket.
+              </span>
+            </li>
+          </ul>
+          <p className="text-[12px] text-ink-faint serif italic leading-relaxed">
+            By continuing you confirm you understand this is for personal
+            reflection, not advice.
+          </p>
+        </div>
+        <div className="pb-10 flex flex-col gap-3 max-w-sm mx-auto w-full">
+          <button className="btn-primary" onClick={() => setStep('form')}>
+            I understand · continue
+          </button>
+          <a
+            href="/privacy"
+            className="small-label caps text-ink-faint hover:text-ink text-center"
+            style={{ letterSpacing: '0.18em' }}
+          >
+            read the full privacy policy →
+          </a>
         </div>
       </main>
     );
@@ -190,7 +274,7 @@ function OnboardingInner() {
         <button
           onClick={() => {
             if (isEdit) router.replace('/chart');
-            else setStep('intro');
+            else setStep('disclaim');
           }}
           className="small-label caps text-ink-faint hover:text-ink"
         >

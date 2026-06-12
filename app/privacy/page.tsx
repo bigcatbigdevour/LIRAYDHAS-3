@@ -85,8 +85,11 @@ export default function PrivacyPage() {
 
         <h2 className="caps small-label pt-4">Contact</h2>
         <p>
-          Questions: open an issue at the project&rsquo;s GitHub
-          repository.
+          Questions or a bug to report: visit the{' '}
+          <Link href="/support" className="text-accent underline">
+            Support page
+          </Link>{' '}
+          inside the app. There&rsquo;s a pre-filled email link there.
         </p>
 
         <p className="text-ink-faint pt-6">Last updated: 2026-06-10.</p>

@@ -117,6 +117,7 @@ export default function AboutPage() {
         <Link href="/year" className="btn-ghost block">your year ahead →</Link>
         <Link href="/saved" className="btn-ghost block">saved readings →</Link>
         <Link href="/compat" className="btn-ghost block">compatibility →</Link>
+        <Link href="/support" className="btn-ghost block">get in touch →</Link>
         <Link href="/learn" className="btn-ghost block">learn the system →</Link>
         <Link href="/onboarding?edit=1" className="btn-ghost block">edit my birth data →</Link>
         <Link href="/privacy" className="btn-ghost block">privacy →</Link>
