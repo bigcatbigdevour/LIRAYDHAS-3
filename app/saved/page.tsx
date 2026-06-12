@@ -22,6 +22,7 @@ import SavedHeatmap from '@/components/SavedHeatmap';
 import EntryReadMode from '@/components/EntryReadMode';
 import PhotoStrip from '@/components/PhotoStrip';
 import VoiceNoteStrip from '@/components/VoiceNoteStrip';
+import RecentReadingsStrip from '@/components/RecentReadingsStrip';
 import PullToRefresh from '@/components/PullToRefresh';
 import { tap as hapticTap } from '@/lib/haptics';
 import { useToday } from '@/lib/localDate';
@@ -761,6 +762,11 @@ export default function SavedPage() {
               ))}
             </nav>
           )}
+
+          <RecentReadingsStrip
+            savedDates={new Set(days.map((d) => d.dateIso))}
+            onSaved={() => setDays(listSavedDays())}
+          />
 
           {pinned.length > 0 && (
             <section className="mb-10">
