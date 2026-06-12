@@ -349,7 +349,7 @@ export default function PolarityPage() {
       </nav>
 
       <section id="stack" className="mt-6 scroll-mt-4">
-        <PolarityBars positions={positions} flips={flips} />
+        <PolarityBars positions={positions} flips={flips} birthIso={blueprint.birth.iso} />
         <ScrollHint label="tap a bar · or scroll" />
       </section>
 

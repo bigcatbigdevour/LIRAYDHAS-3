@@ -1,13 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CyclePosition, PolarityFlip } from '@/lib/cycles';
+import { polarityFlips, positionInCycles, ageInYears } from '@/lib/cycles';
 import { POLARITY_HALVES } from '@/lib/polarityHalves';
 import { CYCLE_PLAIN_LABELS } from '@/lib/cyclePlainLabels';
+import { tap as hapticTap } from '@/lib/haptics';
 
 interface Props {
   positions: CyclePosition[];
   flips?: PolarityFlip[];
+  /** Birth ISO — required for scrubbing (recomputes positions at a
+   *  future/past date). Without it the component renders as before. */
+  birthIso?: string;
 }
 
 function formatDate(d: Date): string {
@@ -22,20 +27,119 @@ function humanDays(d: number): string {
   return `${(abs / 365.25).toFixed(1)} years`;
 }
 
-export default function PolarityBars({ positions, flips }: Props) {
+export default function PolarityBars({ positions, flips, birthIso }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Scrub offset in days from now. 0 = today. Positive = future, negative
+  // = past. Range chosen to cover the next full year of flips and the
+  // last six months of context.
+  const [scrubDays, setScrubDays] = useState(0);
+  const isScrubbing = scrubDays !== 0;
+  const SCRUB_MIN = -180;
+  const SCRUB_MAX = 365;
+
+  // Recompute positions + flips at the scrubbed date when birthIso is
+  // provided. Falls back to the parent-provided positions when not.
+  const scrubbedDate = useMemo(() => {
+    if (!birthIso) return null;
+    const d = new Date();
+    d.setDate(d.getDate() + scrubDays);
+    return d;
+  }, [birthIso, scrubDays]);
+  const scrubbedPositions = useMemo(() => {
+    if (!birthIso || !scrubbedDate) return positions;
+    return positionInCycles(ageInYears(birthIso, scrubbedDate));
+  }, [birthIso, scrubbedDate, positions]);
+  const scrubbedFlips = useMemo(() => {
+    if (!birthIso || !scrubbedDate) return flips;
+    return polarityFlips(birthIso, scrubbedDate);
+  }, [birthIso, scrubbedDate, flips]);
+
+  const renderPositions = isScrubbing && birthIso ? scrubbedPositions : positions;
+  const renderFlips = isScrubbing && birthIso ? scrubbedFlips : flips;
+
   const flipByKey: Record<string, PolarityFlip> = {};
-  for (const f of flips ?? []) flipByKey[f.cycle.key] = f;
+  for (const f of renderFlips ?? []) flipByKey[f.cycle.key] = f;
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => setMounted(true));
     return () => window.cancelAnimationFrame(id);
   }, []);
 
+  // Count flips that occur between now and the scrubbed date — surfaces
+  // the structural shifts the user is dragging through.
+  const flipsInWindow = useMemo(() => {
+    if (!isScrubbing || !birthIso) return 0;
+    const now = new Date();
+    const baseFlips = polarityFlips(birthIso, now);
+    let count = 0;
+    for (const f of baseFlips) {
+      const flipTimeMs = f.endsAt.getTime();
+      const nowMs = now.getTime();
+      const scrubbedMs = scrubbedDate?.getTime() ?? nowMs;
+      // Count flips whose endsAt falls between min(now, scrubbed) and
+      // max(now, scrubbed).
+      const lo = Math.min(nowMs, scrubbedMs);
+      const hi = Math.max(nowMs, scrubbedMs);
+      if (flipTimeMs > lo && flipTimeMs <= hi) count++;
+    }
+    return count;
+  }, [isScrubbing, birthIso, scrubbedDate]);
+
   return (
     <>
+    {birthIso && (
+      <div className="mb-4">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <label
+            className="small-label caps text-ink-faint text-[10px]"
+            style={{ letterSpacing: '0.18em' }}
+          >
+            {isScrubbing
+              ? scrubbedDate
+                ? `${scrubDays > 0 ? '+' : ''}${scrubDays}d · ${formatDate(scrubbedDate)}`
+                : 'scrubbing'
+              : 'drag to see a future date'}
+          </label>
+          {isScrubbing && (
+            <button
+              type="button"
+              onClick={() => { hapticTap('light'); setScrubDays(0); }}
+              className="small-label caps text-ink-faint hover:text-ink text-[10px]"
+              style={{ letterSpacing: '0.16em' }}
+            >
+              reset to today
+            </button>
+          )}
+        </div>
+        <input
+          type="range"
+          min={SCRUB_MIN}
+          max={SCRUB_MAX}
+          step={1}
+          value={scrubDays}
+          onChange={(e) => setScrubDays(parseInt(e.currentTarget.value, 10))}
+          className="w-full age-scrubber"
+          aria-label="scrub the polarity stack to a future or past date"
+        />
+        <div className="flex justify-between mt-1 text-[8px] text-ink-faint caps" style={{ letterSpacing: '0.12em' }}>
+          <span>6m ago</span>
+          <span>today</span>
+          <span>6m</span>
+          <span>1y</span>
+        </div>
+        {isScrubbing && flipsInWindow > 0 && (
+          <p
+            className="small-label caps text-accent text-[10px] mt-2"
+            style={{ letterSpacing: '0.16em' }}
+          >
+            {flipsInWindow} polarity flip{flipsInWindow === 1 ? '' : 's'} in this window
+          </p>
+        )}
+      </div>
+    )}
     <div className="flex justify-end mb-2">
       <button
         type="button"
@@ -51,16 +155,20 @@ export default function PolarityBars({ positions, flips }: Props) {
       </button>
     </div>
     <ul className="space-y-5">
-      {positions.map((p, rowIdx) => {
+      {renderPositions.map((p, rowIdx) => {
         const isPos = p.positive;
         const pct = p.fraction * 100;
         const label = isPos ? 'rising' : 'descending';
         const isOpen = expandAll || expanded === p.cycle.key;
         const flip = flipByKey[p.cycle.key];
         const halfText = POLARITY_HALVES[p.cycle.key];
-        const animDelayMs = rowIdx * 90;
-        const fillWidth = mounted ? Math.min(100, pct) : 0;
-        const markerLeft = mounted ? pct : 0;
+        // While scrubbing, kill the staggered intro animation — bars
+        // should snap to the scrubbed position instantly so the drag
+        // feels live.
+        const animDelayMs = isScrubbing ? 0 : rowIdx * 90;
+        const transitionMs = isScrubbing ? 0 : 900;
+        const fillWidth = (mounted || isScrubbing) ? Math.min(100, pct) : 0;
+        const markerLeft = (mounted || isScrubbing) ? pct : 0;
         return (
           <li key={p.cycle.key} id={`bar-${p.cycle.key}`}>
             <button
@@ -100,14 +208,14 @@ export default function PolarityBars({ positions, flips }: Props) {
                     width: `${fillWidth}%`,
                     height: '50%',
                     background: p.cycle.color,
-                    transition: `width 900ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,
+                    transition: `width ${transitionMs}ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,
                   }}
                 />
                 <div
                   className="absolute top-0 bottom-0 w-px bg-ink polarity-marker-pulse"
                   style={{
                     left: `${markerLeft}%`,
-                    transition: `left 900ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,
+                    transition: `left ${transitionMs}ms cubic-bezier(.22,.61,.36,1) ${animDelayMs}ms`,
                   }}
                 />
               </div>
