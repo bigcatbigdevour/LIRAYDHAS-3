@@ -19,6 +19,7 @@ import {
 } from '@/lib/nativePush';
 import { tap as hapticTap } from '@/lib/haptics';
 import { api } from '@/lib/apiBase';
+import { rescheduleAnniversaries } from '@/lib/localNotifications';
 
 /**
  * Settings panel for daily reminders. Renders on /about.
@@ -58,6 +59,10 @@ export default function PushNotificationsSection() {
       if (native) void registerNativePush();
       else void subscribePush();
     }
+    // Reshuffle the local-notification anniversary schedule whenever
+    // the hour or the anniversary toggle changes. No-op outside
+    // Capacitor.
+    void rescheduleAnniversaries();
   }
 
   useEffect(() => {
@@ -235,8 +240,8 @@ export default function PushNotificationsSection() {
             </p>
             {([
               ['daily', 'daily reading'],
-              ['anniversary', 'a year ago today'],
               ['weekly', 'monday week-behind'],
+              ['anniversary', `a year ago today${native ? '' : ' (in-app only)'}`],
             ] as const).map(([k, label]) => (
               <label key={k} className="flex items-center gap-2 text-[13px] text-ink-dim cursor-pointer">
                 <input

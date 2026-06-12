@@ -52,38 +52,63 @@ export async function GET(req: Request) {
   }
   if (hasWeb) webpush.setVapidDetails(subject as string, pub as string, priv as string);
 
-  const payload = JSON.stringify({
-    title: 'Liraydhas',
-    body: "today's reading is ready.",
-    url: '/today',
-  });
-
   const subs = await listSubs();
   // Cron runs hourly (vercel.json). Each subscriber gets the ping when
   // their LOCAL hour matches their preferred hour. We compute "their
-  // current local hour" as (UTC hour + tzOffsetMin/60) mod 24.
+  // current local hour" as (UTC hour + tzOffsetMin/60) mod 24, and
+  // their local day-of-week by shifting UTC time by tzOffsetMin.
   const now = new Date();
   const utcHour = now.getUTCHours();
-  const eligible = subs.filter((s) => {
+
+  /**
+   * Pick what to send for one subscriber, or null to skip them this hour.
+   *
+   * Priority: weekly (Monday only) wins over daily on the day they
+   * collide, so a Monday-morning subscriber gets the week-behind digest
+   * once a week instead of a duplicate ping.
+   */
+  function chooseSurface(s: typeof subs[number]): { body: string; url: string } | null {
     const p = s.prefs ?? DEFAULT_PREFS;
-    if (!p.types.daily) return false;
     const localHour = ((utcHour + Math.floor(p.tzOffsetMin / 60)) % 24 + 24) % 24;
-    return localHour === p.hourLocal;
-  });
+    if (localHour !== p.hourLocal) return null;
+    // Local day-of-week from a shifted Date. 0 = Sun, 1 = Mon, ..., 6 = Sat.
+    const local = new Date(now.getTime() + p.tzOffsetMin * 60_000);
+    const localDow = local.getUTCDay();
+    if (p.types.weekly && localDow === 1) {
+      return { body: 'the week behind — open when you have a minute.', url: '/today' };
+    }
+    if (p.types.daily) {
+      return { body: "today's reading is ready.", url: '/today' };
+    }
+    // No matching surface — user has anniversary type only, which is
+    // handled by client-side local notifications (Capacitor), not by
+    // this server-side cron.
+    return null;
+  }
+
+  // Resolve each subscriber to a (sub, surface) pair, drop nulls.
+  const eligible = subs
+    .map((s) => ({ sub: s, surface: chooseSurface(s) }))
+    .filter((x): x is { sub: typeof subs[number]; surface: { body: string; url: string } } => x.surface !== null);
 
   let sent = 0;
   let failed = 0;
   let pruned = 0;
   await Promise.all(
-    eligible.map(async (s) => {
+    eligible.map(async ({ sub: s, surface }) => {
+      const payload = JSON.stringify({
+        title: 'Liraydhas',
+        body: surface.body,
+        url: surface.url,
+      });
       try {
         if (s.kind === 'apns') {
           if (!hasApns) return;
           await sendApns({
             token: s.token,
             title: 'Liraydhas',
-            body: "today's reading is ready.",
-            url: '/today',
+            body: surface.body,
+            url: surface.url,
           });
           sent++;
         } else {

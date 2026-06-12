@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { isSaved, saveDay, unsaveDay, updateNote, listSavedDays, type SavedDay } from '@/lib/savedDays';
 import { tap as hapticTap } from '@/lib/haptics';
+import { rescheduleAnniversaries } from '@/lib/localNotifications';
 
 interface Props {
   /** ISO date (YYYY-MM-DD) for the reading. */
@@ -107,10 +108,15 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     });
     refresh();
     setNoteOpen(true);
+    // Update local-notification anniversaries so this new entry's "one
+    // year from now" ping joins the schedule. No-op on web.
+    void rescheduleAnniversaries();
   };
 
   const onUnsave = () => {
     hapticTap('light');
+    // Schedule a reshuffle so the unsaved day's anniversary stops firing.
+    void rescheduleAnniversaries();
     if (noteOpen && draftNote.trim() && !confirm('Discard your unsaved note and remove this day?')) return;
     unsaveDay(dateIso);
     setNoteOpen(false);

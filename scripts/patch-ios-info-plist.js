@@ -41,7 +41,7 @@ const KEYS = [
   },
   {
     key: 'NSUserNotificationsUsageDescription',
-    value: 'Liraydhas sends a quiet daily reminder when your reading is ready.',
+    value: 'Liraydhas sends a quiet daily reminder when your reading is ready, and a "year ago today" anniversary when a journal entry you saved has come around again.',
   },
   {
     key: 'ITSAppUsesNonExemptEncryption',

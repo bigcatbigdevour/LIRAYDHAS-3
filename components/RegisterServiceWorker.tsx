@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { installNativeListeners, isNativeRuntime } from '@/lib/nativePush';
+import { rescheduleAnniversaries } from '@/lib/localNotifications';
 
 /**
  * Registers /sw.js on mount. Kept in its own component so the
@@ -19,9 +20,13 @@ export default function RegisterServiceWorker() {
     if (typeof window === 'undefined') return;
 
     // Native iOS / Android (Capacitor): no service worker, but wire up
-    // the APNs runtime listeners (foreground ping + background tap).
+    // the APNs runtime listeners (foreground ping + background tap)
+    // and refresh the anniversary local-notification schedule.
     if (isNativeRuntime()) {
       void installNativeListeners();
+      // Reschedule on every launch so the OS-held schedule stays
+      // current. Cheap (early-returns when the toggle is off).
+      void rescheduleAnniversaries();
       return;
     }
 
