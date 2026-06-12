@@ -116,6 +116,11 @@ export interface PolarityReading {
   generatedAt: string;
 }
 
+export interface YearReading {
+  paragraph: string;
+  generatedAt: string;
+}
+
 export interface NarrativeReading {
   paragraph: string;
   generatedAt: string;

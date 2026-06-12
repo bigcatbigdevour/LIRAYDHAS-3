@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Blueprint, DailyReport, NarrativeReading, PolarityReading } from './types';
+import type { Blueprint, DailyReport, NarrativeReading, PolarityReading, YearReading } from './types';
 
 interface StoreState {
   blueprint: Blueprint | null;
@@ -12,10 +12,12 @@ interface StoreState {
   history: DailyReport[];
   polarity: PolarityReading | null;
   narrative: NarrativeReading | null;
+  year: YearReading | null;
   setBlueprint: (b: Blueprint | null) => void;
   setDaily: (d: DailyReport | null) => void;
   setPolarity: (p: PolarityReading | null) => void;
   setNarrative: (n: NarrativeReading | null) => void;
+  setYear: (y: YearReading | null) => void;
   reset: () => void;
 }
 
@@ -49,10 +51,11 @@ export const useStore = create<StoreState>()(
       history: [],
       polarity: null,
       narrative: null,
+      year: null,
       // Any LLM-derived reading is tied to a specific blueprint. When the
       // blueprint changes (edit or first set), wipe the caches so the next
       // tab visit regenerates them from the new chart.
-      setBlueprint: (blueprint) => set({ blueprint, narrative: null, daily: null, polarity: null, history: [] }),
+      setBlueprint: (blueprint) => set({ blueprint, narrative: null, daily: null, polarity: null, year: null, history: [] }),
       setDaily: (daily) =>
         set((s) => {
           if (!daily) return { daily: null };
@@ -64,7 +67,8 @@ export const useStore = create<StoreState>()(
         }),
       setPolarity: (polarity) => set({ polarity }),
       setNarrative: (narrative) => set({ narrative }),
-      reset: () => set({ blueprint: null, daily: null, polarity: null, history: [], narrative: null }),
+      setYear: (year) => set({ year }),
+      reset: () => set({ blueprint: null, daily: null, polarity: null, year: null, history: [], narrative: null }),
     }),
     {
       name: 'liraydhas.v1',

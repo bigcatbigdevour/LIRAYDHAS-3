@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
@@ -9,15 +9,54 @@ import { ageInYears } from '@/lib/cycles';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { currentChapter } from '@/lib/lifeChapters';
 import { yearGlanceText } from '@/lib/yearGlance';
+import { api } from '@/lib/apiBase';
+import { friendlyError } from '@/lib/friendlyError';
+import { tap as hapticTap } from '@/lib/haptics';
+import type { YearReading } from '@/lib/types';
 
 export default function YearPage() {
   const router = useRouter();
   const blueprint = useStore((s) => s.blueprint);
+  const year = useStore((s) => s.year);
+  const setYear = useStore((s) => s.setYear);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
     return () => clearTimeout(t);
   }, [blueprint, router]);
+
+  async function fetchYear() {
+    if (!blueprint) return;
+    const startBlueprint = blueprint;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(api('/api/year'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ blueprint: startBlueprint }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
+      }
+      const data = (await res.json()) as YearReading;
+      if (useStore.getState().blueprint !== startBlueprint) return;
+      setYear(data);
+    } catch (e: unknown) {
+      setError(friendlyError(e instanceof Error ? e.message : null));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!blueprint || year) return;
+    void fetchYear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blueprint, year]);
 
   const events = useMemo(() => {
     if (!blueprint) return [];
@@ -90,6 +129,49 @@ export default function YearPage() {
           </p>
         )}
       </header>
+
+      <section className="mt-6 min-h-[120px]">
+        {loading && !year && (
+          <div>
+            <p
+              className="small-label caps text-ink-faint mb-3"
+              style={{ letterSpacing: '0.18em' }}
+            >
+              composing your year reading
+            </p>
+            <div className="space-y-2 animate-pulse">
+              <div className="h-4 bg-hairline w-11/12" />
+              <div className="h-4 bg-hairline w-10/12" />
+              <div className="h-4 bg-hairline w-9/12" />
+              <div className="h-4 bg-hairline w-8/12" />
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="border border-hairline p-3">
+            <p className="text-accent text-[13px]">{error}</p>
+            <button
+              className="btn-ghost mt-2"
+              onClick={() => { hapticTap('light'); void fetchYear(); }}
+            >
+              try again
+            </button>
+          </div>
+        )}
+        {year?.paragraph && (
+          <p className="body-prose serif text-ink">{year.paragraph}</p>
+        )}
+        {year?.paragraph && (
+          <button
+            type="button"
+            onClick={() => { hapticTap('light'); setYear(null); void fetchYear(); }}
+            className="small-label caps text-ink-faint hover:text-ink mt-3 text-[10px]"
+            style={{ letterSpacing: '0.16em' }}
+          >
+            refresh reading
+          </button>
+        )}
+      </section>
 
       {headlines.length > 0 && (
         <section className="mt-6">
