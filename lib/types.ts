@@ -121,6 +121,39 @@ export interface YearReading {
   generatedAt: string;
 }
 
+export interface SynastryReading {
+  paragraph: string;
+  /** Tightest cross-chart aspects (top 8). */
+  aspects: Array<{
+    aBody: PlanetName;
+    bBody: PlanetName;
+    kind: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+    orb: number;
+    tightness: number;
+  }>;
+  /** Channels that complete between the two charts. */
+  electricChannels: Array<{
+    gates: [number, number];
+    name: string;
+    ownership: {
+      a: { gate: number; line?: number } | null;
+      b: { gate: number; line?: number } | null;
+    };
+  }>;
+  /** Where each person is in their own life right now. */
+  lifeStage: {
+    ageA: number;
+    ageB: number;
+    ageGapYears: number;
+    chapterA: string | null;
+    chapterB: string | null;
+    sameChapter: boolean;
+    risingA: number;
+    risingB: number;
+  };
+  generatedAt: string;
+}
+
 export interface NarrativeReading {
   paragraph: string;
   generatedAt: string;

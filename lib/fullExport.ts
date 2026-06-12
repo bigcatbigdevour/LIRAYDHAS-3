@@ -10,6 +10,7 @@
  */
 
 import { listSavedDays, type SavedDay } from './savedDays';
+import { listPartners, type SavedPartner } from './partners';
 import type { Blueprint } from './types';
 
 export interface FullExport {
@@ -21,6 +22,8 @@ export interface FullExport {
   blueprint: Blueprint | null;
   /** Every saved-day / journal entry. May be empty. */
   savedDays: SavedDay[];
+  /** Saved partners for compatibility readings. May be empty. */
+  partners: SavedPartner[];
   /**
    * Non-PII UI flags so re-import / debugging can restore the user's
    * "I've seen this intro" state. Keys are localStorage keys; values are
@@ -39,13 +42,14 @@ export function buildFullExport(blueprint: Blueprint | null): FullExport {
   if (typeof window !== 'undefined') {
     for (let i = 0; i < window.localStorage.length; i++) {
       const k = window.localStorage.key(i);
-      // Only liraydhas-namespaced flags. Skip the savedDays key (it's
-      // already serialized as `savedDays`) and the blueprint persist key
-      // (it's `blueprint`).
+      // Only liraydhas-namespaced flags. Skip keys that are already
+      // serialized as their own top-level fields (savedDays, partners,
+      // blueprint).
       if (
         k &&
         k.startsWith('liraydhas.') &&
         k !== 'liraydhas.savedDays.v1' &&
+        k !== 'liraydhas.partners.v1' &&
         !k.startsWith('liraydhas-store')
       ) {
         const v = window.localStorage.getItem(k);
@@ -58,6 +62,7 @@ export function buildFullExport(blueprint: Blueprint | null): FullExport {
     exportedAt: new Date().toISOString(),
     blueprint,
     savedDays: listSavedDays(),
+    partners: listPartners(),
     flags,
   };
 }

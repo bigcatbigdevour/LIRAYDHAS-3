@@ -397,6 +397,7 @@ export default function ChartPage() {
       </section>
 
       <section className="mt-12 space-y-2">
+        <Link href="/compat" className="btn-ghost block">compatibility with someone else →</Link>
         <Link href="/about" className="btn-ghost block">about this app →</Link>
         <button
           className="btn-ghost"

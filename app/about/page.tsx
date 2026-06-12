@@ -116,6 +116,7 @@ export default function AboutPage() {
         <Link href="/chart" className="btn-ghost block">go to your chart →</Link>
         <Link href="/year" className="btn-ghost block">your year ahead →</Link>
         <Link href="/saved" className="btn-ghost block">saved readings →</Link>
+        <Link href="/compat" className="btn-ghost block">compatibility →</Link>
         <Link href="/learn" className="btn-ghost block">learn the system →</Link>
         <Link href="/onboarding?edit=1" className="btn-ghost block">edit my birth data →</Link>
         <Link href="/privacy" className="btn-ghost block">privacy →</Link>
@@ -183,6 +184,8 @@ export default function AboutPage() {
               if (r.addedDays > 0) parts.push(`${r.addedDays} new entries`);
               if (r.updatedDays > 0) parts.push(`${r.updatedDays} updated`);
               if (r.skippedDays > 0) parts.push(`${r.skippedDays} skipped (older)`);
+              if (r.addedPartners > 0) parts.push(`${r.addedPartners} partners added`);
+              if (r.skippedPartners > 0) parts.push(`${r.skippedPartners} partners already here`);
               setImportMsg(parts.join(' · ') || 'nothing new to import.');
               // A soft reload picks up the new persist state + saved days.
               setTimeout(() => window.location.reload(), 1200);

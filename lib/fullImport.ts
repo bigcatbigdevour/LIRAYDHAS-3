@@ -31,6 +31,10 @@ export interface ImportSummary {
   updatedDays: number;
   /** Number of saved-day entries that were skipped (local was newer). */
   skippedDays: number;
+  /** Number of partner entries added. */
+  addedPartners: number;
+  /** Number of partner entries skipped (already had the id). */
+  skippedPartners: number;
   /** True if the blueprint was replaced. */
   blueprintReplaced: boolean;
   /** Number of UI flags applied. */
@@ -130,6 +134,34 @@ export async function importFromFile(file: File): Promise<ImportResult> {
     }
   }
 
+  // Partners: union by id. Incoming wins on collision (assume the
+  // import is the freshest source). Doesn't try to deep-merge — partners
+  // are blueprint + name + relation, no fields where merging makes
+  // sense.
+  let addedPartners = 0, skippedPartners = 0;
+  if (Array.isArray(parsed.partners)) {
+    try {
+      const raw = window.localStorage.getItem('liraydhas.partners.v1');
+      const existing: { id?: unknown }[] = raw ? JSON.parse(raw) : [];
+      const byId = new Map<string, unknown>();
+      for (const p of existing) {
+        if (isPlainObject(p) && typeof p.id === 'string') byId.set(p.id, p);
+      }
+      for (const p of parsed.partners) {
+        if (!isPlainObject(p) || typeof p.id !== 'string') continue;
+        if (byId.has(p.id)) skippedPartners++;
+        else addedPartners++;
+        byId.set(p.id, p);
+      }
+      window.localStorage.setItem(
+        'liraydhas.partners.v1',
+        JSON.stringify(Array.from(byId.values())),
+      );
+    } catch (e) {
+      console.error('[import] writing partners failed', e);
+    }
+  }
+
   // UI flags: incoming wins.
   let flagsApplied = 0;
   if (parsed.flags && isPlainObject(parsed.flags)) {
@@ -149,6 +181,8 @@ export async function importFromFile(file: File): Promise<ImportResult> {
     addedDays,
     updatedDays,
     skippedDays,
+    addedPartners,
+    skippedPartners,
     blueprintReplaced,
     flagsApplied,
   };
