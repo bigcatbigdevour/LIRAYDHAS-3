@@ -5,7 +5,7 @@ import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { ageInYears, polarityFlips } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse, splitTakeaway } from '@/lib/llm';
+import { composePrompt, callLLM, llmErrorResponse, splitTakeaway, rateLimit } from '@/lib/llm';
 import type { Blueprint, DailyReport } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -16,6 +16,9 @@ export function OPTIONS(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'daily');
+  if (limited) return limited;
+
   let body: { blueprint?: Blueprint; localDate?: string };
   try {
     body = (await req.json()) as { blueprint?: Blueprint; localDate?: string };

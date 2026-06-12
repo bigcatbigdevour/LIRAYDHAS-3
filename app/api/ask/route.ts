@@ -5,7 +5,7 @@ import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { ageInYears, polarityFlips } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse } from '@/lib/llm';
+import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -18,6 +18,9 @@ export function OPTIONS(req: Request) {
 const QUESTION_MAX = 240;
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'ask');
+  if (limited) return limited;
+
   let body: { blueprint?: Blueprint; question?: string };
   try {
     body = (await req.json()) as { blueprint?: Blueprint; question?: string };

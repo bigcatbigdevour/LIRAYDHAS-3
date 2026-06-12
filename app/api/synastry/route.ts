@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse } from '@/lib/llm';
+import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
 import {
   computeSynastryAspects,
   computeElectricChannels,
@@ -18,6 +18,9 @@ export function OPTIONS(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'synastry');
+  if (limited) return limited;
+
   let body: {
     self?: Blueprint;
     other?: Blueprint;

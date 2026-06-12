@@ -3,7 +3,7 @@ import { ageInYears, polarityFlips, upcomingReturns } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse } from '@/lib/llm';
+import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
 import type { Blueprint, YearReading } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -14,6 +14,9 @@ export function OPTIONS(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'year');
+  if (limited) return limited;
+
   let body: { blueprint?: Blueprint };
   try {
     body = (await req.json()) as { blueprint?: Blueprint };

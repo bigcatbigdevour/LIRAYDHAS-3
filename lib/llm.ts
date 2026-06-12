@@ -23,6 +23,7 @@ import { NextResponse } from 'next/server';
 import { getClient, MODEL, textOf } from './anthropic';
 import { VOICE_SPEC } from './voice';
 import { withCors } from './cors';
+import { tryConsume, requesterKey, type RateLimitConfig } from './rateLimit';
 
 export interface PromptSection {
   /** All-caps header, e.g. "THE PERSON'S CHART", "TODAY", "WHAT TO INCLUDE". */
@@ -139,6 +140,38 @@ export async function callLLM(prompt: string, opts: CallOptions = {}): Promise<s
  * tag) so debugging stays possible — but the client gets one of three
  * generic strings, never a stack frame or request id.
  */
+/**
+ * Per-endpoint rate-limit config table. Tweak in one place if a route
+ * gets noisy. See lib/rateLimit.ts for the burst-vs-refill explanation.
+ */
+export const RATE_LIMITS: Record<string, RateLimitConfig> = {
+  daily:     { capacity: 6, refillPerMinute: 12 },
+  polarity:  { capacity: 6, refillPerMinute: 12 },
+  narrative: { capacity: 4, refillPerMinute: 4 },
+  year:      { capacity: 4, refillPerMinute: 4 },
+  ask:       { capacity: 8, refillPerMinute: 16 },
+  synastry:  { capacity: 4, refillPerMinute: 6 },
+};
+
+/**
+ * Check the per-IP rate limit for an endpoint. Returns null when the
+ * request is allowed; returns a 429 NextResponse when throttled (the
+ * caller should return it directly).
+ */
+export function rateLimit(req: Request, endpoint: keyof typeof RATE_LIMITS): NextResponse | null {
+  const config = RATE_LIMITS[endpoint];
+  if (!config) return null;
+  const key = requesterKey(req);
+  const result = tryConsume(key, endpoint, config);
+  if (result.ok) return null;
+  const res = NextResponse.json(
+    { error: 'reading service is busy', retryAfter: result.retryAfterSeconds },
+    { status: 429 },
+  );
+  res.headers.set('Retry-After', String(result.retryAfterSeconds));
+  return withCors(res, req);
+}
+
 export function llmErrorResponse(req: Request, e: unknown, source: string): NextResponse {
   console.error(`[${source}] model call failed:`, e);
   const msg = e instanceof Error ? e.message : '';

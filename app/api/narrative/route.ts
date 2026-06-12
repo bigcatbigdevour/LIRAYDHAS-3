@@ -4,7 +4,7 @@ import { ageInYears, positionInCycles } from '@/lib/cycles';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { currentChapter } from '@/lib/lifeChapters';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse } from '@/lib/llm';
+import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -15,6 +15,9 @@ export function OPTIONS(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, 'narrative');
+  if (limited) return limited;
+
   let body: { blueprint?: Blueprint };
   try {
     body = (await req.json()) as { blueprint?: Blueprint };
