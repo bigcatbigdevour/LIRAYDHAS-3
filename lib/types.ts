@@ -105,6 +105,9 @@ export interface TransitAspect {
 
 export interface DailyReport {
   paragraph: string;
+  /** A single ≤14-word glance line that captures the heart of today.
+   *  Empty when the model didn't follow the format — render skipped. */
+  takeaway?: string;
   date: string;           // YYYY-MM-DD
   transits: TransitAspect[];
 }

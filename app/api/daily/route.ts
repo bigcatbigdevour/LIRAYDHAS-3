@@ -5,7 +5,7 @@ import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { ageInYears, polarityFlips } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse } from '@/lib/llm';
+import { composePrompt, callLLM, llmErrorResponse, splitTakeaway } from '@/lib/llm';
 import type { Blueprint, DailyReport } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -77,7 +77,15 @@ export async function POST(req: Request) {
   ].filter(Boolean).join('');
 
   const prompt = composePrompt({
-    task: "Write the day's reading for a single person. Output one paragraph of 90 to 130 words. Output only the paragraph — no preamble, no header, no quotation marks.",
+    task: [
+      "Write the day's reading for a single person.",
+      "",
+      "OUTPUT FORMAT — follow EXACTLY:",
+      "Line 1: a single sentence of 6 to 14 words capturing the heart of today. Lowercase, voice-matched, no quotation marks, no prefix like 'TAKEAWAY:'.",
+      "Line 2: blank.",
+      "Then: one paragraph of 90 to 130 words.",
+      "Nothing else — no preamble, no header.",
+    ].join('\n'),
     sections: [
       { header: "THE PERSON'S CHART (chart numbers only; do not name the system in your output)", body: personBody },
       { header: 'TODAY', body: todayBody },
@@ -90,14 +98,15 @@ export async function POST(req: Request) {
     ],
   });
 
-  let paragraph: string;
+  let raw: string;
   try {
-    paragraph = await callLLM(prompt, { maxTokens: 400, temperature: 0.8 });
+    raw = await callLLM(prompt, { maxTokens: 450, temperature: 0.8 });
   } catch (e: unknown) {
     return llmErrorResponse(req, e, 'api/daily');
   }
 
-  const report: DailyReport = { paragraph, date: today, transits: top };
+  const { takeaway, paragraph } = splitTakeaway(raw);
+  const report: DailyReport = { paragraph, takeaway, date: today, transits: top };
   return withCors(NextResponse.json(report), req);
 }
 

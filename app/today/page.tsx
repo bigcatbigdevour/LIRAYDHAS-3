@@ -521,6 +521,18 @@ export default function TodayPage() {
             <button className="btn-ghost mt-3" onClick={() => { hapticTap('light'); void fetchDaily(); }}>try again</button>
           </div>
         )}
+        {daily?.takeaway && (
+          <p
+            className="serif italic text-ink mb-4 leading-snug fade-in"
+            style={{
+              fontSize: 'clamp(1.05rem, 4.2vw, 1.18rem)',
+              borderLeft: '2px solid #8b3a3a',
+              paddingLeft: '0.75rem',
+            }}
+          >
+            {daily.takeaway}
+          </p>
+        )}
         {daily?.paragraph && (
           <p className="body-prose serif text-ink">
             {daily.paragraph}
@@ -822,7 +834,9 @@ export default function TodayPage() {
                 await (navigator as Navigator & { share: (data: ShareData) => Promise<void> })
                   .share({
                     title: 'Liraydhas — today',
-                    text: daily.paragraph,
+                    text: daily.takeaway
+                      ? `${daily.takeaway}\n\n${daily.paragraph}`
+                      : daily.paragraph,
                   });
               } catch {
                 // user cancelled; ignore

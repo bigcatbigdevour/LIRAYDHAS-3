@@ -80,6 +80,44 @@ export interface CallOptions {
 }
 
 /**
+ * Split a model response that was prompted to begin with a single
+ * "takeaway" line followed by a blank line followed by the full
+ * paragraph. The takeaway is trimmed and stripped of common prefix
+ * artefacts ("TAKEAWAY:", surrounding quotes, leading bullet). The
+ * paragraph is everything after the blank-line separator.
+ *
+ * If the model didn't follow the format (no blank line found), we
+ * return the whole response as the paragraph and empty string as the
+ * takeaway — callers should treat empty takeaway as "skip the badge".
+ */
+export function splitTakeaway(raw: string): { takeaway: string; paragraph: string } {
+  const trimmed = raw.trim();
+  // Look for the first double-newline split.
+  const splitIdx = trimmed.search(/\n\s*\n/);
+  if (splitIdx < 0) {
+    return { takeaway: '', paragraph: trimmed };
+  }
+  let takeaway = trimmed.slice(0, splitIdx).trim();
+  const paragraph = trimmed.slice(splitIdx).trim();
+
+  // Clean common prefix artefacts.
+  takeaway = takeaway
+    .replace(/^(takeaway|tldr|one[\s-]?line)\s*[:\-—]\s*/i, '')
+    .replace(/^["'“”‘’]+/, '')
+    .replace(/["'“”‘’]+$/, '')
+    .replace(/^[•·\-*]\s*/, '')
+    .trim();
+
+  // Reject pathological takeaways: too long (>200 chars) or too short
+  // (< 4 words). The whole point is a glance-line.
+  const wordCount = takeaway.split(/\s+/).filter(Boolean).length;
+  if (takeaway.length > 200 || wordCount < 4) {
+    return { takeaway: '', paragraph: trimmed };
+  }
+  return { takeaway, paragraph };
+}
+
+/**
  * Single-shot LLM call. Returns the text content of the response, or
  * throws on Anthropic failure. The caller is responsible for catching
  * and returning a friendly response — use llmErrorResponse() for that.
