@@ -658,14 +658,38 @@ export default function SavedPage() {
       </header>
 
       {days.length === 0 && !composeOpen && (
-        <section className="border border-hairline p-6 text-center">
-          <p className="serif text-ink-dim text-[14px]">
-            Nothing here yet. Tap <span className="text-ink">☆ save</span> on a
-            day's reading to keep it — or write a new entry above.
-          </p>
-          <Link href="/today" className="btn-ghost mt-4 inline-block">
-            go to today →
-          </Link>
+        <section className="border-l-2 border-hairline pl-4 py-3 my-4 space-y-3">
+          <svg viewBox="0 0 80 80" className="w-12 h-12 opacity-50" aria-hidden>
+            <circle cx="40" cy="40" r="30" fill="none" stroke="#f4f1ea" strokeWidth="0.5" opacity="0.6" />
+            <circle cx="40" cy="40" r="18" fill="none" stroke="#f4f1ea" strokeWidth="0.4" opacity="0.5" />
+            <path d="M 40 22 L 42 32 L 52 32 L 44 38 L 47 48 L 40 42 L 33 48 L 36 38 L 28 32 L 38 32 Z" fill="#8b3a3a" opacity="0.55" />
+          </svg>
+          <div>
+            <p
+              className="small-label caps text-accent mb-1"
+              style={{ letterSpacing: '0.18em' }}
+            >
+              your journal starts here
+            </p>
+            <p className="serif text-ink-dim text-[14px] leading-relaxed">
+              Tap <span className="text-ink">☆ save</span> on today&apos;s
+              reading to keep it. Add notes, tags, photos, voice notes —
+              they all live on your device. Or compose a journal-only
+              entry above.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link href="/today" className="btn-ghost">
+              go to today →
+            </Link>
+            <Link
+              href="/learn#glossary"
+              className="small-label caps text-ink-faint hover:text-ink self-center"
+              style={{ letterSpacing: '0.16em' }}
+            >
+              what&apos;s a journal entry?
+            </Link>
+          </div>
         </section>
       )}
 
@@ -765,9 +789,39 @@ export default function SavedPage() {
           </div>
 
           {filtered.length === 0 && (
-            <p className="text-ink-dim italic text-[13px] mb-6">
-              nothing matches "{query}".
-            </p>
+            <div className="border-l-2 border-hairline pl-3 py-2 mb-6">
+              <p className="text-ink-dim italic text-[13.5px] serif leading-relaxed">
+                {query && tagFilter
+                  ? <>nothing matches &ldquo;{query}&rdquo; in <span className="text-accent">{tagFilter}</span>.</>
+                  : query
+                    ? <>nothing matches &ldquo;{query}&rdquo;.</>
+                    : tagFilter
+                      ? <>no entries tagged <span className="text-accent">{tagFilter}</span>.</>
+                      : 'nothing here.'}
+              </p>
+              <div className="flex gap-3 mt-2">
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    className="small-label caps text-ink-faint hover:text-ink"
+                    style={{ letterSpacing: '0.16em' }}
+                  >
+                    clear search
+                  </button>
+                )}
+                {tagFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setTagFilter(null)}
+                    className="small-label caps text-ink-faint hover:text-ink"
+                    style={{ letterSpacing: '0.16em' }}
+                  >
+                    clear tag filter
+                  </button>
+                )}
+              </div>
+            </div>
           )}
 
           {filtered.length > 0 && months.length > 1 && (

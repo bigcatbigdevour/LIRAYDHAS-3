@@ -201,6 +201,23 @@ export default function CompatPage() {
         </section>
       )}
 
+      {/* Empty state intro before the form on a fresh install */}
+      {partners.length === 0 && !showAdd && (
+        <section className="border-l-2 border-hairline pl-4 py-3 mb-4">
+          <p
+            className="small-label caps text-accent mb-2"
+            style={{ letterSpacing: '0.18em' }}
+          >
+            no one here yet
+          </p>
+          <p className="serif text-ink-dim text-[14px] leading-relaxed">
+            Add someone&apos;s birth data to see how your two charts
+            meet — and how that meeting lands given where each of you
+            is in your own life right now.
+          </p>
+        </section>
+      )}
+
       {/* Add-partner form */}
       {(showAdd || partners.length === 0) && (
         <AddPartnerForm

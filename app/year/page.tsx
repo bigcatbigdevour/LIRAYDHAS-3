@@ -10,6 +10,7 @@ import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { currentChapter } from '@/lib/lifeChapters';
 import { yearGlanceText } from '@/lib/yearGlance';
 import { api } from '@/lib/apiBase';
+import PullToRefresh from '@/components/PullToRefresh';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import { useSubState, isPro } from '@/lib/subscription';
@@ -126,6 +127,16 @@ export default function YearPage() {
   });
 
   return (
+    <PullToRefresh
+      onRefresh={async () => {
+        // Re-fetch the LLM paragraph if Pro; otherwise no-op (free
+        // users would just see the paywall again).
+        if (pro) {
+          setYear(null);
+          await fetchYear();
+        }
+      }}
+    >
     <main className="page max-w-3xl mx-auto fade-in">
       <header className="pb-6">
         <p className="small-label caps">Year ahead</p>
@@ -285,5 +296,6 @@ export default function YearPage() {
         <Link href="/arcs" className="btn-ghost block">see the full lifetime arcs →</Link>
       </section>
     </main>
+    </PullToRefresh>
   );
 }
