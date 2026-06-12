@@ -1,10 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Blueprint, PlanetName } from '@/lib/types';
+import type { Blueprint, PlanetName, ZodiacSign } from '@/lib/types';
 import { todaysTransits } from '@/lib/astrology/transits';
 import { signGlyphPaths } from './SignGlyph';
-import { planetGlyphPaths } from './PlanetGlyph';
+import PlanetGlyph, { planetGlyphPaths } from './PlanetGlyph';
+import SignGlyph from './SignGlyph';
+import { PLANET_MEANINGS } from '@/lib/astrology/planetMeanings';
+import { tap as hapticTap } from '@/lib/haptics';
 
 const SIGN_ORDER = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
@@ -51,6 +54,7 @@ interface Body { name: PlanetName; lon: number }
 
 export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
   const [showTransits, setShowTransits] = useState(false);
+  const [selected, setSelected] = useState<PlanetName | null>(null);
   const n = blueprint.natal;
   const bodies: Body[] = [
     { name: 'Sun', lon: n.sun.longitude },
@@ -177,21 +181,37 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
         );
       })}
 
-      {/* planets */}
+      {/* planets — each is tappable; selected gets an accent ring */}
       {placed.map((p) => {
         const pos = point(p.adjustedLon, rPlanet);
+        const isSelected = selected === p.name;
         return (
-          <g key={p.name}>
+          <g
+            key={p.name}
+            onClick={() => {
+              hapticTap('light');
+              setSelected(isSelected ? null : p.name);
+            }}
+            style={{ cursor: 'pointer' }}
+            role="button"
+            aria-label={`${p.name} — tap to learn what it does`}
+          >
             <line
               x1={point(p.lon, rRing - 4).x} y1={point(p.lon, rRing - 4).y}
               x2={point(p.lon, rRing - 12).x} y2={point(p.lon, rRing - 12).y}
               stroke="#3a3a3a" strokeWidth="0.5" />
+            {/* large invisible hit target so finger-sized taps land cleanly */}
+            <circle cx={pos.x} cy={pos.y} r={11} fill="transparent" />
+            {isSelected && (
+              <circle cx={pos.x} cy={pos.y} r={11} fill="none"
+                stroke="#b22a2a" strokeWidth={1} opacity={0.85} />
+            )}
             <GlyphAt
               paths={planetGlyphPaths(p.name)}
               x={pos.x}
               y={pos.y}
               size={16}
-              stroke="#f4f1ea"
+              stroke={isSelected ? '#b22a2a' : '#f4f1ea'}
               strokeWidth={1.2}
             />
           </g>
@@ -281,6 +301,56 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
         cream = natal · wine = today
       </p>
     )}
+    {selected && (() => {
+      const meaning = PLANET_MEANINGS[selected];
+      // Look up the natal sign + degree for this planet.
+      const planetData: Record<string, { sign: ZodiacSign; degree: number } | null> = {
+        Sun: n.sun, Moon: n.moon, Mercury: n.mercury, Venus: n.venus,
+        Mars: n.mars, Jupiter: n.jupiter, Saturn: n.saturn,
+        Uranus: n.uranus, Neptune: n.neptune, Pluto: n.pluto,
+        NorthNode: n.northNode, Chiron: n.chiron,
+      };
+      const data = planetData[selected];
+      return (
+        <section className="mt-3 border border-hairline p-3 fade-in" aria-live="polite">
+          <header className="flex items-baseline justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2">
+              <PlanetGlyph name={selected} size={16} className="text-ink" />
+              <p className="serif text-[15px] text-ink">{selected}</p>
+              {data && (
+                <span className="flex items-center gap-1 small-label caps text-ink-faint text-[10px]" style={{ letterSpacing: '0.14em' }}>
+                  in
+                  <SignGlyph sign={data.sign} size={11} className="text-ink-dim" />
+                  <span>{data.degree.toFixed(1)}°</span>
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => { hapticTap('light'); setSelected(null); }}
+              className="small-label caps text-ink-faint hover:text-ink text-[10px]"
+              style={{ letterSpacing: '0.18em' }}
+              aria-label="close planet info"
+            >
+              × close
+            </button>
+          </header>
+          {meaning && (
+            <>
+              <p
+                className="small-label caps text-accent text-[10px] mb-1.5"
+                style={{ letterSpacing: '0.18em' }}
+              >
+                {meaning.role}
+              </p>
+              <p className="serif text-[13.5px] text-ink-dim leading-relaxed">
+                {meaning.showsUp}
+              </p>
+            </>
+          )}
+        </section>
+      );
+    })()}
     </>
   );
 }
