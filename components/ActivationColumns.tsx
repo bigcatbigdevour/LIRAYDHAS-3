@@ -1,18 +1,13 @@
 'use client';
 
 import type { Blueprint, PlanetName } from '@/lib/types';
+import PlanetGlyph from './PlanetGlyph';
 
 const PLANET_ORDER: PlanetName[] = [
   'Sun', 'Earth', 'NorthNode', 'SouthNode', 'Moon',
   'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn',
   'Uranus', 'Neptune', 'Pluto',
 ];
-
-const GLYPH: Record<PlanetName, string> = {
-  Sun: '☉', Earth: '⊕', Moon: '☽', NorthNode: '☊', SouthNode: '☋',
-  Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄',
-  Uranus: '♅', Neptune: '♆', Pluto: '♇', Chiron: '⚷',
-};
 
 export default function ActivationColumns({ blueprint }: { blueprint: Blueprint }) {
   const personality = new Map(blueprint.humanDesign.activeGates
@@ -37,8 +32,8 @@ export default function ActivationColumns({ blueprint }: { blueprint: Blueprint 
             <div className="tabular-nums text-left text-accent">
               {d ? `${d.gate}.${d.line}` : '—'}
             </div>
-            <div className="text-ink-faint">
-              <span className="text-ink-dim">{GLYPH[p]}</span>
+            <div className="text-ink-dim flex items-center justify-center">
+              <PlanetGlyph name={p} size={13} />
             </div>
             <div className="tabular-nums text-right text-ink">
               {per ? `${per.gate}.${per.line}` : '—'}

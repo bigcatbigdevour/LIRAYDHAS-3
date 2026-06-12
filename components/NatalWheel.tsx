@@ -3,13 +3,49 @@
 import { useMemo, useState } from 'react';
 import type { Blueprint, PlanetName } from '@/lib/types';
 import { todaysTransits } from '@/lib/astrology/transits';
+import { signGlyphPaths } from './SignGlyph';
+import { planetGlyphPaths } from './PlanetGlyph';
 
-const SIGNS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
-const GLYPH: Partial<Record<PlanetName, string>> = {
-  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂',
-  Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇',
-  NorthNode: '☊', Chiron: '⚷',
-};
+const SIGN_ORDER = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
+];
+
+/**
+ * Inline an SVG glyph (path data from a 24×24 viewBox) at (x,y) with the
+ * given pixel size. translate to (x - size/2, y - size/2) then scale so
+ * the 24-unit grid fits the desired pixel size.
+ */
+function GlyphAt({
+  paths,
+  x,
+  y,
+  size,
+  stroke,
+  strokeWidth = 1.2,
+}: {
+  paths: React.ReactNode;
+  x: number;
+  y: number;
+  size: number;
+  stroke: string;
+  strokeWidth?: number;
+}) {
+  if (!paths) return null;
+  const s = size / 24;
+  return (
+    <g
+      transform={`translate(${x - size / 2} ${y - size / 2}) scale(${s})`}
+      stroke={stroke}
+      strokeWidth={strokeWidth / s}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths}
+    </g>
+  );
+}
 
 interface Body { name: PlanetName; lon: number }
 
@@ -92,11 +128,20 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
         return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#1c1c1c" strokeWidth="0.4" />;
       })}
 
-      {/* sign glyphs */}
-      {SIGNS.map((g, i) => {
+      {/* sign glyphs — SVG icons, not Unicode (iOS renders the chars
+          as full-color emoji). */}
+      {SIGN_ORDER.map((sign, i) => {
         const mid = point(i * 30 + 15, (rOuter + rRing) / 2);
         return (
-          <text key={i} x={mid.x} y={mid.y + 3} textAnchor="middle" fontSize="10" fill="#777" fontFamily="serif">{g}</text>
+          <GlyphAt
+            key={sign}
+            paths={signGlyphPaths(sign)}
+            x={mid.x}
+            y={mid.y}
+            size={14}
+            stroke="#888"
+            strokeWidth={1.1}
+          />
         );
       })}
 
@@ -141,9 +186,14 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
               x1={point(p.lon, rRing - 4).x} y1={point(p.lon, rRing - 4).y}
               x2={point(p.lon, rRing - 12).x} y2={point(p.lon, rRing - 12).y}
               stroke="#3a3a3a" strokeWidth="0.5" />
-            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="13" fill="#f4f1ea">
-              {GLYPH[p.name] ?? '·'}
-            </text>
+            <GlyphAt
+              paths={planetGlyphPaths(p.name)}
+              x={pos.x}
+              y={pos.y}
+              size={16}
+              stroke="#f4f1ea"
+              strokeWidth={1.2}
+            />
           </g>
         );
       })}
@@ -214,9 +264,14 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
               x2={point(t.lon, rInner + 12).x} y2={point(t.lon, rInner + 12).y}
               stroke="#8b3a3a" strokeWidth="0.5" opacity="0.7"
             />
-            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="11" fill="#b22a2a">
-              {GLYPH[t.name] ?? '·'}
-            </text>
+            <GlyphAt
+              paths={planetGlyphPaths(t.name)}
+              x={pos.x}
+              y={pos.y}
+              size={13}
+              stroke="#b22a2a"
+              strokeWidth={1.1}
+            />
           </g>
         );
       })}

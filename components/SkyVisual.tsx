@@ -4,13 +4,40 @@ import { useMemo } from 'react';
 import type { Blueprint, PlanetName } from '@/lib/types';
 import { todaysTransits, currentRetrogrades } from '@/lib/astrology/transits';
 import { houseOfLongitude } from '@/lib/astrology/houses';
+import SignGlyph, { signGlyphPaths } from './SignGlyph';
+import PlanetGlyph, { planetGlyphPaths } from './PlanetGlyph';
 
-const SIGNS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
-const GLYPH: Record<PlanetName, string> = {
-  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂',
-  Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇',
-  NorthNode: '☊', SouthNode: '☋', Chiron: '⚷', Earth: '⊕',
-};
+const SIGN_ORDER = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
+];
+
+/** Inline SVG glyph at (x,y) for use inside another <svg>. */
+function GlyphAt({
+  paths, x, y, size, stroke, strokeWidth = 1.2,
+}: {
+  paths: React.ReactNode;
+  x: number;
+  y: number;
+  size: number;
+  stroke: string;
+  strokeWidth?: number;
+}) {
+  if (!paths) return null;
+  const s = size / 24;
+  return (
+    <g
+      transform={`translate(${x - size / 2} ${y - size / 2}) scale(${s})`}
+      stroke={stroke}
+      strokeWidth={strokeWidth / s}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths}
+    </g>
+  );
+}
 
 const ORDER: PlanetName[] = [
   'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
@@ -121,14 +148,20 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
               stroke="#1c1c1c" strokeWidth="0.4" />
           );
         })}
-        {/* sign glyphs at midpoints */}
-        {SIGNS.map((g, i) => {
+        {/* sign glyphs at midpoints — SVG paths, not Unicode (iOS would
+            render the chars as full-color emoji). */}
+        {SIGN_ORDER.map((sign, i) => {
           const mid = point(i * 30 + 15, (outer + ring) / 2);
           return (
-            <text key={i} x={mid.x} y={mid.y + 3} textAnchor="middle"
-              fontSize="9" fill="#666" fontFamily="serif">
-              {g}
-            </text>
+            <GlyphAt
+              key={sign}
+              paths={signGlyphPaths(sign)}
+              x={mid.x}
+              y={mid.y}
+              size={12}
+              stroke="#777"
+              strokeWidth={1}
+            />
           );
         })}
         {/* tick marks every 10° */}
@@ -161,16 +194,15 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
         {natalPlaced.map((p) => {
           const pos = point(p.adjustedLon, natalR);
           return (
-            <text
+            <GlyphAt
               key={`nat-${p.name}`}
-              x={pos.x} y={pos.y + 3.5}
-              textAnchor="middle"
-              fontSize="9.5"
-              fill="#555"
-              fontFamily="serif"
-            >
-              {GLYPH[p.name]}
-            </text>
+              paths={planetGlyphPaths(p.name)}
+              x={pos.x}
+              y={pos.y}
+              size={11}
+              stroke="#666"
+              strokeWidth={1}
+            />
           );
         })}
         {/* planet glyphs — today's */}
@@ -185,9 +217,14 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
                 stroke={isClose ? '#8b3a3a' : '#3a3a3a'}
                 strokeWidth={isClose ? 0.9 : 0.5}
               />
-              <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="12.5" fill="#f4f1ea">
-                {GLYPH[p.name]}
-              </text>
+              <GlyphAt
+                paths={planetGlyphPaths(p.name)}
+                x={pos.x}
+                y={pos.y}
+                size={15}
+                stroke="#f4f1ea"
+                strokeWidth={1.2}
+              />
             </g>
           );
         })}
@@ -210,12 +247,14 @@ export default function SkyVisual({ blueprint }: { blueprint: Blueprint }) {
           const isRetro = retros.has(p);
           return (
             <li key={p} className="flex justify-between border-b border-hairline py-0.5">
-              <span className="text-ink-dim">
-                <span className="serif text-ink mr-1.5">{GLYPH[p]}</span>{p}
+              <span className="text-ink-dim flex items-center gap-1.5">
+                <PlanetGlyph name={p} size={12} className="text-ink shrink-0" />
+                {p}
                 {isRetro && <span className="text-accent ml-1">℞</span>}
               </span>
-              <span className="tabular-nums text-ink-dim">
-                {SIGNS[signIdx]} {deg.toFixed(1)}°
+              <span className="tabular-nums text-ink-dim flex items-center gap-1">
+                <SignGlyph sign={SIGN_ORDER[signIdx]} size={11} className="text-ink-dim" />
+                <span>{deg.toFixed(1)}°</span>
                 {house ? <span className="text-ink-faint"> · H{house}</span> : null}
               </span>
             </li>
