@@ -14,6 +14,7 @@ import {
 import { buildBlueprint } from '@/lib/blueprint';
 import { api } from '@/lib/apiBase';
 import { friendlyError } from '@/lib/friendlyError';
+import { readSseStream, isEventStream } from '@/lib/streamRead';
 import { natalAspectMeaning } from '@/lib/astrology/aspectMeanings';
 import { tap as hapticTap, success as hapticSuccess, warn as hapticWarn } from '@/lib/haptics';
 import { localDateStr } from '@/lib/localDate';
@@ -33,6 +34,7 @@ export default function CompatPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [reading, setReading] = useState<SynastryReading | null>(null);
+  const [streamParagraph, setStreamParagraph] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,9 +71,10 @@ export default function CompatPage() {
     setLoading(true);
     setError(null);
     setReading(null);
+    setStreamParagraph('');
     (async () => {
       try {
-        const res = await fetch(api('/api/synastry'), {
+        const res = await fetch(api('/api/synastry?stream=1'), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -86,9 +89,43 @@ export default function CompatPage() {
           const j = await res.json().catch(() => ({}));
           throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
         }
-        const data = (await res.json()) as SynastryReading;
-        if (cancelled) return;
-        setReading(data);
+        if (!isEventStream(res)) {
+          const data = (await res.json()) as SynastryReading;
+          if (cancelled) return;
+          setReading(data);
+          return;
+        }
+        // Streaming: hold aspects/electricChannels/lifeStage from the
+        // meta event so we can compose the final SynastryReading on
+        // done. Paragraph deltas stream live into setStreamParagraph.
+        let meta: {
+          aspects?: SynastryReading['aspects'];
+          electricChannels?: SynastryReading['electricChannels'];
+          lifeStage?: SynastryReading['lifeStage'];
+          generatedAt?: string;
+        } = {};
+        let softError: string | null = null;
+        await readSseStream(res, {
+          meta: (m) => { meta = m as typeof meta; },
+          paragraph: (_d, full) => { if (!cancelled) setStreamParagraph(full); },
+          done: ({ paragraph }) => {
+            if (cancelled) return;
+            setReading({
+              paragraph,
+              aspects: meta.aspects ?? [],
+              electricChannels: meta.electricChannels ?? [],
+              lifeStage: meta.lifeStage ?? {
+                ageA: 0, ageB: 0, ageGapYears: 0,
+                chapterA: null, chapterB: null,
+                sameChapter: false, risingA: 0, risingB: 0,
+              },
+              generatedAt: meta.generatedAt ?? new Date().toISOString(),
+            });
+            setStreamParagraph('');
+          },
+          error: (msg) => { softError = msg; },
+        });
+        if (softError && !cancelled) setError(friendlyError(softError));
       } catch (e) {
         if (cancelled) return;
         setError(friendlyError(e instanceof Error ? e.message : null));
@@ -300,7 +337,9 @@ export default function CompatPage() {
             )}
           </div>
 
-          <p className="body-prose serif text-ink">{reading.paragraph}</p>
+          <p className="body-prose serif text-ink">
+            {reading.paragraph}
+          </p>
 
           {/* Aspects */}
           {reading.aspects.length > 0 && (
@@ -372,7 +411,7 @@ export default function CompatPage() {
         </section>
       )}
 
-      {partner && loading && (
+      {partner && loading && !streamParagraph && (
         <section className="mt-8">
           <p className="small-label caps text-ink-faint mb-3" style={{ letterSpacing: '0.18em' }}>
             composing the reading
@@ -383,6 +422,15 @@ export default function CompatPage() {
             <div className="h-4 bg-hairline w-9/12" />
             <div className="h-4 bg-hairline w-8/12" />
           </div>
+        </section>
+      )}
+
+      {partner && streamParagraph && !reading && (
+        <section className="mt-8">
+          <p className="body-prose serif text-ink">
+            {streamParagraph}
+            <span className="stream-cursor" aria-hidden>▎</span>
+          </p>
         </section>
       )}
 

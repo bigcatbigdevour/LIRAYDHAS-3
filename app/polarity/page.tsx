@@ -10,6 +10,7 @@ import FirstTimeIntro from '@/components/FirstTimeIntro';
 import ScrollHint from '@/components/ScrollHint';
 import { friendlyError } from '@/lib/friendlyError';
 import { api } from '@/lib/apiBase';
+import { readSseStream, isEventStream } from '@/lib/streamRead';
 import { tap as hapticTap } from '@/lib/haptics';
 import Link from 'next/link';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
@@ -31,6 +32,7 @@ export default function PolarityPage() {
   const setPolarity = useStore((s) => s.setPolarity);
 
   const [loading, setLoading] = useState(false);
+  const [streamParagraph, setStreamParagraph] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,8 +117,9 @@ export default function PolarityPage() {
     const startBlueprint = blueprint;
     setLoading(true);
     setError(null);
+    setStreamParagraph('');
     try {
-      const res = await fetch(api('/api/polarity'), {
+      const res = await fetch(api('/api/polarity?stream=1'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),
@@ -125,9 +128,29 @@ export default function PolarityPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
-      const data = (await res.json()) as PolarityReading;
-      if (useStore.getState().blueprint !== startBlueprint) return;
-      setPolarity(data);
+      if (!isEventStream(res)) {
+        const data = (await res.json()) as PolarityReading;
+        if (useStore.getState().blueprint !== startBlueprint) return;
+        setPolarity(data);
+        return;
+      }
+      let rising = 0, descending = 0, generatedAt = new Date().toISOString();
+      let softError: string | null = null;
+      await readSseStream(res, {
+        meta: (m) => {
+          if (typeof m.rising === 'number') rising = m.rising;
+          if (typeof m.descending === 'number') descending = m.descending;
+          if (typeof m.generatedAt === 'string') generatedAt = m.generatedAt;
+        },
+        paragraph: (_d, full) => setStreamParagraph(full),
+        done: ({ paragraph }) => {
+          if (useStore.getState().blueprint !== startBlueprint) return;
+          setPolarity({ paragraph, rising, descending, generatedAt });
+          setStreamParagraph('');
+        },
+        error: (msg) => { softError = msg; },
+      });
+      if (softError) setError(friendlyError(softError));
     } catch (e: unknown) {
       setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
@@ -516,7 +539,7 @@ export default function PolarityPage() {
 
       <section id="interpretation" className="mt-10 border-t border-hairline pt-6 scroll-mt-4">
         <p className="small-label caps text-ink-faint mb-2">what this all means · a written reading</p>
-        {loading && !polarity?.paragraph && (
+        {loading && !polarity?.paragraph && !streamParagraph && (
           <p className="text-ink-dim italic">reading the stack…</p>
         )}
         {error && (
@@ -525,8 +548,13 @@ export default function PolarityPage() {
             <button className="btn-ghost mt-2" onClick={() => { hapticTap('light'); void fetchPolarity(); }}>try again</button>
           </div>
         )}
-        {polarity?.paragraph && (
-          <p className="body-prose serif text-ink">{polarity.paragraph}</p>
+        {(polarity?.paragraph || streamParagraph) && (
+          <p className="body-prose serif text-ink">
+            {polarity?.paragraph || streamParagraph}
+            {streamParagraph && !polarity?.paragraph && (
+              <span className="stream-cursor" aria-hidden>▎</span>
+            )}
+          </p>
         )}
       </section>
 

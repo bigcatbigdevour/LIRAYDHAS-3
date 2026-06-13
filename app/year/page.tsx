@@ -10,6 +10,7 @@ import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { currentChapter } from '@/lib/lifeChapters';
 import { yearGlanceText } from '@/lib/yearGlance';
 import { api } from '@/lib/apiBase';
+import { readSseStream, isEventStream } from '@/lib/streamRead';
 import PullToRefresh from '@/components/PullToRefresh';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
@@ -26,6 +27,7 @@ export default function YearPage() {
   const pro = isPro(sub);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamParagraph, setStreamParagraph] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
@@ -37,8 +39,9 @@ export default function YearPage() {
     const startBlueprint = blueprint;
     setLoading(true);
     setError(null);
+    setStreamParagraph('');
     try {
-      const res = await fetch(api('/api/year'), {
+      const res = await fetch(api('/api/year?stream=1'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),
@@ -47,9 +50,27 @@ export default function YearPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
-      const data = (await res.json()) as YearReading;
-      if (useStore.getState().blueprint !== startBlueprint) return;
-      setYear(data);
+      if (!isEventStream(res)) {
+        const data = (await res.json()) as YearReading;
+        if (useStore.getState().blueprint !== startBlueprint) return;
+        setYear(data);
+        return;
+      }
+      let generatedAt = new Date().toISOString();
+      let softError: string | null = null;
+      await readSseStream(res, {
+        meta: (m) => {
+          if (typeof m.generatedAt === 'string') generatedAt = m.generatedAt;
+        },
+        paragraph: (_d, full) => setStreamParagraph(full),
+        done: ({ paragraph }) => {
+          if (useStore.getState().blueprint !== startBlueprint) return;
+          setYear({ paragraph, generatedAt });
+          setStreamParagraph('');
+        },
+        error: (msg) => { softError = msg; },
+      });
+      if (softError) setError(friendlyError(softError));
     } catch (e: unknown) {
       setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
@@ -153,7 +174,7 @@ export default function YearPage() {
         <ProGate
           feature="A year-ahead reading that pulls together your upcoming stations, returns, and polarity flips into one paragraph."
         >
-          {loading && !year && (
+          {loading && !year && !streamParagraph && (
             <div>
               <p
                 className="small-label caps text-ink-faint mb-3"
@@ -180,8 +201,13 @@ export default function YearPage() {
               </button>
             </div>
           )}
-          {year?.paragraph && (
-            <p className="body-prose serif text-ink">{year.paragraph}</p>
+          {(year?.paragraph || streamParagraph) && (
+            <p className="body-prose serif text-ink">
+              {year?.paragraph || streamParagraph}
+              {streamParagraph && !year?.paragraph && (
+                <span className="stream-cursor" aria-hidden>▎</span>
+              )}
+            </p>
           )}
           {year?.paragraph && (
             <button

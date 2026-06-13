@@ -29,6 +29,7 @@ import FirstTimeIntro from '@/components/FirstTimeIntro';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import { api } from '@/lib/apiBase';
+import { readSseStream, isEventStream } from '@/lib/streamRead';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -40,6 +41,7 @@ export default function ChartPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [narrativeError, setNarrativeError] = useState<string | null>(null);
+  const [streamNarrative, setStreamNarrative] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -59,8 +61,9 @@ export default function ChartPage() {
     const startBlueprint = blueprint;
     setNarrativeLoading(true);
     setNarrativeError(null);
+    setStreamNarrative('');
     try {
-      const res = await fetch(api('/api/narrative'), {
+      const res = await fetch(api('/api/narrative?stream=1'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),
@@ -69,10 +72,26 @@ export default function ChartPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
-      // Drop the response if the user replaced or erased the blueprint
-      // while the request was in flight.
-      if (useStore.getState().blueprint !== startBlueprint) return;
-      setNarrative(await res.json());
+      if (!isEventStream(res)) {
+        if (useStore.getState().blueprint !== startBlueprint) return;
+        setNarrative(await res.json());
+        return;
+      }
+      let generatedAt = new Date().toISOString();
+      let softError: string | null = null;
+      await readSseStream(res, {
+        meta: (m) => {
+          if (typeof m.generatedAt === 'string') generatedAt = m.generatedAt;
+        },
+        paragraph: (_d, full) => setStreamNarrative(full),
+        done: ({ paragraph }) => {
+          if (useStore.getState().blueprint !== startBlueprint) return;
+          setNarrative({ paragraph, generatedAt });
+          setStreamNarrative('');
+        },
+        error: (msg) => { softError = msg; },
+      });
+      if (softError) setNarrativeError(friendlyError(softError));
     } catch (e: unknown) {
       setNarrativeError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
@@ -173,7 +192,7 @@ export default function ChartPage() {
       </section>
 
       <section className="mt-4 mb-10">
-        {narrativeLoading && !narrative && (
+        {narrativeLoading && !narrative && !streamNarrative && (
           <div>
             <p className="small-label caps text-ink-faint mb-3" style={{ letterSpacing: '0.18em' }}>
               composing your chart reading
@@ -192,8 +211,13 @@ export default function ChartPage() {
             <button className="btn-ghost mt-1" onClick={() => { hapticTap('light'); void fetchNarrative(); }}>try again</button>
           </div>
         )}
-        {narrative?.paragraph && (
-          <p className="body-prose serif text-ink">{narrative.paragraph}</p>
+        {(narrative?.paragraph || streamNarrative) && (
+          <p className="body-prose serif text-ink">
+            {narrative?.paragraph || streamNarrative}
+            {streamNarrative && !narrative?.paragraph && (
+              <span className="stream-cursor" aria-hidden>▎</span>
+            )}
+          </p>
         )}
       </section>
 

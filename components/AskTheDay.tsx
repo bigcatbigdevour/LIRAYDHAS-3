@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Blueprint } from '@/lib/types';
 import { api } from '@/lib/apiBase';
+import { readSseStream, isEventStream } from '@/lib/streamRead';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import { saveDay } from '@/lib/savedDays';
@@ -50,7 +51,7 @@ export default function AskTheDay({ blueprint }: Props) {
     setError(null);
     setAnswer(null);
     try {
-      const res = await fetch(api('/api/ask'), {
+      const res = await fetch(api('/api/ask?stream=1'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint, question: q }),
@@ -59,9 +60,31 @@ export default function AskTheDay({ blueprint }: Props) {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
-      const j = (await res.json()) as { paragraph: string };
-      setAnswer(j.paragraph);
-      hapticTap('medium');
+      if (!isEventStream(res)) {
+        const j = (await res.json()) as { paragraph: string };
+        setAnswer(j.paragraph);
+        hapticTap('medium');
+        return;
+      }
+      // Streaming: render the answer as it arrives.
+      let softError: string | null = null;
+      // Initialize as empty string so the "you asked" + paragraph
+      // block becomes visible immediately and the cursor has something
+      // to follow.
+      setAnswer('');
+      await readSseStream(res, {
+        paragraph: (_d, full) => setAnswer(full),
+        done: ({ paragraph }) => {
+          setAnswer(paragraph);
+          hapticTap('medium');
+        },
+        error: (msg) => { softError = msg; },
+      });
+      if (softError) {
+        setAnswer(null);
+        setError(friendlyError(softError));
+        hapticTap('light');
+      }
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : null));
       hapticTap('light');
@@ -139,7 +162,7 @@ export default function AskTheDay({ blueprint }: Props) {
         </button>
       </div>
 
-      {!answer && (
+      {answer === null && (
         <>
           <p className="text-[12px] text-ink-dim serif mt-1 leading-relaxed">
             One line — a context or a question. The day will answer through
@@ -183,19 +206,23 @@ export default function AskTheDay({ blueprint }: Props) {
         </>
       )}
 
-      {answer && (
+      {answer !== null && (
         <>
           <p className="serif italic text-[13px] text-ink-faint mt-2 leading-relaxed">
             you asked: "{question}"
           </p>
           <p className="serif text-[14.5px] text-ink mt-2 leading-relaxed">
             {answer}
+            {busy && (
+              <span className="stream-cursor" aria-hidden>▎</span>
+            )}
           </p>
           <div className="flex flex-wrap gap-3 mt-3 items-center">
             <button
               type="button"
               onClick={startOver}
-              className="small-label caps text-ink-faint hover:text-ink"
+              disabled={busy}
+              className="small-label caps text-ink-faint hover:text-ink disabled:opacity-40"
               style={{ letterSpacing: '0.14em' }}
             >
               ask another
@@ -203,7 +230,8 @@ export default function AskTheDay({ blueprint }: Props) {
             <button
               type="button"
               onClick={attachAsNote}
-              className="small-label caps text-ink-faint hover:text-ink"
+              disabled={busy}
+              className="small-label caps text-ink-faint hover:text-ink disabled:opacity-40"
               style={{ letterSpacing: '0.14em' }}
             >
               keep this · save to today's journal
