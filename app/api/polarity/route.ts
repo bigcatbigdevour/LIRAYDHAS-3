@@ -4,7 +4,14 @@ import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { currentChapter } from '@/lib/lifeChapters';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
+import {
+  composePrompt,
+  callLLM,
+  llmErrorResponse,
+  rateLimit,
+  readBoundedBody,
+  isWellFormedBlueprint,
+} from '@/lib/llm';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -18,16 +25,11 @@ export async function POST(req: Request) {
   const limited = rateLimit(req, 'polarity');
   if (limited) return limited;
 
-  let body: { blueprint?: Blueprint };
-  try {
-    body = (await req.json()) as { blueprint?: Blueprint };
-  } catch {
-    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
-  }
-  const bp = body.blueprint;
-  if (!bp) return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
-  if (!bp.birth?.iso) {
-    return withCors(NextResponse.json({ error: 'invalid blueprint: missing birth' }, { status: 400 }), req);
+  const parsed = await readBoundedBody<{ blueprint?: Blueprint }>(req);
+  if (!parsed.ok) return parsed.response;
+  const bp = parsed.body.blueprint;
+  if (!isWellFormedBlueprint(bp)) {
+    return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
   }
 
   const age = ageInYears(bp.birth.iso);

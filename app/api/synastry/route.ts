@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
+import {
+  composePrompt,
+  callLLM,
+  llmErrorResponse,
+  rateLimit,
+  readBoundedBody,
+  isWellFormedBlueprint,
+} from '@/lib/llm';
 import {
   computeSynastryAspects,
   computeElectricChannels,
@@ -21,19 +28,16 @@ export async function POST(req: Request) {
   const limited = rateLimit(req, 'synastry');
   if (limited) return limited;
 
-  let body: {
+  const parsed = await readBoundedBody<{
     self?: Blueprint;
     other?: Blueprint;
     selfName?: string;
     otherName?: string;
     relation?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
-  }
-  if (!body.self?.natal || !body.other?.natal || !body.self?.humanDesign || !body.other?.humanDesign) {
+  }>(req, 128 * 1024);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  if (!isWellFormedBlueprint(body.self) || !isWellFormedBlueprint(body.other)) {
     return withCors(NextResponse.json({ error: 'missing blueprints' }, { status: 400 }), req);
   }
 

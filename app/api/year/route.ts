@@ -3,7 +3,14 @@ import { ageInYears, polarityFlips, upcomingReturns } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
+import {
+  composePrompt,
+  callLLM,
+  llmErrorResponse,
+  rateLimit,
+  readBoundedBody,
+  isWellFormedBlueprint,
+} from '@/lib/llm';
 import type { Blueprint, YearReading } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -17,14 +24,10 @@ export async function POST(req: Request) {
   const limited = rateLimit(req, 'year');
   if (limited) return limited;
 
-  let body: { blueprint?: Blueprint };
-  try {
-    body = (await req.json()) as { blueprint?: Blueprint };
-  } catch {
-    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
-  }
-  const bp = body.blueprint;
-  if (!bp || !bp.natal || !bp.humanDesign) {
+  const parsed = await readBoundedBody<{ blueprint?: Blueprint }>(req);
+  if (!parsed.ok) return parsed.response;
+  const bp = parsed.body.blueprint;
+  if (!isWellFormedBlueprint(bp)) {
     return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
   }
 

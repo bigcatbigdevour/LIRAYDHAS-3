@@ -5,7 +5,14 @@ import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { ageInYears, polarityFlips } from '@/lib/cycles';
 import { currentChapter } from '@/lib/lifeChapters';
 import { handlePreflight, withCors } from '@/lib/cors';
-import { composePrompt, callLLM, llmErrorResponse, rateLimit } from '@/lib/llm';
+import {
+  composePrompt,
+  callLLM,
+  llmErrorResponse,
+  rateLimit,
+  readBoundedBody,
+  isWellFormedBlueprint,
+} from '@/lib/llm';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -21,15 +28,12 @@ export async function POST(req: Request) {
   const limited = rateLimit(req, 'ask');
   if (limited) return limited;
 
-  let body: { blueprint?: Blueprint; question?: string };
-  try {
-    body = (await req.json()) as { blueprint?: Blueprint; question?: string };
-  } catch {
-    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
-  }
+  const parsed = await readBoundedBody<{ blueprint?: Blueprint; question?: string }>(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
 
   const bp = body.blueprint;
-  if (!bp || !bp.natal || !bp.humanDesign) {
+  if (!isWellFormedBlueprint(bp)) {
     return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
   }
   const question = typeof body.question === 'string' ? body.question.trim() : '';

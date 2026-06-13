@@ -172,6 +172,109 @@ export function rateLimit(req: Request, endpoint: keyof typeof RATE_LIMITS): Nex
   return withCors(res, req);
 }
 
+/**
+ * Default body-size cap for the LLM endpoints. A real blueprint is
+ * ~10-30 KB; 64 KB is a generous ceiling that still defeats
+ * "make the server choke on a 10 MB blob" attacks.
+ *
+ * Tunable per endpoint if any route legitimately needs more — synastry
+ * takes two blueprints so it gets 128 KB.
+ */
+export const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
+
+/**
+ * Read the request body as text, enforce a size cap, then JSON.parse.
+ *
+ * Why this and not just `req.json()`: the built-in parser will happily
+ * accept a 10 MB body and spend memory + CPU parsing it before our
+ * route handler runs. We want to reject oversized payloads at the
+ * door so an attacker can't run up serverless CPU minutes for free.
+ *
+ * Returns either { ok: true, body } or { ok: false, response } where
+ * response is a 400/413 NextResponse the caller should return directly.
+ */
+export async function readBoundedBody<T>(
+  req: Request,
+  maxBytes: number = DEFAULT_MAX_BODY_BYTES,
+): Promise<{ ok: true; body: T } | { ok: false; response: NextResponse }> {
+  // Honour Content-Length when present; it's not authoritative (some
+  // clients omit or lie) but it lets us reject obvious offenders cheaply.
+  const declared = req.headers.get('content-length');
+  if (declared && Number(declared) > maxBytes) {
+    return {
+      ok: false,
+      response: withCors(
+        NextResponse.json({ error: 'request body too large' }, { status: 413 }),
+        req,
+      ),
+    };
+  }
+
+  let text: string;
+  try {
+    text = await req.text();
+  } catch {
+    return {
+      ok: false,
+      response: withCors(
+        NextResponse.json({ error: 'could not read request body' }, { status: 400 }),
+        req,
+      ),
+    };
+  }
+
+  // Re-check on the actual bytes — a buggy or hostile client could
+  // omit Content-Length and stream a huge body.
+  if (text.length > maxBytes) {
+    return {
+      ok: false,
+      response: withCors(
+        NextResponse.json({ error: 'request body too large' }, { status: 413 }),
+        req,
+      ),
+    };
+  }
+
+  try {
+    return { ok: true, body: JSON.parse(text) as T };
+  } catch {
+    return {
+      ok: false,
+      response: withCors(
+        NextResponse.json({ error: 'invalid json' }, { status: 400 }),
+        req,
+      ),
+    };
+  }
+}
+
+/**
+ * Lightweight blueprint shape check. Confirms the minimum fields every
+ * LLM route depends on are present — natal positions and the human
+ * design summary. Doesn't validate every nested field; the routes
+ * themselves can reach in and check what they need.
+ */
+export function isWellFormedBlueprint(bp: unknown): bp is {
+  natal: { sun: { sign: string }; moon: { sign: string } };
+  humanDesign: { type: string; profile: string };
+  birth: { iso: string };
+} {
+  if (typeof bp !== 'object' || bp === null) return false;
+  const b = bp as Record<string, unknown>;
+  if (typeof b.natal !== 'object' || b.natal === null) return false;
+  if (typeof b.humanDesign !== 'object' || b.humanDesign === null) return false;
+  if (typeof b.birth !== 'object' || b.birth === null) return false;
+  const natal = b.natal as Record<string, unknown>;
+  const hd = b.humanDesign as Record<string, unknown>;
+  const birth = b.birth as Record<string, unknown>;
+  if (typeof natal.sun !== 'object' || natal.sun === null) return false;
+  if (typeof natal.moon !== 'object' || natal.moon === null) return false;
+  if (typeof hd.type !== 'string') return false;
+  if (typeof hd.profile !== 'string') return false;
+  if (typeof birth.iso !== 'string') return false;
+  return true;
+}
+
 export function llmErrorResponse(req: Request, e: unknown, source: string): NextResponse {
   console.error(`[${source}] model call failed:`, e);
   const msg = e instanceof Error ? e.message : '';
