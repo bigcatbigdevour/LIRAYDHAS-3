@@ -14,6 +14,7 @@ import {
 import { buildBlueprint } from '@/lib/blueprint';
 import { api } from '@/lib/apiBase';
 import { friendlyError } from '@/lib/friendlyError';
+import { natalAspectMeaning } from '@/lib/astrology/aspectMeanings';
 import { tap as hapticTap, success as hapticSuccess, warn as hapticWarn } from '@/lib/haptics';
 import { localDateStr } from '@/lib/localDate';
 import { ageInYears } from '@/lib/cycles';
@@ -305,18 +306,23 @@ export default function CompatPage() {
           {reading.aspects.length > 0 && (
             <section>
               <p className="small-label caps mb-2">how your charts meet</p>
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {reading.aspects.slice(0, 5).map((a, i) => (
                   <li
                     key={i}
-                    className="flex justify-between text-[12.5px] border-b border-hairline py-1"
+                    className="border-b border-hairline pb-2"
                   >
-                    <span className="text-ink-dim">
-                      your {a.aBody} {a.kind} their {a.bBody}
-                    </span>
-                    <span className="text-ink-faint tabular-nums">
-                      {a.orb.toFixed(1)}°
-                    </span>
+                    <div className="flex justify-between items-baseline text-[12.5px]">
+                      <span className="text-ink-dim">
+                        your {a.aBody} {a.kind} their {a.bBody}
+                      </span>
+                      <span className="text-ink-faint tabular-nums">
+                        {a.orb.toFixed(1)}°
+                      </span>
+                    </div>
+                    <p className="serif text-[12.5px] text-ink-faint mt-1 leading-relaxed">
+                      {natalAspectMeaning(a.aBody, a.bBody, a.kind)}
+                    </p>
                   </li>
                 ))}
               </ul>
