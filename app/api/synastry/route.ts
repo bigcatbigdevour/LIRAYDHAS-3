@@ -4,6 +4,7 @@ import {
   composePrompt,
   callLLM,
   llmErrorResponse,
+  streamLLMResponse,
   rateLimit,
   readBoundedBody,
   isWellFormedBlueprint,
@@ -103,6 +104,32 @@ export async function POST(req: Request) {
     ],
   });
 
+  const lifeStage = {
+    ageA: stage.ageA,
+    ageB: stage.ageB,
+    ageGapYears: stage.ageGapYears,
+    chapterA: stage.chapterA?.label ?? null,
+    chapterB: stage.chapterB?.label ?? null,
+    sameChapter: stage.sameChapter,
+    risingA: stage.risingA,
+    risingB: stage.risingB,
+  };
+
+  if (new URL(req.url).searchParams.get('stream') === '1') {
+    return streamLLMResponse(req, {
+      prompt,
+      maxTokens: 500,
+      temperature: 0.85,
+      meta: {
+        aspects,
+        electricChannels: electric,
+        lifeStage,
+        generatedAt: new Date().toISOString(),
+      },
+      splitTakeaway: false,
+    });
+  }
+
   let paragraph: string;
   try {
     paragraph = await callLLM(prompt, { maxTokens: 500, temperature: 0.85 });
@@ -114,16 +141,7 @@ export async function POST(req: Request) {
     paragraph,
     aspects,
     electricChannels: electric,
-    lifeStage: {
-      ageA: stage.ageA,
-      ageB: stage.ageB,
-      ageGapYears: stage.ageGapYears,
-      chapterA: stage.chapterA?.label ?? null,
-      chapterB: stage.chapterB?.label ?? null,
-      sameChapter: stage.sameChapter,
-      risingA: stage.risingA,
-      risingB: stage.risingB,
-    },
+    lifeStage,
     generatedAt: new Date().toISOString(),
   };
   return withCors(NextResponse.json(reading), req);

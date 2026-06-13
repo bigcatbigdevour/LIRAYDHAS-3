@@ -35,6 +35,7 @@ import { questionForDate, questionLabelForHour } from '@/lib/dailyQuestion';
 import QuickNote from '@/components/QuickNote';
 import { localDateStr, useToday } from '@/lib/localDate';
 import { api } from '@/lib/apiBase';
+import { readSseStream, isEventStream } from '@/lib/streamRead';
 import { getLastVisit, markVisited, changesSince, prettyGap, type ChangedBit } from '@/lib/lastVisit';
 import { buildWeeklyDigest, shouldShowWeeklyDigest, markWeeklyShown, type WeeklyDigest } from '@/lib/weeklyDigest';
 import type { DailyReport } from '@/lib/types';
@@ -58,6 +59,11 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedOffline, setCachedOffline] = useState(false);
+  // Live-streaming state for the daily paragraph. When the server is
+  // streaming SSE we display these (and the cursor), then commit to
+  // the persistent store on `done`. Both empty = no live stream.
+  const [streamTakeaway, setStreamTakeaway] = useState('');
+  const [streamParagraph, setStreamParagraph] = useState('');
   const [moon, setMoon] = useState<ReturnType<typeof currentMoon> | null>(null);
   const [moonShift, setMoonShift] = useState<{ hours: number; nextSign: string } | null>(null);
   const [lunation, setLunation] = useState<UpcomingLunation | null>(null);
@@ -188,8 +194,14 @@ export default function TodayPage() {
     const startBlueprint = blueprint;
     setLoading(true);
     setError(null);
+    setStreamTakeaway('');
+    setStreamParagraph('');
     try {
-      const res = await fetch(api('/api/daily'), {
+      // ?stream=1 → SSE. The service worker passes it through (its
+      // cache only intercepts the plain /api/daily URL), so when online
+      // we always get streaming. When offline the fetch fails and we
+      // retry the cached non-streaming endpoint below.
+      const res = await fetch(api('/api/daily?stream=1'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
@@ -198,18 +210,55 @@ export default function TodayPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
-      // The service worker stamps `X-Liraydhas-Cache: offline` when it
-      // served a previously-cached reading because the live request
-      // failed. Surface that to the user so they know what they're
-      // looking at isn't fresh.
-      const fromCache = res.headers.get('X-Liraydhas-Cache') === 'offline';
-      const data = (await res.json()) as DailyReport;
-      // If the user blew away or replaced their blueprint while the
-      // request was in flight, drop this response.
-      if (useStore.getState().blueprint !== startBlueprint) return;
-      setDaily(data);
-      setCachedOffline(fromCache);
+
+      // Non-streaming response (e.g. SW offline fallback) — parse JSON.
+      if (!isEventStream(res)) {
+        const fromCache = res.headers.get('X-Liraydhas-Cache') === 'offline';
+        const data = (await res.json()) as DailyReport;
+        if (useStore.getState().blueprint !== startBlueprint) return;
+        setDaily(data);
+        setCachedOffline(fromCache);
+        return;
+      }
+
+      // Streaming response. Accumulate locally; commit to the store on `done`.
+      setCachedOffline(false);
+      let date = localDateStr();
+      let transits: TransitAspect[] = [];
+      let softError: string | null = null;
+      await readSseStream(res, {
+        meta: (m) => {
+          if (typeof m.date === 'string') date = m.date;
+          if (Array.isArray(m.transits)) transits = m.transits as TransitAspect[];
+        },
+        takeaway: (t) => setStreamTakeaway(t),
+        paragraph: (_delta, full) => setStreamParagraph(full),
+        done: ({ takeaway, paragraph }) => {
+          if (useStore.getState().blueprint !== startBlueprint) return;
+          setDaily({ date, transits, takeaway, paragraph });
+          setStreamTakeaway('');
+          setStreamParagraph('');
+        },
+        error: (msg) => { softError = msg; },
+      });
+      if (softError) setError(friendlyError(softError));
     } catch (e: unknown) {
+      // Network/transport failure. Fall back to the cached non-streaming
+      // path so a returning offline user still sees their last reading.
+      try {
+        const res2 = await fetch(api('/api/daily'), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
+        });
+        if (res2.ok) {
+          const data = (await res2.json()) as DailyReport;
+          if (useStore.getState().blueprint !== startBlueprint) return;
+          setDaily(data);
+          setCachedOffline(res2.headers.get('X-Liraydhas-Cache') === 'offline');
+          return;
+        }
+      } catch { /* fall through to error */ }
       setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
       setLoading(false);
@@ -500,14 +549,14 @@ export default function TodayPage() {
       )}
 
       <section className="min-h-[200px]">
-        {loading && !daily && <DailyParagraphSkeleton />}
+        {loading && !daily && !streamParagraph && !streamTakeaway && <DailyParagraphSkeleton />}
         {error && (
           <div className="border border-hairline p-4 mb-4">
             <p className="text-accent text-[13px]">{error}</p>
             <button className="btn-ghost mt-3" onClick={() => { hapticTap('light'); void fetchDaily(); }}>try again</button>
           </div>
         )}
-        {daily?.takeaway && (
+        {(daily?.takeaway || streamTakeaway) && (
           <p
             className="serif italic text-ink mb-4 leading-snug fade-in"
             style={{
@@ -516,12 +565,15 @@ export default function TodayPage() {
               paddingLeft: '0.75rem',
             }}
           >
-            {daily.takeaway}
+            {daily?.takeaway || streamTakeaway}
           </p>
         )}
-        {daily?.paragraph && (
+        {(daily?.paragraph || streamParagraph) && (
           <p className="body-prose serif text-ink">
-            {daily.paragraph}
+            {daily?.paragraph || streamParagraph}
+            {streamParagraph && !daily?.paragraph && (
+              <span className="stream-cursor" aria-hidden>▎</span>
+            )}
           </p>
         )}
         {cachedOffline && daily?.paragraph && (

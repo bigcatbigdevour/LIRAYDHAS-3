@@ -308,6 +308,23 @@ select:focus-visible {
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
+/* Streaming-text cursor — a wine-tinted block that blinks on the
+   trailing edge of a paragraph while LLM tokens are still arriving. */
+@keyframes stream-cursor-blink {
+  0%, 50%  { opacity: 0.85; }
+  50.01%, 100% { opacity: 0; }
+}
+.stream-cursor {
+  display: inline-block;
+  margin-left: 1px;
+  color: #b22a2a;
+  animation: stream-cursor-blink 1s steps(2, end) infinite;
+  font-weight: 300;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stream-cursor { animation: none; opacity: 0.65; }
+}
+
 /* When the URL hash points at a month section on /year (or any other
    .month-target element), pulse the left border so the user can find
    what they just tapped to. Decays in ~1.6s so it doesn't compete with

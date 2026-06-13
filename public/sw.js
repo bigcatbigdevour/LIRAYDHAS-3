@@ -19,7 +19,7 @@
  * POST live if cache lookup fails.
  */
 
-const VERSION = 'liraydhas-v2';
+const VERSION = 'liraydhas-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const READING_CACHE = `${VERSION}-readings`;
 
@@ -149,7 +149,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   // LLM endpoints: stale-while-revalidate with body-aware keys.
+  // Streaming (?stream=1) variants pass through unmodified — caching a
+  // text/event-stream response would mean consuming the stream before
+  // the client sees it, defeating the whole point. Offline fallback is
+  // handled at the call site by retrying the non-streaming endpoint.
   if (req.method === 'POST' && LLM_ENDPOINTS.has(url.pathname)) {
+    if (url.searchParams.get('stream') === '1') return; // pass through
     event.respondWith(handleLlmPost(req));
     return;
   }

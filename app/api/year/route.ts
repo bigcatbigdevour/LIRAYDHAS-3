@@ -7,6 +7,7 @@ import {
   composePrompt,
   callLLM,
   llmErrorResponse,
+  streamLLMResponse,
   rateLimit,
   readBoundedBody,
   isWellFormedBlueprint,
@@ -77,6 +78,16 @@ export async function POST(req: Request) {
       'End with a quiet observation — not a forecast, not a command, not a question.',
     ],
   });
+
+  if (new URL(req.url).searchParams.get('stream') === '1') {
+    return streamLLMResponse(req, {
+      prompt,
+      maxTokens: 400,
+      temperature: 0.8,
+      meta: { generatedAt: new Date().toISOString() },
+      splitTakeaway: false,
+    });
+  }
 
   let paragraph: string;
   try {

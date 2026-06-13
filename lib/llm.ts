@@ -22,7 +22,7 @@
 import { NextResponse } from 'next/server';
 import { getClient, MODEL, textOf } from './anthropic';
 import { VOICE_SPEC } from './voice';
-import { withCors } from './cors';
+import { withCors, corsHeaders } from './cors';
 import { tryConsume, requesterKey, type RateLimitConfig } from './rateLimit';
 
 export interface PromptSection {
@@ -133,6 +133,157 @@ export async function callLLM(prompt: string, opts: CallOptions = {}): Promise<s
   });
   return textOf(msg);
 }
+
+export interface StreamResponseOptions extends CallOptions {
+  prompt: string;
+  /**
+   * Fields to include in the initial `meta` event the client receives
+   * before any text deltas. Use for things the server can compute
+   * synchronously (chart positions, transit aspects, dates) so the
+   * client can render structured UI in parallel with the paragraph.
+   */
+  meta?: Record<string, unknown>;
+  /**
+   * If true (default), watch the stream for the takeaway / paragraph
+   * blank-line split and emit the takeaway as a separate `takeaway`
+   * event. Off for endpoints that don't follow the takeaway format
+   * (synastry, ask, year today don't, narrative + polarity + daily do).
+   */
+  splitTakeaway?: boolean;
+}
+
+/**
+ * Build a server-sent-events response that streams Anthropic's text
+ * deltas to the client as they're produced. Event sequence:
+ *
+ *   data: {"type":"meta", ...opts.meta}\n\n            (once, first)
+ *   data: {"type":"takeaway","text":"…"}\n\n           (once, optional)
+ *   data: {"type":"paragraph","text":"…"}\n\n          (many)
+ *   data: {"type":"done","fullText":"…"}\n\n           (once, last)
+ *   data: {"type":"error","message":"…"}\n\n           (on failure)
+ *
+ * The `done` event carries the assembled paragraph so the client can
+ * persist it without having to concatenate deltas itself.
+ *
+ * On Anthropic error we send a single `error` event and close the
+ * stream cleanly — the client treats this as a soft failure (no retry
+ * banner), matching the non-streaming llmErrorResponse() semantics.
+ */
+export function streamLLMResponse(req: Request, opts: StreamResponseOptions): Response {
+  const encoder = new TextEncoder();
+  const wantsTakeaway = opts.splitTakeaway !== false;
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (data: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          // Client disconnected — drop the rest silently.
+        }
+      };
+
+      if (opts.meta) {
+        send({ type: 'meta', ...opts.meta });
+      }
+
+      let full = '';
+      let splitFound = !wantsTakeaway;
+
+      try {
+        const client = getClient();
+        const llmStream = client.messages.stream({
+          model: MODEL,
+          max_tokens: opts.maxTokens ?? 400,
+          temperature: opts.temperature ?? 0.8,
+          messages: [{ role: 'user', content: opts.prompt }],
+        });
+
+        for await (const event of llmStream) {
+          if (event.type !== 'content_block_delta') continue;
+          if (event.delta.type !== 'text_delta') continue;
+          const delta = event.delta.text;
+          full += delta;
+
+          if (!splitFound) {
+            // Buffer until we see the blank line, then split + flush.
+            const idx = full.search(/\n\s*\n/);
+            if (idx >= 0) {
+              const takeawayRaw = full.slice(0, idx);
+              const afterSplit = full.slice(idx).replace(/^\n\s*\n/, '');
+              const takeaway = cleanTakeaway(takeawayRaw);
+              if (takeaway) send({ type: 'takeaway', text: takeaway });
+              if (afterSplit) send({ type: 'paragraph', text: afterSplit });
+              splitFound = true;
+            }
+          } else {
+            send({ type: 'paragraph', text: delta });
+          }
+        }
+
+        // If the model never produced a blank-line split, the entire
+        // output is the paragraph (and no takeaway is emitted) — matches
+        // splitTakeaway()'s fallback behaviour.
+        if (!splitFound && full) {
+          send({ type: 'paragraph', text: full });
+        }
+
+        // Recompute the canonical {takeaway, paragraph} pair the same
+        // way splitTakeaway() does so the client can persist them
+        // exactly the same as the non-streaming path would have.
+        const { takeaway, paragraph } = wantsTakeaway
+          ? splitTakeaway(full)
+          : { takeaway: '', paragraph: full.trim() };
+        send({ type: 'done', takeaway, paragraph });
+      } catch (e: unknown) {
+        console.error('[streamLLMResponse] model call failed:', e);
+        const msg = e instanceof Error ? e.message : '';
+        const isOverload = /overloaded|rate|429/i.test(msg);
+        const isAuth = /api[_ ]key|unauthorized|401/i.test(msg);
+        const body = isAuth
+          ? 'reading service not configured'
+          : isOverload
+            ? 'reading service is busy'
+            : 'reading service failed';
+        send({ type: 'error', message: body });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  const res = new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      // Disable Vercel/edge proxy buffering so events flush as they're
+      // produced instead of arriving in one big chunk at the end.
+      'X-Accel-Buffering': 'no',
+      ...corsHeaders(req.headers.get('origin')),
+    },
+  });
+  return res;
+}
+
+/**
+ * Strip prefix artefacts from a takeaway line — same cleanup
+ * splitTakeaway() does, factored out so streamLLMResponse can clean
+ * the takeaway live as it's emitted (before the full paragraph is
+ * known).
+ */
+function cleanTakeaway(raw: string): string {
+  const t = raw
+    .trim()
+    .replace(/^(takeaway|tldr|one[\s-]?line)\s*[:\-—]\s*/i, '')
+    .replace(/^["'“”‘’]+/, '')
+    .replace(/["'“”‘’]+$/, '')
+    .replace(/^[•·\-*]\s*/, '')
+    .trim();
+  const wordCount = t.split(/\s+/).filter(Boolean).length;
+  if (t.length > 200 || wordCount < 4) return '';
+  return t;
+}
+
 
 /**
  * Build a 500 response with a calm, classified user message from an

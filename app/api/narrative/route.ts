@@ -8,6 +8,7 @@ import {
   composePrompt,
   callLLM,
   llmErrorResponse,
+  streamLLMResponse,
   rateLimit,
   readBoundedBody,
   isWellFormedBlueprint,
@@ -90,6 +91,16 @@ export async function POST(req: Request) {
       'End on a quiet observation, not a command, not a pep talk.',
     ],
   });
+
+  if (new URL(req.url).searchParams.get('stream') === '1') {
+    return streamLLMResponse(req, {
+      prompt,
+      maxTokens: 400,
+      temperature: 0.85,
+      meta: { generatedAt: new Date().toISOString() },
+      splitTakeaway: false,
+    });
+  }
 
   try {
     const paragraph = await callLLM(prompt, { maxTokens: 400, temperature: 0.85 });

@@ -10,6 +10,7 @@ import {
   callLLM,
   llmErrorResponse,
   splitTakeaway,
+  streamLLMResponse,
   rateLimit,
   readBoundedBody,
   isWellFormedBlueprint,
@@ -105,6 +106,22 @@ export async function POST(req: Request) {
       'End with a quiet observation — not a command, not a question.',
     ],
   });
+
+  // ?stream=1 → server-sent-events stream so the client renders the
+  // paragraph word-by-word as it's produced. Default to the existing
+  // non-streaming JSON path so the service worker's body-hash cache
+  // (and any other consumer that wants a plain JSON object) keeps
+  // working unchanged.
+  const wantsStream = new URL(req.url).searchParams.get('stream') === '1';
+  if (wantsStream) {
+    return streamLLMResponse(req, {
+      prompt,
+      maxTokens: 450,
+      temperature: 0.8,
+      meta: { date: today, transits: top },
+      splitTakeaway: true,
+    });
+  }
 
   let raw: string;
   try {

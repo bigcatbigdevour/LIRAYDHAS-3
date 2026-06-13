@@ -9,6 +9,7 @@ import {
   composePrompt,
   callLLM,
   llmErrorResponse,
+  streamLLMResponse,
   rateLimit,
   readBoundedBody,
   isWellFormedBlueprint,
@@ -92,6 +93,15 @@ export async function POST(req: Request) {
       'Do not mention astrology, gates, channels, transits, or "Human Design" by name in the paragraph. Just describe what\'s lit.',
     ],
   });
+
+  if (new URL(req.url).searchParams.get('stream') === '1') {
+    return streamLLMResponse(req, {
+      prompt,
+      maxTokens: 400,
+      temperature: 0.85,
+      splitTakeaway: false,
+    });
+  }
 
   let paragraph: string;
   try {
