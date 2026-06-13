@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useStore } from '@/lib/store';
 import BodyGraph from '@/components/BodyGraph';
 import NatalWheel from '@/components/NatalWheel';
+import NatalAspects from '@/components/NatalAspects';
 import ActivationColumns from '@/components/ActivationColumns';
 import {
   TYPE_DESCRIPTIONS,
@@ -346,6 +347,8 @@ export default function ChartPage() {
             </ul>
           </details>
         )}
+
+        <NatalAspects blueprint={blueprint} />
       </section>
 
       <section className="mt-12 border-t border-hairline pt-6">

@@ -36,3 +36,21 @@ export function aspectMeaning(
   const key = `${transit}|${natal}|${aspect}`;
   return SPECIFIC[key] ?? GENERIC[aspect];
 }
+
+/**
+ * Natal aspects are symmetric (Saturn-square-Sun has the same meaning
+ * regardless of which you name first), so look up both orderings and
+ * prefer whichever hits the SPECIFIC table. Falls back to the generic
+ * aspect line if neither ordering is in the table.
+ */
+export function natalAspectMeaning(
+  a: PlanetName,
+  b: PlanetName,
+  aspect: Aspect,
+): string {
+  const direct = SPECIFIC[`${a}|${b}|${aspect}`];
+  if (direct) return direct;
+  const swapped = SPECIFIC[`${b}|${a}|${aspect}`];
+  if (swapped) return swapped;
+  return GENERIC[aspect];
+}
