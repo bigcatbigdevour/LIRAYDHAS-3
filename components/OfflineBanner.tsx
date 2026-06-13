@@ -46,8 +46,8 @@ export default function OfflineBanner() {
         <span className="text-accent caps small-label mr-1.5" style={{ letterSpacing: '0.18em' }}>
           offline
         </span>
-        Your chart, arcs, and polarity still work. New daily readings will
-        load once you reconnect.
+        Your chart, arcs, polarity, and your last cached readings still
+        work. A fresh paragraph will load when you reconnect.
       </p>
     </div>
   );

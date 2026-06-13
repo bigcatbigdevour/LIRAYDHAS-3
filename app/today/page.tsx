@@ -57,6 +57,7 @@ export default function TodayPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cachedOffline, setCachedOffline] = useState(false);
   const [moon, setMoon] = useState<ReturnType<typeof currentMoon> | null>(null);
   const [moonShift, setMoonShift] = useState<{ hours: number; nextSign: string } | null>(null);
   const [lunation, setLunation] = useState<UpcomingLunation | null>(null);
@@ -197,11 +198,17 @@ export default function TodayPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
+      // The service worker stamps `X-Liraydhas-Cache: offline` when it
+      // served a previously-cached reading because the live request
+      // failed. Surface that to the user so they know what they're
+      // looking at isn't fresh.
+      const fromCache = res.headers.get('X-Liraydhas-Cache') === 'offline';
       const data = (await res.json()) as DailyReport;
       // If the user blew away or replaced their blueprint while the
       // request was in flight, drop this response.
       if (useStore.getState().blueprint !== startBlueprint) return;
       setDaily(data);
+      setCachedOffline(fromCache);
     } catch (e: unknown) {
       setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
@@ -515,6 +522,14 @@ export default function TodayPage() {
         {daily?.paragraph && (
           <p className="body-prose serif text-ink">
             {daily.paragraph}
+          </p>
+        )}
+        {cachedOffline && daily?.paragraph && (
+          <p
+            className="small-label caps text-ink-faint text-[10px] mt-3"
+            style={{ letterSpacing: '0.16em' }}
+          >
+            offline · showing your last reading
           </p>
         )}
       </section>

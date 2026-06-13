@@ -19,7 +19,7 @@
  * POST live if cache lookup fails.
  */
 
-const VERSION = 'liraydhas-v1';
+const VERSION = 'liraydhas-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const READING_CACHE = `${VERSION}-readings`;
 
@@ -36,6 +36,10 @@ const SHELL_URLS = [
   '/learn',
   '/about',
   '/onboarding',
+  '/compat',
+  '/pro',
+  '/support',
+  '/privacy',
   '/manifest.webmanifest',
 ];
 
@@ -87,6 +91,11 @@ const LLM_ENDPOINTS = new Set([
   '/api/daily',
   '/api/polarity',
   '/api/narrative',
+  '/api/year',
+  '/api/synastry',
+  // /api/ask is intentionally NOT cached — each question is different
+  // and a stale answer to "should I quit my job" would be worse than a
+  // useful error message.
 ]);
 
 // === Push notifications ===
