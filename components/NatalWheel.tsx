@@ -7,6 +7,8 @@ import { signGlyphPaths } from './SignGlyph';
 import PlanetGlyph, { planetGlyphPaths } from './PlanetGlyph';
 import SignGlyph from './SignGlyph';
 import { PLANET_MEANINGS } from '@/lib/astrology/planetMeanings';
+import { HOUSE_MEANINGS } from '@/lib/astrology/houseMeanings';
+import { houseOfLongitude } from '@/lib/astrology/houses';
 import { tap as hapticTap } from '@/lib/haptics';
 
 const SIGN_ORDER = [
@@ -304,13 +306,19 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
     {selected && (() => {
       const meaning = PLANET_MEANINGS[selected];
       // Look up the natal sign + degree for this planet.
-      const planetData: Record<string, { sign: ZodiacSign; degree: number } | null> = {
+      const planetData: Record<string, { sign: ZodiacSign; degree: number; longitude: number } | null> = {
         Sun: n.sun, Moon: n.moon, Mercury: n.mercury, Venus: n.venus,
         Mars: n.mars, Jupiter: n.jupiter, Saturn: n.saturn,
         Uranus: n.uranus, Neptune: n.neptune, Pluto: n.pluto,
         NorthNode: n.northNode, Chiron: n.chiron,
       };
       const data = planetData[selected];
+      // Houses depend on birth time; for time-unknown charts the cusps
+      // are null and we can't say which house the planet sits in.
+      const houseNum = data && n.houses[0] !== null
+        ? houseOfLongitude(data.longitude, n.houses)
+        : null;
+      const houseInfo = houseNum ? HOUSE_MEANINGS[houseNum] : null;
       return (
         <section className="mt-3 border border-hairline p-3 fade-in" aria-live="polite">
           <header className="flex items-baseline justify-between gap-3 mb-2">
@@ -348,11 +356,40 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
               </p>
             </>
           )}
+          {houseInfo && houseNum && (
+            <div className="mt-3 pt-3 border-t border-hairline">
+              <p
+                className="small-label caps text-ink-faint text-[10px] mb-1"
+                style={{ letterSpacing: '0.16em' }}
+              >
+                in your {houseNum}{ordinalSuffix(houseNum)} house · {houseInfo.name.toLowerCase()}
+              </p>
+              <p className="serif text-[12.5px] text-ink-dim leading-relaxed">
+                {houseInfo.meaning}
+              </p>
+            </div>
+          )}
+          {data && n.houses[0] === null && (
+            <p className="text-[11px] text-ink-faint italic mt-3 pt-3 border-t border-hairline">
+              your birth time wasn't recorded, so the house this lands in is unknown.
+            </p>
+          )}
         </section>
       );
     })()}
     </>
   );
+}
+
+function ordinalSuffix(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return 'th';
+  switch (n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
 }
 
 interface Placed extends Body { adjustedLon: number }
