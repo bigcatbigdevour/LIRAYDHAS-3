@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import SkyVisual from '@/components/SkyVisual';
-import MoonIcon from '@/components/MoonIcon';
+import MoonWidget from '@/components/MoonWidget';
 import { currentMoon, nextLunation, hoursUntilMoonSignChange, type UpcomingLunation } from '@/lib/astrology/moon';
 import { daysUntilSolarReturn } from '@/lib/astrology/returns';
 import { todaysTransits, pickTopAspects, upcomingForecast, currentRetrogrades, type UpcomingAspect } from '@/lib/astrology/transits';
@@ -224,13 +224,10 @@ export default function TodayPage() {
     <PullToRefresh onRefresh={fetchDaily}>
     <main className="page max-w-md mx-auto fade-in">
       <header className="pb-8">
-        <div className="flex items-baseline justify-between gap-3">
+        <div className="flex items-baseline justify-between gap-3 relative">
           <p className="small-label caps">{today}</p>
           {moon && (
-            <span className="flex items-center gap-1.5 small-label caps">
-              <MoonIcon phase={moon.phaseDegrees} size={16} />
-              <span>{moon.name.toLowerCase()} · {moon.moonSign}</span>
-            </span>
+            <MoonWidget moon={moon} lunation={lunation} shift={moonShift} />
           )}
         </div>
         {(daily?.transits && daily.transits.length > 0) || liveTransits.length > 0 ? (

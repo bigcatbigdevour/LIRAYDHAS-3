@@ -179,6 +179,24 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   animation: station-flash 2s ease-out;
 }
 
+/* star pop — fired on the moment a save lands. The star scales up briefly,
+   glows accent, then settles. Designed to feel like an acknowledgement,
+   not a cheer. */
+@keyframes star-pop {
+  0%   { transform: scale(1);   text-shadow: 0 0 0 transparent; }
+  30%  { transform: scale(1.45); text-shadow: 0 0 12px #b22a2a; }
+  60%  { transform: scale(0.95); text-shadow: 0 0 4px #8b3a3a; }
+  100% { transform: scale(1);   text-shadow: 0 0 0 transparent; }
+}
+.star-pop {
+  animation: star-pop 600ms cubic-bezier(.22,.61,.36,1);
+  display: inline-block;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .star-pop { animation: none; }
+}
+
 /* keyboard focus ring — visible without being loud. Accent for high
    contrast against the dark background; offset so it doesn't hug the
    character glyph. Inputs get a thicker ring because they're frequently

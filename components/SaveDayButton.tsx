@@ -35,6 +35,9 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
   const [existingNote, setExistingNote] = useState<string | undefined>(undefined);
   const [noteOpen, setNoteOpen] = useState(false);
   const [draftNote, setDraftNote] = useState('');
+  // Brief celebration animation on the save moment — toggles a one-shot
+  // CSS class on the star glyph that scales it up and glows accent.
+  const [popping, setPopping] = useState(false);
   // Reflection nudge: 5 minutes after the user commits a note, we surface
   // a small "what landed since you wrote this?" prompt. Once per save
   // event, per page life — never persisted across reloads.
@@ -110,6 +113,10 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     refresh();
     setNoteOpen(true);
     announce('reading saved to journal');
+    // Fire the star pop. Reset after the animation so it can play again
+    // on a subsequent save (after an unsave + re-save).
+    setPopping(true);
+    window.setTimeout(() => setPopping(false), 650);
     // Update local-notification anniversaries so this new entry's "one
     // year from now" ping joins the schedule. No-op on web.
     void rescheduleAnniversaries();
@@ -149,7 +156,11 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
         aria-label={saved ? 'unsave this reading' : 'save this reading'}
         title={saved ? 'saved · tap to unsave' : 'save this reading'}
       >
-        <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>
+        <span
+          aria-hidden
+          className={popping ? 'star-pop text-accent' : ''}
+          style={{ fontSize: 13, lineHeight: 1 }}
+        >
           {saved ? '★' : '☆'}
         </span>
         <span>{saved ? 'saved' : 'save'}</span>
