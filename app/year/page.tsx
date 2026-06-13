@@ -222,7 +222,13 @@ export default function YearPage() {
 
       <section className="mt-10">
         <p className="small-label caps mb-2">polarity heatmap · 12 months</p>
-        <PolarityForecast birthIso={blueprint.birth.iso} months={12} />
+        <PolarityForecast birthIso={blueprint.birth.iso} months={12} anchorPrefix="ym-" />
+        <p
+          className="small-label caps text-ink-faint mt-1 text-center text-[10px]"
+          style={{ letterSpacing: '0.14em' }}
+        >
+          tap a column to jump to that month
+        </p>
       </section>
 
       <section className="mt-10">
@@ -231,7 +237,12 @@ export default function YearPage() {
           {months.map((m) => {
             const monthEvents = byMonth[m.key] ?? [];
             return (
-              <li key={m.key} className="border-l border-hairline pl-3">
+              <li
+                key={m.key}
+                id={`ym-${m.key}`}
+                className="border-l border-hairline pl-3 month-target"
+                style={{ scrollMarginTop: '5rem' }}
+              >
                 <p className="serif text-[16px] text-ink">
                   {m.date.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                 </p>
