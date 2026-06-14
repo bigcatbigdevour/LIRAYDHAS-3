@@ -102,6 +102,15 @@ try {
   console.warn('[warn] Info.plist patch step failed. Run npm run ios:plist manually.');
 }
 
+try {
+  run('node scripts/patch-ios-privacy.js');
+} catch (e) {
+  console.warn(
+    '[warn] PrivacyInfo.xcprivacy patch step failed. Run npm run ios:privacy manually.\n' +
+    '       Submissions without a privacy manifest are rejected at upload.',
+  );
+}
+
 console.log('');
 console.log('[ios:build] done.');
 console.log('Open Xcode with: npm run ios:open');
