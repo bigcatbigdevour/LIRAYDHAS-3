@@ -15,9 +15,10 @@
     "ios:assets": "capacitor-assets generate --ios",
     "ios:plist": "node scripts/patch-ios-info-plist.js",
     "ios:privacy": "node scripts/patch-ios-privacy.js",
+    "ios:entitlements": "node scripts/patch-ios-entitlements.js",
     "ios:bump": "node scripts/bump-ios-version.js",
     "ios:preflight": "node scripts/ios-preflight.js",
-    "ios:prep": "npm run ios:sync && npm run ios:assets && npm run ios:plist && npm run ios:privacy",
+    "ios:prep": "npm run ios:sync && npm run ios:assets && npm run ios:plist && npm run ios:privacy && npm run ios:entitlements",
     "ios:build": "node scripts/build-ios.js",
     "vapid": "node scripts/generate-vapid-keys.js"
   },

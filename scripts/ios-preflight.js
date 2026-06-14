@@ -32,6 +32,7 @@ const path = require('path');
 const IOS_APP_DIR = path.join('ios', 'App', 'App');
 const PLIST_PATH = path.join(IOS_APP_DIR, 'Info.plist');
 const PRIVACY_PATH = path.join(IOS_APP_DIR, 'PrivacyInfo.xcprivacy');
+const ENT_PATH = path.join(IOS_APP_DIR, 'App.entitlements');
 const PBXPROJ = path.join('ios', 'App', 'App.xcodeproj', 'project.pbxproj');
 const CAP_CONFIG = 'capacitor.config.ts';
 const RESOURCE_ICON = path.join('resources', 'icon.png');
@@ -160,6 +161,26 @@ check('PrivacyInfo.xcprivacy is referenced by project.pbxproj', () => {
   const s = fs.readFileSync(PBXPROJ, 'utf8');
   if (!s.includes('PrivacyInfo.xcprivacy')) {
     return { ok: false, hint: 'Run `npm run ios:privacy` — file exists but Xcode isn\'t bundling it.' };
+  }
+  return { ok: true };
+});
+
+check('App.entitlements declares aps-environment (push)', () => {
+  if (!exists(ENT_PATH)) {
+    return { ok: false, hint: 'Run `npm run ios:entitlements`. Push will not work in TestFlight without this.' };
+  }
+  const s = fs.readFileSync(ENT_PATH, 'utf8');
+  if (!/<key>aps-environment<\/key>/.test(s)) {
+    return { ok: false, hint: 'Run `npm run ios:entitlements` to add the aps-environment key.' };
+  }
+  return { ok: true };
+});
+
+check('project.pbxproj points CODE_SIGN_ENTITLEMENTS at App.entitlements', () => {
+  if (!exists(PBXPROJ)) return { ok: false, hint: 'project.pbxproj missing.' };
+  const s = fs.readFileSync(PBXPROJ, 'utf8');
+  if (!s.includes('CODE_SIGN_ENTITLEMENTS = App/App.entitlements')) {
+    return { ok: false, hint: 'Run `npm run ios:entitlements`, or enable Push Notifications in Xcode → Signing & Capabilities.' };
   }
   return { ok: true };
 });

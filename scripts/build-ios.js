@@ -111,6 +111,16 @@ try {
   );
 }
 
+try {
+  run('node scripts/patch-ios-entitlements.js');
+} catch (e) {
+  console.warn(
+    '[warn] App.entitlements patch step failed. Run npm run ios:entitlements manually.\n' +
+    '       Without aps-environment push notifications will silently fail in TestFlight.',
+  );
+}
+
 console.log('');
 console.log('[ios:build] done.');
 console.log('Open Xcode with: npm run ios:open');
+console.log('Pre-submission check: npm run ios:preflight');
