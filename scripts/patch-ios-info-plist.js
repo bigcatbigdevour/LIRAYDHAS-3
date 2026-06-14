@@ -51,6 +51,13 @@ const KEYS = [
     value: false,
     type: 'bool',
   },
+  {
+    key: 'LSApplicationCategoryType',
+    // The App Store category that pre-fills in App Store Connect.
+    // Lifestyle is the closest fit for a daily reflection / chart tool;
+    // can be overridden in App Store Connect after first submission.
+    value: 'public.app-category.lifestyle',
+  },
 ];
 
 function exists() {
