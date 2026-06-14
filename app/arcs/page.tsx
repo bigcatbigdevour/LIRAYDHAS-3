@@ -30,18 +30,35 @@ export default function ArcsPage() {
     };
   }, []);
 
-  // Wrap setFocusAge so it also reflects the value in the URL — gives
-  // shareable deep-links like /arcs?age=29
+  // Public setFocusAge — same signature, but URL sync is debounced in
+  // a separate effect below. Calling history.replaceState on every
+  // single onChange of the range input (which fires many times per
+  // second during a fast drag) was contributing to an iOS Safari crash
+  // on the scrubber; debouncing keeps the deep-link feature without
+  // the per-frame work.
   function setFocusAge(v: number | null) {
     _setFocusAge(v);
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (v === null) params.delete('age');
-    else params.set('age', v.toFixed(1));
-    const q = params.toString();
-    const url = q ? `?${q}` : window.location.pathname;
-    window.history.replaceState(null, '', url);
   }
+
+  // Debounced URL sync so /arcs?age=N still works as a shareable
+  // deep-link after the user lets go of the scrubber.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const id = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (focusAge === null) params.delete('age');
+      else params.set('age', focusAge.toFixed(1));
+      const q = params.toString();
+      const url = q ? `?${q}` : window.location.pathname;
+      try {
+        window.history.replaceState(null, '', url);
+      } catch {
+        // iOS Safari rate-limits replaceState; swallow the throttle
+        // exception rather than crashing the whole page.
+      }
+    }, 200);
+    return () => window.clearTimeout(id);
+  }, [focusAge]);
 
   // On mount, hydrate focusAge from ?age=N if present
   useEffect(() => {

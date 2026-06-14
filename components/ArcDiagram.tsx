@@ -265,8 +265,38 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
     nowText.transition().delay(1300).duration(500).attr('opacity', 1);
     g.select('path.now-arrow').transition().delay(1500).duration(500).attr('opacity', 0.9);
 
-    // Focus line container — pre-create, position later
-    g.append('g').attr('class', 'focus-group');
+    // Focus line container — pre-create the line + labels ONCE here so
+    // the light effect can re-position them without removing/appending
+    // nodes on every scrubber move. The previous implementation called
+    // focusGroup.selectAll('*').remove() + append on every focusAge
+    // change, which on iOS WebKit churns SMIL <animate> nodes fast
+    // enough to crash the page (rapid back-and-forth scrubbing
+    // produced an "Application error" full-screen).
+    const focusGroup = g.append('g').attr('class', 'focus-group').attr('opacity', 0);
+    const focusLine = focusGroup.append('line')
+      .attr('class', 'focus-line')
+      .attr('y1', 0).attr('y2', innerH)
+      .attr('stroke', '#8b3a3a').attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '4 3');
+    focusLine.append('animate')
+      .attr('attributeName', 'opacity')
+      .attr('values', '1;0.55;1')
+      .attr('dur', '2s')
+      .attr('repeatCount', 'indefinite');
+    focusGroup.append('text')
+      .attr('class', 'focus-age')
+      .attr('y', innerH + 56)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#8b3a3a')
+      .attr('font-size', 11)
+      .attr('font-weight', '500');
+    focusGroup.append('text')
+      .attr('class', 'focus-date')
+      .attr('y', innerH + 70)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#8b3a3a')
+      .attr('opacity', 0.7)
+      .attr('font-size', 9);
     return () => {
       d3.select(ref.current).selectAll('*').remove();
     };
@@ -347,42 +377,20 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
       g.select('text.chapter-label').text('');
     }
 
-    // Focus marker — only when scrubbing to a different age
+    // Focus marker — toggle visibility + update positions on the
+    // pre-created elements. Never remove/append, never recreate the
+    // SMIL <animate> child (see the heavy effect for the iOS rationale).
     const focusGroup = g.select<SVGGElement>('g.focus-group');
-    focusGroup.selectAll('*').remove();
-    if (focusAge !== undefined && focusAge !== null && Math.abs(focusAge - age) > 0.05) {
-      // a glowing wine vertical line
-      const fLine = focusGroup.append('line')
-        .attr('x1', x(focus)).attr('x2', x(focus))
-        .attr('y1', 0).attr('y2', innerH)
-        .attr('stroke', '#8b3a3a').attr('stroke-width', 1.5)
-        .attr('stroke-dasharray', '4 3');
-      fLine.append('animate')
-        .attr('attributeName', 'opacity')
-        .attr('values', '1;0.55;1')
-        .attr('dur', '2s')
-        .attr('repeatCount', 'indefinite');
-      // age label
-      focusGroup.append('text')
-        .attr('x', x(focus))
-        .attr('y', innerH + 56)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#8b3a3a')
-        .attr('font-size', 11)
-        .attr('font-weight', '500')
-        .text(`age ${focus.toFixed(1)}`);
-      // calendar date label
+    const showFocus = focusAge !== undefined && focusAge !== null && Math.abs(focusAge - age) > 0.05;
+    focusGroup.attr('opacity', showFocus ? 1 : 0).attr('pointer-events', showFocus ? null : 'none');
+    if (showFocus) {
+      const fx = x(focus);
+      focusGroup.select('line.focus-line').attr('x1', fx).attr('x2', fx);
+      focusGroup.select('text.focus-age').attr('x', fx).text(`age ${focus.toFixed(1)}`);
       const birthMs = new Date(birthIso).getTime();
       const focusDate = new Date(birthMs + focus * 365.2425 * 86400 * 1000);
       const dateStr = focusDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
-      focusGroup.append('text')
-        .attr('x', x(focus))
-        .attr('y', innerH + 70)
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#8b3a3a')
-        .attr('opacity', 0.7)
-        .attr('font-size', 9)
-        .text(dateStr);
+      focusGroup.select('text.focus-date').attr('x', fx).text(dateStr);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusAge, selected, birthIso, maxAge]);
