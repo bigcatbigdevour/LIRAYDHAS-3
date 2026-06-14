@@ -7,6 +7,7 @@ import { useStore } from '@/lib/store';
 import BodyGraph from '@/components/BodyGraph';
 import NatalWheel from '@/components/NatalWheel';
 import NatalAspects from '@/components/NatalAspects';
+import SignGlyph from '@/components/SignGlyph';
 import ActivationColumns from '@/components/ActivationColumns';
 import {
   TYPE_DESCRIPTIONS,
@@ -339,7 +340,10 @@ export default function ChartPage() {
           {n.asc !== null && (
             <li className="flex justify-between border-b border-hairline py-1">
               <span className="text-ink">Rising</span>
-              <span className="tabular-nums">{signFromLon(n.asc)} {(n.asc % 30).toFixed(1)}°</span>
+              <span className="tabular-nums flex items-center gap-1">
+                <SignGlyph sign={signFromLon(n.asc)} size={12} className="text-ink-dim" />
+                <span>{signFromLon(n.asc)} {(n.asc % 30).toFixed(1)}°</span>
+              </span>
             </li>
           )}
         </ul>
@@ -360,8 +364,9 @@ export default function ChartPage() {
                   <li key={h} className="border-b border-hairline pb-1.5">
                     <div className="flex justify-between items-baseline">
                       <span className="text-ink">H{h} · {meaning.name}</span>
-                      <span className="tabular-nums text-ink-faint">
-                        {signFromLon(cusp)} {(cusp % 30).toFixed(1)}°
+                      <span className="tabular-nums text-ink-faint flex items-center gap-1">
+                        <SignGlyph sign={signFromLon(cusp)} size={11} className="text-ink-faint" />
+                        <span>{signFromLon(cusp)} {(cusp % 30).toFixed(1)}°</span>
                       </span>
                     </div>
                     <p className="serif text-ink-dim mt-0.5 leading-relaxed">{meaning.meaning}</p>
@@ -479,7 +484,11 @@ function ExpandRow({
 function SignLine({ label, sign, meaning }: { label: string; sign: string; meaning: string }) {
   return (
     <div>
-      <p className="small-label caps">{label} in {sign}</p>
+      <p className="small-label caps flex items-center gap-1.5">
+        <span>{label} in</span>
+        <SignGlyph sign={sign} size={13} className="text-ink-dim" />
+        <span>{sign}</span>
+      </p>
       <p className="serif italic mt-0.5">{meaning}</p>
     </div>
   );
@@ -497,10 +506,11 @@ function Placement({
   return (
     <li className="flex justify-between border-b border-hairline py-1">
       <span className="text-ink">{label}</span>
-      <span className="tabular-nums">
-        {pos.sign} {pos.degree.toFixed(1)}°
-        {house ? ` · H${house}` : ''}
-        {` · ${pos.gate}.${pos.line}`}
+      <span className="tabular-nums flex items-center gap-1">
+        <SignGlyph sign={pos.sign} size={12} className="text-ink-dim" />
+        <span>{pos.sign} {pos.degree.toFixed(1)}°</span>
+        {house ? <span>· H{house}</span> : null}
+        <span>· {pos.gate}.{pos.line}</span>
       </span>
     </li>
   );

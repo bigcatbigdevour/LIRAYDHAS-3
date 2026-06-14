@@ -24,75 +24,80 @@ interface Props {
 }
 
 const PATHS: Record<string, React.ReactNode> = {
-  // Ram horns — two outward-curling arcs that meet at the bridge.
+  // Aries — the ram. Two outward-curling horns meeting at a central
+  // bridge. Classical glyph: a V at the top with the arms curling down
+  // and outward into spirals.
   Aries: (
     <>
-      <path d="M5 16 C 5 9 8 6 12 6 C 16 6 19 9 19 16" />
-      <path d="M5 16 C 5 12 7 10 9 10" />
-      <path d="M19 16 C 19 12 17 10 15 10" />
+      <path d="M12 18 V 9" />
+      <path d="M12 9 C 12 6 9 5 7 6 C 5 7 4 10 4 13 C 4 11 5.5 9.5 7.5 9.5" />
+      <path d="M12 9 C 12 6 15 5 17 6 C 19 7 20 10 20 13 C 20 11 18.5 9.5 16.5 9.5" />
     </>
   ),
-  // Circle with V-horns.
+  // Taurus — the bull. Disc below, crescent (horns) cradling above.
+  // Classical: a perfect circle with a U-shaped crescent resting on it.
   Taurus: (
     <>
-      <circle cx="12" cy="15" r="5" />
-      <path d="M5 8 C 7 5 10 5 12 8" />
-      <path d="M19 8 C 17 5 14 5 12 8" />
+      <circle cx="12" cy="15" r="4.5" />
+      <path d="M5 9 C 5 5.5 8.5 5 12 8 C 15.5 5 19 5.5 19 9" />
     </>
   ),
-  // Roman numeral II.
+  // Gemini — the twins. Roman II with serif-like bars top and bottom.
   Gemini: (
     <>
       <path d="M9 6 V 18" />
       <path d="M15 6 V 18" />
-      <path d="M6 7 H 18" />
-      <path d="M6 17 H 18" />
+      <path d="M6.5 6 H 17.5" />
+      <path d="M6.5 18 H 17.5" />
     </>
   ),
-  // Two small circles with opposing curls (69 shape).
+  // Cancer — the crab. A 69 shape: two small filled discs with curling
+  // arms that wrap around each other.
   Cancer: (
     <>
-      <circle cx="8" cy="9" r="1.4" />
-      <circle cx="16" cy="15" r="1.4" />
-      <path d="M8 9 C 4 9 4 14 9 14 H 12" />
-      <path d="M16 15 C 20 15 20 10 15 10 H 12" />
+      <circle cx="7.5" cy="10" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="16.5" cy="14" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M7.5 10 C 5 10 4 12 4 13 C 4 15 6 16.5 9 16.5 C 12 16.5 14.5 15.5 16 14" />
+      <path d="M16.5 14 C 19 14 20 12 20 11 C 20 9 18 7.5 15 7.5 C 12 7.5 9.5 8.5 8 10" />
     </>
   ),
-  // J-shape with sun (mane) circle.
+  // Leo — the lion. A loop (mane / heart) flowing into a long S-curve
+  // tail. Classical glyph: small circle joined to a sweeping J.
   Leo: (
     <>
-      <circle cx="9" cy="9" r="3" />
-      <path d="M12 9 C 14 9 16 11 16 13 C 16 16 14 19 11 19 C 9 19 8 17 8 16" />
+      <path d="M7 11 C 7 8 9 6 11 6 C 13 6 14 8 14 10 C 14 11 13.5 11.5 13 12 L 16 15 C 18 17 18 19 16 19 C 14 19 12 17 12 15" />
     </>
   ),
-  // M with closing inward curl.
+  // Virgo — the maiden. Three M peaks with a closing inward-curling
+  // tail, ending in a loop. Classical glyph: ♍.
   Virgo: (
     <>
-      <path d="M4 18 V 7 C 4 5.5 6 5.5 6 7 V 18" />
-      <path d="M6 7 C 6 5.5 8 5.5 8 7 V 18" />
-      <path d="M8 7 C 8 5.5 10 5.5 10 7 V 16" />
-      <path d="M10 16 C 10 19 13 19 13 16 C 13 13 10 13 10 16" />
+      <path d="M4 18 V 8 C 4 6 6 6 6 8 V 18" />
+      <path d="M6 8 C 6 6 8 6 8 8 V 18" />
+      <path d="M8 8 C 8 6 10 6 10 8 V 16 C 10 18 12 19 14 18 C 16 17 17 14 15 12 C 13 10 11 12 12 14" />
     </>
   ),
-  // Horizontal line with curve above (scales).
+  // Libra — the scales. A horizontal base line with a rising sun /
+  // half-disc above it, sitting on a shorter top line. Classical: a Ω
+  // with a horizontal line beneath.
   Libra: (
     <>
-      <path d="M5 17 H 19" />
-      <path d="M6 13 C 6 9 9 7 12 7 C 15 7 18 9 18 13" />
-      <path d="M5 13 H 9" />
-      <path d="M15 13 H 19" />
+      <path d="M4 18 H 20" />
+      <path d="M5 13 H 9 C 9 10 10.5 8 12 8 C 13.5 8 15 10 15 13 H 19" />
     </>
   ),
-  // M with arrow tail.
+  // Scorpio — the scorpion. Three M peaks (like Virgo) but ending in a
+  // sharp arrow tail at the bottom-right instead of a closing curl.
   Scorpio: (
     <>
-      <path d="M4 18 V 7 C 4 5.5 6 5.5 6 7 V 18" />
-      <path d="M6 7 C 6 5.5 8 5.5 8 7 V 18" />
-      <path d="M8 7 C 8 5.5 10 5.5 10 7 V 15 L 14 19" />
-      <path d="M11 19 H 14 V 16" />
+      <path d="M4 18 V 8 C 4 6 6 6 6 8 V 18" />
+      <path d="M6 8 C 6 6 8 6 8 8 V 18" />
+      <path d="M8 8 C 8 6 10 6 10 8 V 16 L 14 20" />
+      <path d="M11 20 H 14 V 17" />
     </>
   ),
-  // Arrow with diagonal slash.
+  // Sagittarius — the archer. Diagonal arrow with a crossbar through
+  // the shaft.
   Sagittarius: (
     <>
       <path d="M5 19 L 19 5" />
@@ -100,21 +105,23 @@ const PATHS: Record<string, React.ReactNode> = {
       <path d="M9 11 L 13 15" />
     </>
   ),
-  // V with curving tail.
+  // Capricorn — the sea-goat. A V (goat horns) descending into a loop
+  // tail (fish). Classical: ♑ with the looping fish-tail on the right.
   Capricorn: (
     <>
-      <path d="M5 7 V 14 L 9 7 L 13 14 L 17 7 V 13" />
-      <path d="M17 13 C 17 16 14 16 14 13 C 14 11 17 11 17 13" />
+      <path d="M5 8 V 13 C 5 16 8 16 9 13 L 11 8 L 13 13 C 13.5 14.5 14.5 15 16 14" />
+      <path d="M16 14 C 18 13 19 15 18 16.5 C 17 18 14.5 18 14 16 C 13.7 14.7 14.5 14 16 14" />
     </>
   ),
-  // Two parallel wavy lines.
+  // Aquarius — the water-bearer. Two parallel waves.
   Aquarius: (
     <>
       <path d="M5 10 L 8 8 L 11 10 L 14 8 L 17 10 L 19 8" />
       <path d="M5 15 L 8 13 L 11 15 L 14 13 L 17 15 L 19 13" />
     </>
   ),
-  // Two opposing curves with horizontal line.
+  // Pisces — two fish. Two opposing crescents joined by a horizontal
+  // line through the middle.
   Pisces: (
     <>
       <path d="M6 5 C 4 9 4 15 6 19" />
