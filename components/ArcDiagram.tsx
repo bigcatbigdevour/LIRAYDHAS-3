@@ -306,92 +306,115 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
   }, [birthIso, maxAge]);
 
   // === Light effect: update only focus-driven visuals when focusAge or selected changes. ===
+  //
+  // rAF-coalesce the DOM mutations: a fast scrub or the 30 fps auto-play
+  // animation can fire setFocusAge dozens of times per second, and a
+  // straight effect would walk ~80 SVG nodes (arcs + stations + chapter
+  // bands + focus marker) per state change. On iOS WebKit that pressure
+  // is what causes the "Application error" full-screen crash during
+  // rapid back-and-forth scrubbing.
+  //
+  // We pin the latest desired focus value in a ref, schedule one rAF
+  // callback per frame at most, and do all the D3 work there. Multiple
+  // state changes within a single frame collapse to a single DOM pass.
+  const pendingRef = useRef<{ focusAge: number | null; selected: ArcSelection | null }>({
+    focusAge: focusAge ?? null,
+    selected: selected ?? null,
+  });
+  pendingRef.current = { focusAge: focusAge ?? null, selected: selected ?? null };
+  const rafRef = useRef<number | null>(null);
+
   useEffect(() => {
-    const svg = d3.select(ref.current);
-    if (svg.empty()) return;
-    const g = svg.select<SVGGElement>('g');
-    if (g.empty()) return;
+    if (rafRef.current !== null) return; // already scheduled for this frame
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const svg = d3.select(ref.current);
+      if (svg.empty()) return;
+      const g = svg.select<SVGGElement>('g');
+      if (g.empty()) return;
 
-    const age = ageInYears(birthIso);
-    const focus = focusAge ?? age;
+      const { focusAge: fa, selected: sel } = pendingRef.current;
+      const age = ageInYears(birthIso);
+      const focus = fa ?? age;
 
-    function isActiveArc(d: Arc): boolean {
-      return focus >= d.ageStart && focus < d.ageEnd;
-    }
-    function opacityFor(d: Arc): number {
-      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
-      if (selected && !isSel) return 0.18;
-      if (isActiveArc(d)) return 0.95;
-      return 0.5;
-    }
-    function widthFor(d: Arc): number {
-      const isSel = selected && selected.cycleKey === d.cycleKey && selected.nthCycle === d.nthCycle;
-      if (isSel) return 2;
-      if (isActiveArc(d)) return 1.3;
-      return 0.7;
-    }
+      function isActiveArc(d: Arc): boolean {
+        return focus >= d.ageStart && focus < d.ageEnd;
+      }
+      function opacityFor(d: Arc): number {
+        const isSel = sel && sel.cycleKey === d.cycleKey && sel.nthCycle === d.nthCycle;
+        if (sel && !isSel) return 0.18;
+        if (isActiveArc(d)) return 0.95;
+        return 0.5;
+      }
+      function widthFor(d: Arc): number {
+        const isSel = sel && sel.cycleKey === d.cycleKey && sel.nthCycle === d.nthCycle;
+        if (isSel) return 2;
+        if (isActiveArc(d)) return 1.3;
+        return 0.7;
+      }
 
-    // Update arc opacity + stroke-width based on focus + selection
-    g.selectAll<SVGPathElement, Arc>('path.arc')
-      .each(function (d) {
-        d3.select(this)
-          .attr('opacity', opacityFor(d))
-          .attr('stroke-width', widthFor(d));
-      });
+      // Arc opacity + stroke-width based on focus + selection. Use D3's
+      // function-valued attr() once instead of an .each() + per-node
+      // d3.select() — one less wrapper allocation per node per frame.
+      g.selectAll<SVGPathElement, Arc>('path.arc')
+        .attr('opacity', opacityFor)
+        .attr('stroke-width', widthFor);
 
-    // Update station diamonds
-    g.selectAll<SVGRectElement, typeof LIFE_STATIONS[number]>('rect.station')
-      .attr('fill', (s) => Math.abs(focus - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
-      .attr('opacity', (s) => Math.abs(focus - s.age) < 2 ? 0.95 : 0.7);
+      // Station diamonds.
+      g.selectAll<SVGRectElement, typeof LIFE_STATIONS[number]>('rect.station')
+        .attr('fill', (s) => Math.abs(focus - s.age) < 2 ? '#8b3a3a' : '#3a3a3a')
+        .attr('opacity', (s) => Math.abs(focus - s.age) < 2 ? 0.95 : 0.7);
 
-    // Update chapter bands
-    g.selectAll<SVGLineElement, unknown>('line.chapter-band')
-      .attr('stroke', function () {
-        const startAge = parseFloat(this.getAttribute('data-start') ?? '0');
-        const endAge = parseFloat(this.getAttribute('data-end') ?? '0');
-        return focus >= startAge && focus < endAge ? '#8b3a3a' : '#3a3a3a';
-      })
-      .attr('stroke-width', function () {
-        const startAge = parseFloat(this.getAttribute('data-start') ?? '0');
-        const endAge = parseFloat(this.getAttribute('data-end') ?? '0');
-        return focus >= startAge && focus < endAge ? 2 : 0.8;
-      })
-      .attr('opacity', function () {
-        const startAge = parseFloat(this.getAttribute('data-start') ?? '0');
-        const endAge = parseFloat(this.getAttribute('data-end') ?? '0');
-        return focus >= startAge && focus < endAge ? 0.95 : 0.5;
-      });
+      // Chapter bands. Previously parsed data-start/data-end three times
+      // per band per frame (once per .attr() call). Pre-compute via a
+      // single .each() pass and stash in the node so the three attr
+      // setters can read from a closure variable.
+      g.selectAll<SVGLineElement, unknown>('line.chapter-band')
+        .each(function () {
+          const startAge = parseFloat(this.getAttribute('data-start') ?? '0');
+          const endAge = parseFloat(this.getAttribute('data-end') ?? '0');
+          const active = focus >= startAge && focus < endAge;
+          this.setAttribute('stroke', active ? '#8b3a3a' : '#3a3a3a');
+          this.setAttribute('stroke-width', active ? '2' : '0.8');
+          this.setAttribute('opacity', active ? '0.95' : '0.5');
+        });
 
-    // Chapter label
-    let activeChapter: typeof LIFE_CHAPTERS[number] | null = null;
-    for (const ch of LIFE_CHAPTERS) {
-      if (focus >= ch.startAge && focus < ch.endAge) { activeChapter = ch; break; }
-    }
-    if (activeChapter) {
-      const x1 = x(Math.max(0, activeChapter.startAge));
-      const x2 = x(Math.min(maxAge, activeChapter.endAge));
-      g.select('text.chapter-label')
-        .attr('x', (x1 + x2) / 2)
-        .text(activeChapter.label);
-    } else {
-      g.select('text.chapter-label').text('');
-    }
+      // Chapter label.
+      let activeChapter: typeof LIFE_CHAPTERS[number] | null = null;
+      for (const ch of LIFE_CHAPTERS) {
+        if (focus >= ch.startAge && focus < ch.endAge) { activeChapter = ch; break; }
+      }
+      if (activeChapter) {
+        const x1 = x(Math.max(0, activeChapter.startAge));
+        const x2 = x(Math.min(maxAge, activeChapter.endAge));
+        g.select('text.chapter-label')
+          .attr('x', (x1 + x2) / 2)
+          .text(activeChapter.label);
+      } else {
+        g.select('text.chapter-label').text('');
+      }
 
-    // Focus marker — toggle visibility + update positions on the
-    // pre-created elements. Never remove/append, never recreate the
-    // SMIL <animate> child (see the heavy effect for the iOS rationale).
-    const focusGroup = g.select<SVGGElement>('g.focus-group');
-    const showFocus = focusAge !== undefined && focusAge !== null && Math.abs(focusAge - age) > 0.05;
-    focusGroup.attr('opacity', showFocus ? 1 : 0).attr('pointer-events', showFocus ? null : 'none');
-    if (showFocus) {
-      const fx = x(focus);
-      focusGroup.select('line.focus-line').attr('x1', fx).attr('x2', fx);
-      focusGroup.select('text.focus-age').attr('x', fx).text(`age ${focus.toFixed(1)}`);
-      const birthMs = new Date(birthIso).getTime();
-      const focusDate = new Date(birthMs + focus * 365.2425 * 86400 * 1000);
-      const dateStr = focusDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
-      focusGroup.select('text.focus-date').attr('x', fx).text(dateStr);
-    }
+      // Focus marker. Toggle visibility + update positions on the
+      // pre-created elements only.
+      const focusGroup = g.select<SVGGElement>('g.focus-group');
+      const showFocus = fa !== null && Math.abs(fa - age) > 0.05;
+      focusGroup.attr('opacity', showFocus ? 1 : 0).attr('pointer-events', showFocus ? null : 'none');
+      if (showFocus) {
+        const fx = x(focus);
+        focusGroup.select('line.focus-line').attr('x1', fx).attr('x2', fx);
+        focusGroup.select('text.focus-age').attr('x', fx).text(`age ${focus.toFixed(1)}`);
+        const birthMs = new Date(birthIso).getTime();
+        const focusDate = new Date(birthMs + focus * 365.2425 * 86400 * 1000);
+        const dateStr = focusDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+        focusGroup.select('text.focus-date').attr('x', fx).text(dateStr);
+      }
+    });
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusAge, selected, birthIso, maxAge]);
 
