@@ -58,7 +58,13 @@ function read(): SavedPartner[] {
 
 function write(list: SavedPartner[]): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(KEY, JSON.stringify(list));
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(list));
+  } catch {
+    // iOS Private Browsing / quota full — keep the in-memory list
+    // working for the session, just don't persist. The user sees no
+    // error; the partner list resets next visit.
+  }
 }
 
 export function listPartners(): SavedPartner[] {

@@ -82,7 +82,12 @@ export function readClientPrefs(): ClientPrefs {
 
 export function writeClientPrefs(p: ClientPrefs): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  // Silently swallow quota / private-browsing exceptions. The preference
+  // is persisted on a best-effort basis; failing to write doesn't break
+  // the current session.
+  try {
+    window.localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch { /* ignore */ }
 }
 
 /** Local timezone offset in minutes, east-positive. JS getTimezoneOffset is
@@ -141,7 +146,12 @@ export async function subscribePush(): Promise<{ ok: true } | { ok: false; reaso
     if (!res.ok) {
       return { ok: false, reason: `server rejected the subscription (${res.status})` };
     }
-    window.localStorage.setItem(SUBSCRIPTION_FLAG, '1');
+    // Subscription succeeded on the server; the local-flag write is a
+    // convenience for UI state and shouldn't fail the whole flow if it
+    // throws (iOS private browsing, quota full).
+    try {
+      window.localStorage.setItem(SUBSCRIPTION_FLAG, '1');
+    } catch {/* ignore */}
     return { ok: true };
   } catch (e) {
     console.error('push subscribe failed', e);

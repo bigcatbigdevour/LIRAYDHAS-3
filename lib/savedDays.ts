@@ -127,7 +127,20 @@ function read(): SavedDay[] {
 
 function write(list: SavedDay[]): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(KEY, JSON.stringify(list));
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(list));
+  } catch (e) {
+    // QuotaExceededError when the journal grows past localStorage's
+    // ~5 MB cap, or SecurityError in iOS Private Browsing. The user's
+    // journal is the most important data in the app — fail loud so
+    // they know to export and clear, rather than silently dropping.
+    console.error('[savedDays] could not persist journal:', e);
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('liraydhas:journal-write-failed'));
+      } catch { /* ignore */ }
+    }
+  }
 }
 
 export function listSavedDays(): SavedDay[] {

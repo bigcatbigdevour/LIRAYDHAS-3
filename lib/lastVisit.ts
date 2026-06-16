@@ -18,18 +18,26 @@ const KEY = 'liraydhas.lastVisit.v1';
 /** Read the previous visit timestamp, or null if first time. */
 export function getLastVisit(): Date | null {
   if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(KEY);
-  if (!raw) return null;
-  const t = Date.parse(raw);
-  if (Number.isNaN(t)) return null;
-  return new Date(t);
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return null;
+    const t = Date.parse(raw);
+    if (Number.isNaN(t)) return null;
+    return new Date(t);
+  } catch {
+    // iOS Private Browsing throws on localStorage access. Treat as
+    // "first visit" rather than crashing the /today render.
+    return null;
+  }
 }
 
 /** Mark the current visit. Call AFTER you've computed anything that
  *  depended on the previous value. */
 export function markVisited(now: Date = new Date()): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(KEY, now.toISOString());
+  try {
+    window.localStorage.setItem(KEY, now.toISOString());
+  } catch { /* ignore quota / private-browsing */ }
 }
 
 /**

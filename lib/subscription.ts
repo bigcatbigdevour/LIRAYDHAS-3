@@ -111,16 +111,29 @@ export const TRIAL_DAYS = 7;
 
 export function startLocalTrial(): boolean {
   if (typeof window === 'undefined') return false;
-  if (window.localStorage.getItem(TRIAL_KEY) === '1') return false;
+  // Guard every localStorage call — iOS Private Browsing and full-quota
+  // states throw on access. A trial that fails silently is better than
+  // a paywall page that crashes when the user taps "try it".
+  try {
+    if (window.localStorage.getItem(TRIAL_KEY) === '1') return false;
+  } catch {
+    return false;
+  }
   const expiresAt = Date.now() + TRIAL_DAYS * 86400_000;
   setSubState({ kind: 'trial', expiresAt });
-  window.localStorage.setItem(TRIAL_KEY, '1');
+  try {
+    window.localStorage.setItem(TRIAL_KEY, '1');
+  } catch {/* trial state is already in safeWrite-backed sub store */}
   return true;
 }
 
 export function trialUsed(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(TRIAL_KEY) === '1';
+  try {
+    return window.localStorage.getItem(TRIAL_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 /**

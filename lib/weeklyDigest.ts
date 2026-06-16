@@ -107,14 +107,23 @@ const WEEK_KEY_STORE = 'liraydhas.weeklyDigest.lastShown.v1';
 export function shouldShowWeeklyDigest(now: Date = new Date()): boolean {
   if (typeof window === 'undefined') return false;
   const weekKey = isoWeekKey(now);
-  const lastShown = window.localStorage.getItem(WEEK_KEY_STORE);
-  return lastShown !== weekKey;
+  try {
+    const lastShown = window.localStorage.getItem(WEEK_KEY_STORE);
+    return lastShown !== weekKey;
+  } catch {
+    // iOS Private Browsing — pretend we've already shown it so we don't
+    // get stuck showing the digest forever on a session that can't
+    // remember dismissal.
+    return false;
+  }
 }
 
 export function markWeeklyShown(now: Date = new Date()): void {
   if (typeof window === 'undefined') return;
   const weekKey = isoWeekKey(now);
-  window.localStorage.setItem(WEEK_KEY_STORE, weekKey);
+  try {
+    window.localStorage.setItem(WEEK_KEY_STORE, weekKey);
+  } catch { /* ignore quota / private-browsing */ }
 }
 
 /** Re-export for callers that want to display the current week key. */
