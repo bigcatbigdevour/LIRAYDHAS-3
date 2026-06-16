@@ -260,6 +260,10 @@ export default function TodayPage() {
       }
     } catch (e: unknown) {
       if (isAbortError(e) || stale()) return;
+      // Stream died mid-flight; drop any partial text we already
+      // streamed so the fallback fetch can hydrate the section cleanly.
+      setStreamTakeaway('');
+      setStreamParagraph('');
       // Network/transport failure. Fall back to the cached non-streaming
       // path so a returning offline user still sees their last reading.
       try {
