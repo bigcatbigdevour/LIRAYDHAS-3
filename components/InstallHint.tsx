@@ -33,11 +33,15 @@ export default function InstallHint() {
   useEffect(() => {
     setMounted(true);
 
-    // If they've dismissed it before, never show it again.
-    if (window.localStorage.getItem(STORE_KEY) === '1') {
-      setDismissed(true);
-      return;
-    }
+    // If they've dismissed it before, never show it again. Guard the
+    // localStorage read for iOS Private Browsing — there it throws
+    // SecurityError and the bare access would crash this effect.
+    try {
+      if (window.localStorage.getItem(STORE_KEY) === '1') {
+        setDismissed(true);
+        return;
+      }
+    } catch { /* private browsing — treat as not dismissed */ }
 
     // Already installed → don't nudge.
     const standalone =
@@ -79,7 +83,9 @@ export default function InstallHint() {
   if (!installEvent && !isIosSafari) return null;
 
   const dismiss = () => {
-    window.localStorage.setItem(STORE_KEY, '1');
+    try {
+      window.localStorage.setItem(STORE_KEY, '1');
+    } catch { /* private browsing — at least dismiss for this session */ }
     setDismissed(true);
   };
 
