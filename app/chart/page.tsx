@@ -96,7 +96,10 @@ export default function ChartPage() {
         },
         error: (msg) => { softError = msg; },
       }, signal);
-      if (!stale() && softError) setNarrativeError(friendlyError(softError));
+      if (!stale() && softError) {
+        setStreamNarrative('');
+        setNarrativeError(friendlyError(softError));
+      }
     } catch (e: unknown) {
       if (isAbortError(e) || stale()) return;
       setNarrativeError(friendlyError(e instanceof Error ? e.message : null));

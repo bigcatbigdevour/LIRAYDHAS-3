@@ -250,7 +250,14 @@ export default function TodayPage() {
         },
         error: (msg) => { softError = msg; },
       }, signal);
-      if (!stale() && softError) setError(friendlyError(softError));
+      if (!stale() && softError) {
+        // A mid-stream error means the model never finished. Clear the
+        // partial text so the error banner doesn't render alongside a
+        // half-paragraph with a blinking cursor.
+        setStreamTakeaway('');
+        setStreamParagraph('');
+        setError(friendlyError(softError));
+      }
     } catch (e: unknown) {
       if (isAbortError(e) || stale()) return;
       // Network/transport failure. Fall back to the cached non-streaming

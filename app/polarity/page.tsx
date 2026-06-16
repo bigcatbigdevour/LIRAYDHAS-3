@@ -154,7 +154,10 @@ export default function PolarityPage() {
         },
         error: (msg) => { softError = msg; },
       }, signal);
-      if (!stale() && softError) setError(friendlyError(softError));
+      if (!stale() && softError) {
+        setStreamParagraph('');
+        setError(friendlyError(softError));
+      }
     } catch (e: unknown) {
       if (isAbortError(e) || stale()) return;
       setError(friendlyError(e instanceof Error ? e.message : null));

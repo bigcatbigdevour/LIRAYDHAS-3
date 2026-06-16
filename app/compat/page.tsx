@@ -128,7 +128,10 @@ export default function CompatPage() {
           },
           error: (msg) => { softError = msg; },
         }, ctrl.signal);
-        if (softError && !cancelled) setError(friendlyError(softError));
+        if (softError && !cancelled) {
+          setStreamParagraph('');
+          setError(friendlyError(softError));
+        }
       } catch (e) {
         if (cancelled || isAbortError(e)) return;
         setError(friendlyError(e instanceof Error ? e.message : null));
