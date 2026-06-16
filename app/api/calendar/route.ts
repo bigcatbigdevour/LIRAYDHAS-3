@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { CYCLES, upcomingReturns } from '@/lib/cycles';
 import { handlePreflight, withCors } from '@/lib/cors';
+import { readBoundedBody, isWellFormedBlueprint } from '@/lib/llm';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -44,14 +45,16 @@ function upcomingFlips(birthIso: string, years = 30): { cycleKey: string; cycleL
 }
 
 export async function POST(req: Request) {
-  let body: { blueprint?: Blueprint; include?: string[] };
-  try {
-    body = (await req.json()) as { blueprint?: Blueprint; include?: string[] };
-  } catch {
-    return withCors(NextResponse.json({ error: 'invalid json' }, { status: 400 }), req);
-  }
+  const parsed = await readBoundedBody<{ blueprint?: Blueprint; include?: string[] }>(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
   const bp = body.blueprint;
-  if (!bp) return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
+  // Calendar generation reads bp.birth.iso; the wider isWellFormedBlueprint
+  // check ensures we never deref undefined fields if a malformed body
+  // gets here.
+  if (!isWellFormedBlueprint(bp)) {
+    return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
+  }
 
   const include = new Set(body.include ?? ['returns', 'flips']);
 
