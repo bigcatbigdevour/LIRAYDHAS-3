@@ -31,6 +31,7 @@ import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import { api } from '@/lib/apiBase';
 import { readSseStream, isEventStream } from '@/lib/streamRead';
+import { useAbortableAction, isAbortError } from '@/lib/useAbortableAction';
 import type { ZodiacSign } from '@/lib/types';
 
 export default function ChartPage() {
@@ -43,6 +44,7 @@ export default function ChartPage() {
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [narrativeError, setNarrativeError] = useState<string | null>(null);
   const [streamNarrative, setStreamNarrative] = useState('');
+  const startNarrativeFetch = useAbortableAction();
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -60,6 +62,7 @@ export default function ChartPage() {
   async function fetchNarrative() {
     if (!blueprint) return;
     const startBlueprint = blueprint;
+    const { signal, stale } = startNarrativeFetch();
     setNarrativeLoading(true);
     setNarrativeError(null);
     setStreamNarrative('');
@@ -68,13 +71,14 @@ export default function ChartPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),
+        signal,
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error((j as { error?: string }).error ?? `error ${res.status}`);
       }
       if (!isEventStream(res)) {
-        if (useStore.getState().blueprint !== startBlueprint) return;
+        if (stale() || useStore.getState().blueprint !== startBlueprint) return;
         setNarrative(await res.json());
         return;
       }
@@ -84,19 +88,20 @@ export default function ChartPage() {
         meta: (m) => {
           if (typeof m.generatedAt === 'string') generatedAt = m.generatedAt;
         },
-        paragraph: (_d, full) => setStreamNarrative(full),
+        paragraph: (_d, full) => { if (!stale()) setStreamNarrative(full); },
         done: ({ paragraph }) => {
-          if (useStore.getState().blueprint !== startBlueprint) return;
+          if (stale() || useStore.getState().blueprint !== startBlueprint) return;
           setNarrative({ paragraph, generatedAt });
           setStreamNarrative('');
         },
         error: (msg) => { softError = msg; },
-      });
-      if (softError) setNarrativeError(friendlyError(softError));
+      }, signal);
+      if (!stale() && softError) setNarrativeError(friendlyError(softError));
     } catch (e: unknown) {
+      if (isAbortError(e) || stale()) return;
       setNarrativeError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
-      setNarrativeLoading(false);
+      if (!stale()) setNarrativeLoading(false);
     }
   }
 

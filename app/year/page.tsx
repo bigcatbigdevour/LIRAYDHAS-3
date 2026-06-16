@@ -11,6 +11,7 @@ import { currentChapter } from '@/lib/lifeChapters';
 import { yearGlanceText } from '@/lib/yearGlance';
 import { api } from '@/lib/apiBase';
 import { readSseStream, isEventStream } from '@/lib/streamRead';
+import { useAbortableAction, isAbortError } from '@/lib/useAbortableAction';
 import PullToRefresh from '@/components/PullToRefresh';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
@@ -28,6 +29,7 @@ export default function YearPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamParagraph, setStreamParagraph] = useState('');
+  const startYearFetch = useAbortableAction();
 
   useEffect(() => {
     const t = setTimeout(() => { if (!blueprint) router.replace('/onboarding'); }, 60);
@@ -37,6 +39,7 @@ export default function YearPage() {
   async function fetchYear() {
     if (!blueprint) return;
     const startBlueprint = blueprint;
+    const { signal, stale } = startYearFetch();
     setLoading(true);
     setError(null);
     setStreamParagraph('');
@@ -45,6 +48,7 @@ export default function YearPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),
+        signal,
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -52,7 +56,7 @@ export default function YearPage() {
       }
       if (!isEventStream(res)) {
         const data = (await res.json()) as YearReading;
-        if (useStore.getState().blueprint !== startBlueprint) return;
+        if (stale() || useStore.getState().blueprint !== startBlueprint) return;
         setYear(data);
         return;
       }
@@ -62,19 +66,20 @@ export default function YearPage() {
         meta: (m) => {
           if (typeof m.generatedAt === 'string') generatedAt = m.generatedAt;
         },
-        paragraph: (_d, full) => setStreamParagraph(full),
+        paragraph: (_d, full) => { if (!stale()) setStreamParagraph(full); },
         done: ({ paragraph }) => {
-          if (useStore.getState().blueprint !== startBlueprint) return;
+          if (stale() || useStore.getState().blueprint !== startBlueprint) return;
           setYear({ paragraph, generatedAt });
           setStreamParagraph('');
         },
         error: (msg) => { softError = msg; },
-      });
-      if (softError) setError(friendlyError(softError));
+      }, signal);
+      if (!stale() && softError) setError(friendlyError(softError));
     } catch (e: unknown) {
+      if (isAbortError(e) || stale()) return;
       setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
-      setLoading(false);
+      if (!stale()) setLoading(false);
     }
   }
 

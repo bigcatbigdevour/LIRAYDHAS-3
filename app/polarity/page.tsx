@@ -11,6 +11,7 @@ import ScrollHint from '@/components/ScrollHint';
 import { friendlyError } from '@/lib/friendlyError';
 import { api } from '@/lib/apiBase';
 import { readSseStream, isEventStream } from '@/lib/streamRead';
+import { useAbortableAction, isAbortError } from '@/lib/useAbortableAction';
 import { tap as hapticTap } from '@/lib/haptics';
 import Link from 'next/link';
 import { CYCLES, ageInYears, positionInCycles, upcomingReturns, polarityFlips } from '@/lib/cycles';
@@ -33,6 +34,7 @@ export default function PolarityPage() {
 
   const [loading, setLoading] = useState(false);
   const [streamParagraph, setStreamParagraph] = useState('');
+  const startPolarityFetch = useAbortableAction();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,6 +117,7 @@ export default function PolarityPage() {
   async function fetchPolarity() {
     if (!blueprint) return;
     const startBlueprint = blueprint;
+    const { signal, stale } = startPolarityFetch();
     setLoading(true);
     setError(null);
     setStreamParagraph('');
@@ -123,6 +126,7 @@ export default function PolarityPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint }),
+        signal,
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -130,7 +134,7 @@ export default function PolarityPage() {
       }
       if (!isEventStream(res)) {
         const data = (await res.json()) as PolarityReading;
-        if (useStore.getState().blueprint !== startBlueprint) return;
+        if (stale() || useStore.getState().blueprint !== startBlueprint) return;
         setPolarity(data);
         return;
       }
@@ -142,19 +146,20 @@ export default function PolarityPage() {
           if (typeof m.descending === 'number') descending = m.descending;
           if (typeof m.generatedAt === 'string') generatedAt = m.generatedAt;
         },
-        paragraph: (_d, full) => setStreamParagraph(full),
+        paragraph: (_d, full) => { if (!stale()) setStreamParagraph(full); },
         done: ({ paragraph }) => {
-          if (useStore.getState().blueprint !== startBlueprint) return;
+          if (stale() || useStore.getState().blueprint !== startBlueprint) return;
           setPolarity({ paragraph, rising, descending, generatedAt });
           setStreamParagraph('');
         },
         error: (msg) => { softError = msg; },
-      });
-      if (softError) setError(friendlyError(softError));
+      }, signal);
+      if (!stale() && softError) setError(friendlyError(softError));
     } catch (e: unknown) {
+      if (isAbortError(e) || stale()) return;
       setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
-      setLoading(false);
+      if (!stale()) setLoading(false);
     }
   }
 

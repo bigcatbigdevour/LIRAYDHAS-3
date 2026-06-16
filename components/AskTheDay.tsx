@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Blueprint } from '@/lib/types';
 import { api } from '@/lib/apiBase';
 import { readSseStream, isEventStream } from '@/lib/streamRead';
+import { useAbortableAction, isAbortError } from '@/lib/useAbortableAction';
 import { friendlyError } from '@/lib/friendlyError';
 import { tap as hapticTap } from '@/lib/haptics';
 import { saveDay } from '@/lib/savedDays';
@@ -37,6 +38,7 @@ export default function AskTheDay({ blueprint }: Props) {
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const startAsk = useAbortableAction();
 
   useEffect(() => {
     if (open && textareaRef.current && !answer) {
@@ -47,6 +49,7 @@ export default function AskTheDay({ blueprint }: Props) {
   async function ask() {
     const q = question.trim();
     if (!q || busy) return;
+    const { signal, stale } = startAsk();
     setBusy(true);
     setError(null);
     setAnswer(null);
@@ -55,6 +58,7 @@ export default function AskTheDay({ blueprint }: Props) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint, question: q }),
+        signal,
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -62,6 +66,7 @@ export default function AskTheDay({ blueprint }: Props) {
       }
       if (!isEventStream(res)) {
         const j = (await res.json()) as { paragraph: string };
+        if (stale()) return;
         setAnswer(j.paragraph);
         hapticTap('medium');
         return;
@@ -71,25 +76,27 @@ export default function AskTheDay({ blueprint }: Props) {
       // Initialize as empty string so the "you asked" + paragraph
       // block becomes visible immediately and the cursor has something
       // to follow.
-      setAnswer('');
+      if (!stale()) setAnswer('');
       await readSseStream(res, {
-        paragraph: (_d, full) => setAnswer(full),
+        paragraph: (_d, full) => { if (!stale()) setAnswer(full); },
         done: ({ paragraph }) => {
+          if (stale()) return;
           setAnswer(paragraph);
           hapticTap('medium');
         },
         error: (msg) => { softError = msg; },
-      });
-      if (softError) {
+      }, signal);
+      if (!stale() && softError) {
         setAnswer(null);
         setError(friendlyError(softError));
         hapticTap('light');
       }
     } catch (e) {
+      if (isAbortError(e) || stale()) return;
       setError(friendlyError(e instanceof Error ? e.message : null));
       hapticTap('light');
     } finally {
-      setBusy(false);
+      if (!stale()) setBusy(false);
     }
   }
 

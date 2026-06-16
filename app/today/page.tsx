@@ -36,6 +36,7 @@ import QuickNote from '@/components/QuickNote';
 import { localDateStr, useToday } from '@/lib/localDate';
 import { api } from '@/lib/apiBase';
 import { readSseStream, isEventStream } from '@/lib/streamRead';
+import { useAbortableAction, isAbortError } from '@/lib/useAbortableAction';
 import { getLastVisit, markVisited, changesSince, prettyGap, type ChangedBit } from '@/lib/lastVisit';
 import { buildWeeklyDigest, shouldShowWeeklyDigest, markWeeklyShown, type WeeklyDigest } from '@/lib/weeklyDigest';
 import type { DailyReport } from '@/lib/types';
@@ -51,6 +52,7 @@ export default function TodayPage() {
   const daily = useStore((s) => s.daily);
   const history = useStore((s) => s.history);
   const setDaily = useStore((s) => s.setDaily);
+  const startDailyFetch = useAbortableAction();
   // Reactive "today" — when a user leaves /today open across midnight, this
   // hook triggers a re-render so the daily-fetch effect, the question, the
   // save-button's dateIso, and the anniversary all use the new day.
@@ -192,6 +194,9 @@ export default function TodayPage() {
     // changed (e.g. user erased blueprint mid-flight) and avoid writing
     // a stale daily report to the new store state.
     const startBlueprint = blueprint;
+    // Aborts any previous in-flight fetch (back-to-back pull-to-refresh)
+    // and the entire chain when the component unmounts.
+    const { signal, stale } = startDailyFetch();
     setLoading(true);
     setError(null);
     setStreamTakeaway('');
@@ -205,6 +210,7 @@ export default function TodayPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
+        signal,
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -215,7 +221,7 @@ export default function TodayPage() {
       if (!isEventStream(res)) {
         const fromCache = res.headers.get('X-Liraydhas-Cache') === 'offline';
         const data = (await res.json()) as DailyReport;
-        if (useStore.getState().blueprint !== startBlueprint) return;
+        if (stale() || useStore.getState().blueprint !== startBlueprint) return;
         setDaily(data);
         setCachedOffline(fromCache);
         return;
@@ -231,18 +237,19 @@ export default function TodayPage() {
           if (typeof m.date === 'string') date = m.date;
           if (Array.isArray(m.transits)) transits = m.transits as TransitAspect[];
         },
-        takeaway: (t) => setStreamTakeaway(t),
-        paragraph: (_delta, full) => setStreamParagraph(full),
+        takeaway: (t) => { if (!stale()) setStreamTakeaway(t); },
+        paragraph: (_delta, full) => { if (!stale()) setStreamParagraph(full); },
         done: ({ takeaway, paragraph }) => {
-          if (useStore.getState().blueprint !== startBlueprint) return;
+          if (stale() || useStore.getState().blueprint !== startBlueprint) return;
           setDaily({ date, transits, takeaway, paragraph });
           setStreamTakeaway('');
           setStreamParagraph('');
         },
         error: (msg) => { softError = msg; },
-      });
-      if (softError) setError(friendlyError(softError));
+      }, signal);
+      if (!stale() && softError) setError(friendlyError(softError));
     } catch (e: unknown) {
+      if (isAbortError(e) || stale()) return;
       // Network/transport failure. Fall back to the cached non-streaming
       // path so a returning offline user still sees their last reading.
       try {
@@ -250,18 +257,21 @@ export default function TodayPage() {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
+          signal,
         });
         if (res2.ok) {
           const data = (await res2.json()) as DailyReport;
-          if (useStore.getState().blueprint !== startBlueprint) return;
+          if (stale() || useStore.getState().blueprint !== startBlueprint) return;
           setDaily(data);
           setCachedOffline(res2.headers.get('X-Liraydhas-Cache') === 'offline');
           return;
         }
-      } catch { /* fall through to error */ }
-      setError(friendlyError(e instanceof Error ? e.message : null));
+      } catch (e2) {
+        if (isAbortError(e2) || stale()) return;
+      }
+      if (!stale()) setError(friendlyError(e instanceof Error ? e.message : null));
     } finally {
-      setLoading(false);
+      if (!stale()) setLoading(false);
     }
   }
 

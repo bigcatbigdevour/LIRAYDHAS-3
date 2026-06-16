@@ -15,6 +15,7 @@ import { buildBlueprint } from '@/lib/blueprint';
 import { api } from '@/lib/apiBase';
 import { friendlyError } from '@/lib/friendlyError';
 import { readSseStream, isEventStream } from '@/lib/streamRead';
+import { isAbortError } from '@/lib/useAbortableAction';
 import { natalAspectMeaning } from '@/lib/astrology/aspectMeanings';
 import { tap as hapticTap, success as hapticSuccess, warn as hapticWarn } from '@/lib/haptics';
 import { localDateStr } from '@/lib/localDate';
@@ -68,6 +69,7 @@ export default function CompatPage() {
       return;
     }
     let cancelled = false;
+    const ctrl = new AbortController();
     setLoading(true);
     setError(null);
     setReading(null);
@@ -84,6 +86,7 @@ export default function CompatPage() {
             otherName: partner.name,
             relation: partner.relation,
           }),
+          signal: ctrl.signal,
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
@@ -124,16 +127,19 @@ export default function CompatPage() {
             setStreamParagraph('');
           },
           error: (msg) => { softError = msg; },
-        });
+        }, ctrl.signal);
         if (softError && !cancelled) setError(friendlyError(softError));
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled || isAbortError(e)) return;
         setError(friendlyError(e instanceof Error ? e.message : null));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+    };
   }, [partner, blueprint]);
 
   if (!hydrated) {
