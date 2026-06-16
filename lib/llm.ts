@@ -505,12 +505,21 @@ export async function readBoundedBody<T>(
 /**
  * Lightweight blueprint shape check. Confirms the minimum fields every
  * LLM route depends on are present — natal positions and the human
- * design summary. Doesn't validate every nested field; the routes
- * themselves can reach in and check what they need.
+ * design summary. Includes every planet the enriched prompts now
+ * reference so a stale pre-migration blueprint can't crash the
+ * endpoint at deref-time.
  */
 export function isWellFormedBlueprint(bp: unknown): bp is {
-  natal: { sun: { sign: string }; moon: { sign: string } };
-  humanDesign: { type: string; profile: string };
+  natal: {
+    sun: { sign: string; gate: number; line: number };
+    moon: { sign: string; gate: number; line: number };
+    mercury: { sign: string };
+    venus: { sign: string };
+    mars: { sign: string };
+    jupiter: { sign: string };
+    saturn: { sign: string };
+  };
+  humanDesign: { type: string; profile: string; activeChannels: [number, number][] };
   birth: { iso: string };
 } {
   if (typeof bp !== 'object' || bp === null) return false;
@@ -521,8 +530,13 @@ export function isWellFormedBlueprint(bp: unknown): bp is {
   const natal = b.natal as Record<string, unknown>;
   const hd = b.humanDesign as Record<string, unknown>;
   const birth = b.birth as Record<string, unknown>;
-  if (typeof natal.sun !== 'object' || natal.sun === null) return false;
-  if (typeof natal.moon !== 'object' || natal.moon === null) return false;
+  // Every planet referenced in prompt construction must be present
+  // and shaped like a PlanetPos (object with a sign field).
+  for (const key of ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'] as const) {
+    const v = natal[key];
+    if (typeof v !== 'object' || v === null) return false;
+    if (typeof (v as { sign?: unknown }).sign !== 'string') return false;
+  }
   if (typeof hd.type !== 'string') return false;
   if (typeof hd.profile !== 'string') return false;
   if (typeof birth.iso !== 'string') return false;
