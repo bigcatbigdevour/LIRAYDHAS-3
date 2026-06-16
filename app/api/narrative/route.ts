@@ -68,8 +68,14 @@ export async function POST(req: Request) {
 
   const chartBody = [
     `- Sun in ${n.sun.sign} (gate ${n.sun.gate}.${n.sun.line})`,
-    `- Moon in ${n.moon.sign}`,
-    ascSign ? `- Rising sign: ${ascSign}` : '- (birth time unknown — soft profile)',
+    `- Moon in ${n.moon.sign} (gate ${n.moon.gate}.${n.moon.line})`,
+    `- Mercury in ${n.mercury.sign} — how they think, hear, speak`,
+    `- Venus in ${n.venus.sign} — what they reach for, how they want to be met`,
+    `- Mars in ${n.mars.sign} — how they push, fight, want`,
+    `- Jupiter in ${n.jupiter.sign} — where they expand`,
+    `- Saturn in ${n.saturn.sign} — what they have to earn the hard way`,
+    `- Outer planets: Uranus ${n.uranus.sign}, Neptune ${n.neptune.sign}, Pluto ${n.pluto.sign} (generational layer)`,
+    ascSign ? `- Rising sign: ${ascSign} — the way they walk in` : '- (birth time unknown — soft profile, no rising/houses)',
     `- Type: ${hd.type}`,
     `- Strategy: ${hd.strategy}`,
     `- Inner-decision style: ${hd.authority}`,
