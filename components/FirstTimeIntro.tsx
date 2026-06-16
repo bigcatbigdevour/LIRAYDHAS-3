@@ -34,9 +34,11 @@ export default function FirstTimeIntro({
 
   useEffect(() => {
     setMounted(true);
-    if (window.localStorage.getItem(storeKey) === '1') {
-      setOpen(false);
-    }
+    try {
+      if (window.localStorage.getItem(storeKey) === '1') {
+        setOpen(false);
+      }
+    } catch { /* private browsing — leave open */ }
   }, [storeKey]);
 
   if (!mounted) return null;
@@ -59,7 +61,9 @@ export default function FirstTimeIntro({
         <button
           type="button"
           onClick={() => {
-            window.localStorage.setItem(storeKey, '1');
+            try {
+              window.localStorage.setItem(storeKey, '1');
+            } catch { /* private browsing */ }
             setOpen(false);
           }}
           className="text-ink-faint hover:text-ink"
