@@ -1,0 +1,101 @@
+App Review notes — paste into App Store Connect's "App Review
+Information" field when submitting. Apple reviewers see this before
+they test the app, so it should answer their predictable questions
+up front.
+
+================================================================
+LIRAYDHAS — REVIEW NOTES
+
+What the app does
+-----------------
+Liraydhas is a personal-use observational tool that combines real
+astrology (natal chart + daily transits computed locally from
+ephemeris data), Human Design (body graph + gates + channels), and
+seven life cycles (Saturn, Jupiter, Chiron, etc.) into one daily
+written reading and a series of chart visualisations.
+
+The entire computation runs on-device. The only thing sent to our
+server is the user's birth data (date, time, lat/lon), and only when
+they request a written reading; we do not retain it after generating
+the response.
+
+How to test
+-----------
+1. Open the app. The onboarding flow asks for birth date, time
+   (optional), and birth place. Use any real birth data — the app
+   computes the chart immediately.
+2. Tap through to /today. A daily reading streams in within a few
+   seconds.
+3. /chart, /year, /polarity, /arcs all render from the same blueprint
+   without further input.
+
+Sample test account
+-------------------
+No account creation is needed. The app has no login. All data lives
+locally on the device. To test Pro features without a sandbox Apple
+ID purchase, tap "start free trial" on /pro — this grants 7 days of
+Pro access locally without going through StoreKit.
+
+Pro features (in-app subscription)
+----------------------------------
+Pro unlocks:
+  · /year — the full year-ahead reading
+  · /compat — synastry readings between two saved partners
+  · /chart — the "your chart's standalone reading" paragraph
+  · Pull-to-refresh on daily readings
+
+Free tier includes the daily reading, chart visualisations, polarity
+stack, arcs diagram, journal, and saved entries.
+
+Subscriptions
+-------------
+  · Monthly: $4.99 / month, auto-renewing
+  · Annual: $39.99 / year, auto-renewing
+
+Auto-renew terms are linked from the paywall (see /pro). Cancellation
+is handled through the user's Apple ID subscriptions page, per Apple
+guidelines.
+
+Privacy
+-------
+  · Birth data: sent to the server ONLY when generating a written
+    paragraph. Not retained — endpoints are stateless.
+  · Journal entries, photos, voice notes: stored locally on the
+    device (IndexedDB / localStorage). Never sent to the server.
+  · Push subscription endpoints: stored in Vercel KV so we can
+    deliver the optional daily reading reminder. Not linked to any
+    other identifier.
+  · No tracking, no advertising SDKs, no analytics — see the
+    bundled PrivacyInfo.xcprivacy.
+
+Account deletion
+----------------
+/about → "delete all my data" wipes blueprint, every saved reading,
+all photos / voice notes from IndexedDB, every UI flag, and
+unregisters push notifications.
+
+What this app is NOT
+--------------------
+Not a mental-health service, not a medical service, not a substitute
+for professional support. The disclaimer is visible on /support
+and surfaces during onboarding. The voice of the readings is
+"quiet observer" — declarative observations, never advice, never
+predictions, never crisis intervention.
+
+Support
+-------
+support@liraydhas.app  (see /support inside the app)
+
+Encryption
+----------
+The app uses HTTPS only — no proprietary cryptography. The bundled
+Info.plist sets ITSAppUsesNonExemptEncryption = false so the export
+compliance exemption applies.
+
+Third-party content
+-------------------
+The astrology and Human Design systems referenced are public-domain
+traditional knowledge. The text of readings is generated per-request
+by Anthropic's Claude model from the user's chart numbers; no
+external text is reproduced.
+================================================================

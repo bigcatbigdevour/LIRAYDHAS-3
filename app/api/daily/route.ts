@@ -119,14 +119,14 @@ export async function POST(req: Request) {
     recentParagraphs,
   });
 
-  // Server-side cache check. Same blueprint + same local date +
-  // same anti-repetition history should return the same paragraph —
-  // opening /today three times in one day shouldn't cost three
-  // Anthropic calls. A cache hit returns plain JSON; the client's
-  // isEventStream() check routes JSON responses through its
-  // non-stream branch automatically, so this works for both
-  // streaming and non-streaming clients without UI changes.
-  const ckey = cacheKey('daily', { bp, date: today, recentParagraphs });
+  // Server-side cache check. Keyed by blueprint + local date only —
+  // NOT by recentParagraphs, because history shifts on every visit
+  // (a new daily reading enters it) and including it would defeat
+  // caching entirely. Anti-repetition still applies to the first
+  // generation of the day; subsequent visits return that same
+  // first paragraph from cache, which is the right model for "today's
+  // reading" (the daily is supposed to be stable through the day).
+  const ckey = cacheKey('daily', { bp, date: today });
   const cached = await getCached<DailyReport>(ckey);
   if (cached) {
     return withCors(NextResponse.json(cached), req);
