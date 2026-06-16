@@ -191,7 +191,7 @@ export default function TodayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blueprint, todayIso]);
 
-  async function fetchDaily() {
+  async function fetchDaily(opts: { fresh?: boolean } = {}) {
     if (!blueprint) return;
     // Capture the blueprint identity at call-time so we can detect if it
     // changed (e.g. user erased blueprint mid-flight) and avoid writing
@@ -217,7 +217,10 @@ export default function TodayPage() {
         .map((h) => h.paragraph)
         .filter((p): p is string => typeof p === 'string' && p.length > 20)
         .slice(0, 5);
-      const res = await fetch(api('/api/daily?stream=1'), {
+      const url = opts.fresh
+        ? api('/api/daily?stream=1&fresh=1')
+        : api('/api/daily?stream=1');
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -321,7 +324,7 @@ export default function TodayPage() {
   const pastDays = history.filter((h) => h.date !== daily?.date).slice(0, 6);
 
   return (
-    <PullToRefresh onRefresh={fetchDaily}>
+    <PullToRefresh onRefresh={() => fetchDaily({ fresh: true })}>
     <main className="page max-w-md mx-auto fade-in">
       <header className="pb-8">
         <div className="flex items-baseline justify-between gap-3 relative">

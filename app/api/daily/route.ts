@@ -136,10 +136,18 @@ export async function POST(req: Request) {
   // generation of the day; subsequent visits return that same
   // first paragraph from cache, which is the right model for "today's
   // reading" (the daily is supposed to be stable through the day).
+  //
+  // ?fresh=1 → skip the cache (pull-to-refresh path). The fresh
+  // response overwrites the cached entry, so subsequent normal
+  // requests get the new paragraph.
   const ckey = cacheKey('daily', { bp, date: today });
-  const cached = await getCached<DailyReport>(ckey);
-  if (cached) {
-    return withCors(NextResponse.json(cached), req);
+  const url = new URL(req.url);
+  const wantsFresh = url.searchParams.get('fresh') === '1';
+  if (!wantsFresh) {
+    const cached = await getCached<DailyReport>(ckey);
+    if (cached) {
+      return withCors(NextResponse.json(cached), req);
+    }
   }
 
   // ?stream=1 → server-sent-events stream so the client renders the
@@ -147,7 +155,7 @@ export async function POST(req: Request) {
   // non-streaming JSON path so the service worker's body-hash cache
   // (and any other consumer that wants a plain JSON object) keeps
   // working unchanged.
-  const wantsStream = new URL(req.url).searchParams.get('stream') === '1';
+  const wantsStream = url.searchParams.get('stream') === '1';
   if (wantsStream) {
     return streamLLMResponse(req, {
       prompt,
