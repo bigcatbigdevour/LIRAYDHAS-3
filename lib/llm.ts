@@ -246,14 +246,24 @@ export interface StreamResponseOptions extends CallOptions {
 export function streamLLMResponse(req: Request, opts: StreamResponseOptions): Response {
   const encoder = new TextEncoder();
   const wantsTakeaway = opts.splitTakeaway !== false;
+  // When the client disconnects (user navigates away, AbortController
+  // fires), Next.js calls the ReadableStream's cancel(). We pipe that
+  // through an AbortController so the Anthropic stream can be told to
+  // stop generating — otherwise we keep billing for tokens the user
+  // will never see.
+  const upstreamCtrl = new AbortController();
+  let clientGone = false;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (data: unknown) => {
+        if (clientGone) return;
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch {
           // Client disconnected — drop the rest silently.
+          clientGone = true;
+          upstreamCtrl.abort();
         }
       };
 
@@ -280,7 +290,7 @@ export function streamLLMResponse(req: Request, opts: StreamResponseOptions): Re
               max_tokens: opts.maxTokens ?? 400,
               temperature: opts.temperature ?? 0.8,
               messages: [{ role: 'user', content: opts.prompt }],
-            });
+            }, { signal: upstreamCtrl.signal });
             streamErr = null;
             for await (const event of llmStream) {
               if (event.type !== 'content_block_delta') continue;
@@ -353,7 +363,30 @@ export function streamLLMResponse(req: Request, opts: StreamResponseOptions): Re
         controller.close();
       }
     },
+    // Fires when the client disconnects (browser tab closed, user
+    // navigates away, request AbortController.abort()). Propagate to
+    // the upstream so we stop billing for tokens the user will never
+    // see.
+    cancel() {
+      clientGone = true;
+      upstreamCtrl.abort();
+    },
   });
+
+  // Some runtimes signal cancellation via the request's AbortSignal
+  // rather than the ReadableStream.cancel callback. Wire both so we
+  // catch either path.
+  if (req.signal) {
+    if (req.signal.aborted) {
+      clientGone = true;
+      upstreamCtrl.abort();
+    } else {
+      req.signal.addEventListener('abort', () => {
+        clientGone = true;
+        upstreamCtrl.abort();
+      }, { once: true });
+    }
+  }
 
   const res = new Response(stream, {
     headers: {
