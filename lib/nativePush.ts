@@ -52,7 +52,12 @@ export async function getNativePushState(): Promise<NativePushState> {
   } catch {
     return { kind: 'default' };
   }
-  const token = window.localStorage.getItem(TOKEN_KEY);
+  // localStorage throws on iOS Private Browsing; degrade to 'default'
+  // rather than crashing the whole notifications UI.
+  let token: string | null = null;
+  try {
+    token = window.localStorage.getItem(TOKEN_KEY);
+  } catch { /* private browsing */ }
   if (token) return { kind: 'registered', token };
   return { kind: 'default' };
 }
@@ -106,7 +111,11 @@ export async function registerNativePush(): Promise<
   });
   if (!token) return { ok: false, reason: 'APNs did not return a device token' };
 
-  window.localStorage.setItem(TOKEN_KEY, token);
+  // The local-flag write is convenience for re-render; the server has
+  // the authoritative copy. Don't fail registration if storage throws.
+  try {
+    window.localStorage.setItem(TOKEN_KEY, token);
+  } catch { /* private browsing */ }
 
   // POST to the same subscribe endpoint as web push, distinguished by
   // kind: 'apns'. Server stores them in the same KV namespace.
@@ -137,8 +146,11 @@ export async function registerNativePush(): Promise<
 
 export async function unregisterNativePush(): Promise<void> {
   if (!isNativeRuntime()) return;
+  let token: string | null = null;
   try {
-    const token = window.localStorage.getItem(TOKEN_KEY);
+    token = window.localStorage.getItem(TOKEN_KEY);
+  } catch { /* private browsing */ }
+  try {
     if (token) {
       try {
         await fetch(api('/api/push/subscribe'), {
@@ -149,7 +161,9 @@ export async function unregisterNativePush(): Promise<void> {
       } catch {/* ignore */}
     }
     await PushNotifications.removeAllListeners();
-    window.localStorage.removeItem(TOKEN_KEY);
+    try {
+      window.localStorage.removeItem(TOKEN_KEY);
+    } catch { /* private browsing */ }
   } catch (e) {
     console.warn('[apns] unregister failed', e);
   }

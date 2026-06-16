@@ -182,21 +182,49 @@ export async function POST(req: Request) {
     );
   }
 
+  // Apple's documented JWS payload uses int64 milliseconds since epoch,
+  // but defensively parse strings too — some API versions and other
+  // App Store endpoints return ISO 8601 strings, and a wrong type
+  // check that fell through to "no expiry detected" would silently
+  // grant Pro to expired subscriptions.
+  const expiresMs = parseAppleTimestamp(info.expiresDate);
+  const revocationMs = parseAppleTimestamp(info.revocationDate);
   const now = Date.now();
-  const revoked = typeof info.revocationDate === 'number' && info.revocationDate <= now;
-  const expired = typeof info.expiresDate === 'number' && info.expiresDate <= now;
+  // Conservative: an UNREADABLE expiresDate is treated as already
+  // expired rather than ignored, so a malformed payload can never
+  // grant unauthorized Pro access.
+  const expired = expiresMs === null || expiresMs <= now;
+  const revoked = revocationMs !== null && revocationMs <= now;
   const entitled = !revoked && !expired;
 
   return withCors(
     NextResponse.json({
       ok: true,
       entitlement: entitled ? 'pro' : 'free',
-      expiresAt: info.expiresDate ?? null,
+      expiresAt: expiresMs ?? null,
       productId: info.productId ?? null,
       revoked,
     }),
     req,
   );
+}
+
+/**
+ * Apple's transaction payload usually carries timestamps as int64
+ * milliseconds since epoch, but we've seen ISO 8601 strings too.
+ * Returns null when the value is missing or unparseable.
+ */
+function parseAppleTimestamp(v: unknown): number | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string') {
+    // Numeric string ("1735689600000") — coerce.
+    const asNum = Number(v);
+    if (Number.isFinite(asNum) && asNum > 0) return asNum;
+    // ISO 8601 ("2025-01-01T00:00:00Z") — Date.parse.
+    const asDate = Date.parse(v);
+    if (Number.isFinite(asDate)) return asDate;
+  }
+  return null;
 }
 
 /**

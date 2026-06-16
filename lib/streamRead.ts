@@ -53,6 +53,14 @@ export async function readSseStream(
   const decoder = new TextDecoder();
   let buf = '';
   let paragraphFull = '';
+  // Track terminal events so we can detect "connection closed without
+  // a final event" — which happens when the server crashes, a proxy
+  // times out, or the client's network drops between the last
+  // paragraph delta and the done event. Without this, the calling
+  // page would sit with a half-paragraph and a blinking cursor
+  // forever.
+  let sawTerminal = false;
+  let sawAnyData = false;
 
   try {
     while (true) {
@@ -76,6 +84,7 @@ export async function readSseStream(
         } catch {
           continue;
         }
+        sawAnyData = true;
         if (evt.type === 'meta') {
           handlers.meta?.(evt as Record<string, unknown>);
         } else if (evt.type === 'takeaway' && typeof evt.text === 'string') {
@@ -84,14 +93,31 @@ export async function readSseStream(
           paragraphFull += evt.text;
           handlers.paragraph?.(evt.text, paragraphFull);
         } else if (evt.type === 'done') {
+          sawTerminal = true;
           handlers.done?.({
             takeaway: typeof evt.takeaway === 'string' ? evt.takeaway : '',
             paragraph: typeof evt.paragraph === 'string' ? evt.paragraph : paragraphFull,
           });
         } else if (evt.type === 'error' && typeof evt.message === 'string') {
+          sawTerminal = true;
           handlers.error?.(evt.message);
         }
       }
+    }
+    // Stream closed cleanly but no done/error event arrived.
+    // Two cases:
+    //   1. We got partial text — surface an error so the UI can
+    //      retry instead of leaving the user with half a paragraph
+    //      and a stuck cursor.
+    //   2. We got nothing at all — surface an error too. The server
+    //      should always send something; silence is a failure.
+    if (!sawTerminal) {
+      if (signal?.aborted) return;
+      handlers.error?.(
+        sawAnyData
+          ? 'reading was cut off before it finished'
+          : 'reading service returned an empty response',
+      );
     }
   } finally {
     try { reader.releaseLock(); } catch { /* already released */ }
