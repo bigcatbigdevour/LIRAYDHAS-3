@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MoonIcon from './MoonIcon';
 import { tap as hapticTap } from '@/lib/haptics';
 import type { UpcomingLunation } from '@/lib/astrology/moon';
@@ -40,9 +40,35 @@ const PHASE_TEXTURES: Record<string, string> = {
 export default function MoonWidget({ moon, lunation, shift }: Props) {
   const [open, setOpen] = useState(false);
   const texture = PHASE_TEXTURES[moon.name];
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  // Close the popover when the user taps outside it, presses Escape,
+  // or scrolls the page. Without this, tapping anywhere else on /today
+  // leaves the popover visible until the user finds the close button —
+  // a felt papercut on mobile where there's no "click outside" by
+  // default.
+  useEffect(() => {
+    if (!open) return;
+    function onPointer(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    // pointerdown so the popover dismisses BEFORE the next tap's
+    // click handler runs (matters for tappable elements behind it).
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   return (
-    <>
+    <div ref={rootRef} className="contents">
       <button
         type="button"
         onClick={() => { hapticTap('light'); setOpen((v) => !v); }}
@@ -55,7 +81,7 @@ export default function MoonWidget({ moon, lunation, shift }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 max-w-xs border border-hairline bg-bg p-3 fade-in z-30 shadow-lg">
+        <div className="absolute right-0 top-full mt-2 max-w-xs border border-hairline bg-bg p-3 fade-in z-30 shadow-lg" role="dialog">
           <div className="flex items-start gap-3">
             <MoonIcon phase={moon.phaseDegrees} size={28} />
             <div className="flex-1">
@@ -108,6 +134,6 @@ export default function MoonWidget({ moon, lunation, shift }: Props) {
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }

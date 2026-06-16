@@ -38,6 +38,9 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
   // Brief celebration animation on the save moment — toggles a one-shot
   // CSS class on the star glyph that scales it up and glows accent.
   const [popping, setPopping] = useState(false);
+  // Track the pop's timer so unmounting mid-pop doesn't leak it or
+  // trigger setState on an unmounted component.
+  const popTimer = useRef<number | null>(null);
   // Reflection nudge: 5 minutes after the user commits a note, we surface
   // a small "what landed since you wrote this?" prompt. Once per save
   // event, per page life — never persisted across reloads.
@@ -90,11 +93,14 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     }, delayMs);
   }
 
-  // Clean up any pending reflection on unmount.
+  // Clean up any pending timers on unmount.
   useEffect(() => {
     return () => {
       if (reflectionTimer.current !== null) {
         window.clearTimeout(reflectionTimer.current);
+      }
+      if (popTimer.current !== null) {
+        window.clearTimeout(popTimer.current);
       }
     };
   }, []);
@@ -114,9 +120,14 @@ export default function SaveDayButton({ dateIso, paragraph, headline, snapshot }
     setNoteOpen(true);
     announce('reading saved to journal');
     // Fire the star pop. Reset after the animation so it can play again
-    // on a subsequent save (after an unsave + re-save).
+    // on a subsequent save (after an unsave + re-save). Tracked in a
+    // ref so the cleanup effect can clear it on unmount.
     setPopping(true);
-    window.setTimeout(() => setPopping(false), 650);
+    if (popTimer.current !== null) window.clearTimeout(popTimer.current);
+    popTimer.current = window.setTimeout(() => {
+      popTimer.current = null;
+      setPopping(false);
+    }, 650);
     // Update local-notification anniversaries so this new entry's "one
     // year from now" ping joins the schedule. No-op on web.
     void rescheduleAnniversaries();
