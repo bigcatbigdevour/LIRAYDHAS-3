@@ -13,6 +13,7 @@ import {
   readBoundedBody,
   isWellFormedBlueprint,
 } from '@/lib/llm';
+import { cacheKey, getCached, setCached, TTL } from '@/lib/llmCache';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -92,6 +93,14 @@ export async function POST(req: Request) {
     ],
   });
 
+  // Chart text is keyed only by the blueprint — never changes once
+  // birth data is entered, so cache for a long time.
+  const ckey = cacheKey('narrative', { bp });
+  const cached = await getCached<{ paragraph: string; generatedAt: string }>(ckey);
+  if (cached) {
+    return withCors(NextResponse.json(cached), req);
+  }
+
   if (new URL(req.url).searchParams.get('stream') === '1') {
     return streamLLMResponse(req, {
       prompt,
@@ -99,11 +108,15 @@ export async function POST(req: Request) {
       temperature: 0.85,
       meta: { generatedAt: new Date().toISOString() },
       splitTakeaway: false,
+      onComplete: ({ paragraph }) => {
+        void setCached(ckey, { paragraph, generatedAt: new Date().toISOString() }, TTL.narrative);
+      },
     });
   }
 
   try {
     const paragraph = await callLLM(prompt, { maxTokens: 400, temperature: 0.85 });
+    void setCached(ckey, { paragraph, generatedAt: new Date().toISOString() }, TTL.narrative);
     return withCors(NextResponse.json({
       paragraph,
       generatedAt: new Date().toISOString(),

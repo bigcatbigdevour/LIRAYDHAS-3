@@ -150,6 +150,14 @@ export interface StreamResponseOptions extends CallOptions {
    * (synastry, ask, year today don't, narrative + polarity + daily do).
    */
   splitTakeaway?: boolean;
+  /**
+   * Called once the stream finishes successfully with the canonical
+   * takeaway + paragraph pair. Use for server-side cache writes so
+   * the second user of the same inputs doesn't trigger another
+   * Anthropic call. Runs fire-and-forget — failures should not
+   * affect the user-facing response.
+   */
+  onComplete?: (result: { takeaway: string; paragraph: string }) => void;
 }
 
 /**
@@ -235,6 +243,13 @@ export function streamLLMResponse(req: Request, opts: StreamResponseOptions): Re
           ? splitTakeaway(full)
           : { takeaway: '', paragraph: full.trim() };
         send({ type: 'done', takeaway, paragraph });
+        // Fire-and-forget cache write. Wrapped in try so a failing
+        // callback never bubbles up to the user-facing response.
+        if (opts.onComplete && paragraph) {
+          try { opts.onComplete({ takeaway, paragraph }); } catch (e) {
+            console.warn('[streamLLMResponse] onComplete threw:', e);
+          }
+        }
       } catch (e: unknown) {
         console.error('[streamLLMResponse] model call failed:', e);
         const msg = e instanceof Error ? e.message : '';

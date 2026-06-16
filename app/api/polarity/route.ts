@@ -13,6 +13,7 @@ import {
   readBoundedBody,
   isWellFormedBlueprint,
 } from '@/lib/llm';
+import { cacheKey, getCached, setCached, TTL } from '@/lib/llmCache';
 import type { Blueprint } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -99,6 +100,15 @@ export async function POST(req: Request) {
     ],
   });
 
+  // Cache by blueprint + week — polarity stack shifts slowly enough
+  // that the same week's reading is reusable across visits.
+  const weekKey = `${new Date().getFullYear()}-W${Math.floor(Date.now() / (7 * 86400_000))}`;
+  const ckey = cacheKey('polarity', { bp, week: weekKey });
+  const cached = await getCached<{ paragraph: string; rising: number; descending: number; generatedAt: string }>(ckey);
+  if (cached) {
+    return withCors(NextResponse.json(cached), req);
+  }
+
   if (new URL(req.url).searchParams.get('stream') === '1') {
     return streamLLMResponse(req, {
       prompt,
@@ -110,17 +120,27 @@ export async function POST(req: Request) {
         generatedAt: new Date().toISOString(),
       },
       splitTakeaway: false,
+      onComplete: ({ paragraph }) => {
+        void setCached(ckey, {
+          paragraph,
+          rising: rising.length,
+          descending: descending.length,
+          generatedAt: new Date().toISOString(),
+        }, TTL.polarity);
+      },
     });
   }
 
   try {
     const paragraph = await callLLM(prompt, { maxTokens: 400, temperature: 0.75 });
-    return withCors(NextResponse.json({
+    const result = {
       paragraph,
       rising: rising.length,
       descending: descending.length,
       generatedAt: new Date().toISOString(),
-    }), req);
+    };
+    void setCached(ckey, result, TTL.polarity);
+    return withCors(NextResponse.json(result), req);
   } catch (e: unknown) {
     return llmErrorResponse(req, e, 'api/polarity');
   }

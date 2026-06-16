@@ -9,6 +9,7 @@ import {
   readBoundedBody,
   isWellFormedBlueprint,
 } from '@/lib/llm';
+import { cacheKey, getCached, setCached, TTL } from '@/lib/llmCache';
 import {
   computeSynastryAspects,
   computeElectricChannels,
@@ -115,6 +116,17 @@ export async function POST(req: Request) {
     risingB: stage.risingB,
   };
 
+  // Synastry is keyed by both blueprints + the relation label; same
+  // pair + same relation → same reading. Charts and life-stage texture
+  // don't shift much over 90 days, so a long TTL works well — and
+  // partner lookups are the most expensive endpoint, so caching pays
+  // out fastest here.
+  const ckey = cacheKey('synastry', { self, other, relation });
+  const cached = await getCached<SynastryReading>(ckey);
+  if (cached) {
+    return withCors(NextResponse.json(cached), req);
+  }
+
   if (new URL(req.url).searchParams.get('stream') === '1') {
     return streamLLMResponse(req, {
       prompt,
@@ -127,6 +139,16 @@ export async function POST(req: Request) {
         generatedAt: new Date().toISOString(),
       },
       splitTakeaway: false,
+      onComplete: ({ paragraph }) => {
+        const reading: SynastryReading = {
+          paragraph,
+          aspects,
+          electricChannels: electric,
+          lifeStage,
+          generatedAt: new Date().toISOString(),
+        };
+        void setCached(ckey, reading, TTL.synastry);
+      },
     });
   }
 
@@ -144,6 +166,7 @@ export async function POST(req: Request) {
     lifeStage,
     generatedAt: new Date().toISOString(),
   };
+  void setCached(ckey, reading, TTL.synastry);
   return withCors(NextResponse.json(reading), req);
 }
 

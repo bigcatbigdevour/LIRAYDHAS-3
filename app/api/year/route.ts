@@ -12,6 +12,7 @@ import {
   readBoundedBody,
   isWellFormedBlueprint,
 } from '@/lib/llm';
+import { cacheKey, getCached, setCached, TTL } from '@/lib/llmCache';
 import type { Blueprint, YearReading } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -79,6 +80,16 @@ export async function POST(req: Request) {
     ],
   });
 
+  // Year reading is keyed by blueprint + current calendar month. Within
+  // a month the upcoming events/returns/flips list barely shifts, so a
+  // 30-day TTL gives stable repeat hits.
+  const monthKey = now.toISOString().slice(0, 7); // YYYY-MM
+  const ckey = cacheKey('year', { bp, month: monthKey });
+  const cached = await getCached<YearReading>(ckey);
+  if (cached) {
+    return withCors(NextResponse.json(cached), req);
+  }
+
   if (new URL(req.url).searchParams.get('stream') === '1') {
     return streamLLMResponse(req, {
       prompt,
@@ -86,6 +97,10 @@ export async function POST(req: Request) {
       temperature: 0.8,
       meta: { generatedAt: new Date().toISOString() },
       splitTakeaway: false,
+      onComplete: ({ paragraph }) => {
+        const reading: YearReading = { paragraph, generatedAt: new Date().toISOString() };
+        void setCached(ckey, reading, TTL.year);
+      },
     });
   }
 
@@ -100,6 +115,7 @@ export async function POST(req: Request) {
     paragraph,
     generatedAt: new Date().toISOString(),
   };
+  void setCached(ckey, reading, TTL.year);
   return withCors(NextResponse.json(reading), req);
 }
 

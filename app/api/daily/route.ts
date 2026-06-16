@@ -15,6 +15,7 @@ import {
   readBoundedBody,
   isWellFormedBlueprint,
 } from '@/lib/llm';
+import { cacheKey, getCached, setCached, TTL } from '@/lib/llmCache';
 import type { Blueprint, DailyReport } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -107,6 +108,18 @@ export async function POST(req: Request) {
     ],
   });
 
+  // Server-side cache check. Same blueprint + same local date should
+  // return the same paragraph — opening /today three times in one day
+  // shouldn't cost three Anthropic calls. A cache hit returns plain
+  // JSON; the client's isEventStream() check routes JSON responses
+  // through its non-stream branch automatically, so this works for
+  // both streaming and non-streaming clients without UI changes.
+  const ckey = cacheKey('daily', { bp, date: today });
+  const cached = await getCached<DailyReport>(ckey);
+  if (cached) {
+    return withCors(NextResponse.json(cached), req);
+  }
+
   // ?stream=1 → server-sent-events stream so the client renders the
   // paragraph word-by-word as it's produced. Default to the existing
   // non-streaming JSON path so the service worker's body-hash cache
@@ -120,6 +133,12 @@ export async function POST(req: Request) {
       temperature: 0.8,
       meta: { date: today, transits: top },
       splitTakeaway: true,
+      // Persist the finished paragraph so the next request with the
+      // same blueprint + date returns instantly from KV.
+      onComplete: ({ takeaway, paragraph }) => {
+        const report: DailyReport = { paragraph, takeaway, date: today, transits: top };
+        void setCached(ckey, report, TTL.daily);
+      },
     });
   }
 
@@ -132,6 +151,7 @@ export async function POST(req: Request) {
 
   const { takeaway, paragraph } = splitTakeaway(raw);
   const report: DailyReport = { paragraph, takeaway, date: today, transits: top };
+  void setCached(ckey, report, TTL.daily);
   return withCors(NextResponse.json(report), req);
 }
 
