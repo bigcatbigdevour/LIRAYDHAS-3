@@ -37,12 +37,18 @@ export default function PullToRefresh({
         startY.current = null;
         return;
       }
-      startY.current = e.touches[0].clientY;
+      // Multi-touch / pinch can produce empty touches arrays on
+      // some WebKit versions; guard so we don't crash on undefined.
+      const t = e.touches[0];
+      if (!t) return;
+      startY.current = t.clientY;
       setArmed(false);
     }
     function onTouchMove(e: TouchEvent) {
       if (refreshing || startY.current === null) return;
-      const dy = e.touches[0].clientY - startY.current;
+      const t = e.touches[0];
+      if (!t) return;
+      const dy = t.clientY - startY.current;
       if (dy <= 0) {
         setPull(0);
         return;

@@ -78,11 +78,21 @@ export async function POST(req: Request) {
     )
     .join('\n');
 
+  // Richer chart context = more specific reading. The fewer "you're
+  // an intuitive person" generic lines the model has to fall back on,
+  // the more specific it can be about THIS chart's actual dynamics.
   const personBody = [
     `- Sun in ${bp.natal.sun.sign} (gate ${bp.natal.sun.gate}.${bp.natal.sun.line})`,
-    `- Moon in ${bp.natal.moon.sign}`,
-    bp.natal.asc != null ? `- Rising sign: ${signFromLon(bp.natal.asc)}` : '- (birth time unknown — no rising)',
+    `- Moon in ${bp.natal.moon.sign} (gate ${bp.natal.moon.gate}.${bp.natal.moon.line})`,
+    `- Mercury in ${bp.natal.mercury.sign} (how they think and talk)`,
+    `- Venus in ${bp.natal.venus.sign} (what they reach for; how they want to be met)`,
+    `- Mars in ${bp.natal.mars.sign} (how they push, fight, want)`,
+    `- Saturn in ${bp.natal.saturn.sign} (what they have to earn the hard way)`,
+    bp.natal.asc != null ? `- Rising sign: ${signFromLon(bp.natal.asc)} (the way they walk in)` : '- (birth time unknown — no rising)',
     `- Type: ${bp.humanDesign.type} · Profile: ${bp.humanDesign.profile}`,
+    bp.humanDesign.activeChannels.length > 0
+      ? `- Defined channels: ${bp.humanDesign.activeChannels.map(([a, b]) => `${a}-${b}`).join(', ')} (the parts of them that are consistent)`
+      : '- No defined channels — this is a Reflector design',
     `- Inner-decision style (translate the SPIRIT into how they should approach decisions today — do NOT use the labels "authority", "Sacral", "Splenic", "Emotional", "Ego", "Self-projected", "Mental", or "Lunar" verbatim): ${AUTHORITY_DESCRIPTIONS[bp.humanDesign.authority]}`,
   ].join('\n');
 
