@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { todaysTransits, pickTopAspects, currentRetrogrades } from '@/lib/astrology/transits';
+import { currentMoon } from '@/lib/astrology/moon';
 import { userTransits } from '@/lib/humandesign/transitGates';
 import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { ageInYears, polarityFlips } from '@/lib/cycles';
@@ -55,6 +56,10 @@ export async function POST(req: Request) {
   const top = pickTopAspects(aspects, 3);
   const hd = userTransits(bp, now);
   const retros = currentRetrogrades(now);
+  const moon = currentMoon(now);
+  // Same-sign transit moon = lunar return (~once every 27 days); a
+  // particularly intimate emotional signal worth surfacing to the model.
+  const lunarReturn = moon.moonSign === bp.natal.moon.sign;
   // Most recently flipped polarity cycle, if within 14 days.
   const recentFlip = polarityFlips(bp.birth.iso, now)
     .filter((f) => f.daysSinceStart <= 14)
@@ -97,6 +102,8 @@ export async function POST(req: Request) {
   ].join('\n');
 
   const todayBody = [
+    `Today's transiting moon is in ${moon.moonSign} (${moon.name.toLowerCase()}, ${Math.round(moon.illumination * 100)}% illuminated)${lunarReturn ? ' — this is their LUNAR RETURN day, the once-a-month moment when transiting moon hits natal moon (emotional intimacy with self)' : ''}.`,
+    '',
     `Tightest transits to their natal chart:`,
     transitLines || '- (a quiet day for major aspects)',
     litLines ? `\nTransits hitting their natal gates:\n${litLines}` : '',
@@ -104,7 +111,7 @@ export async function POST(req: Request) {
     retros.length ? `\nCurrently retrograde: ${retros.join(', ')}` : '',
     recentFlip ? `\nPolarity: ${recentFlip.cycle.label} flipped ${Math.round(recentFlip.daysSinceStart)} days ago to ${recentFlip.positive ? 'rising' : 'descending'}.` : '',
     chapter ? `\nLife chapter: in '${chapter.label}' (ages ${chapter.startAge}–${chapter.endAge}). ${chapter.description}` : '',
-  ].filter(Boolean).join('');
+  ].filter(Boolean).join('\n');
 
   const prompt = composePrompt({
     task: [

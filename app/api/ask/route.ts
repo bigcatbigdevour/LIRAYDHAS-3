@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { todaysTransits, pickTopAspects } from '@/lib/astrology/transits';
+import { currentMoon } from '@/lib/astrology/moon';
 import { userTransits } from '@/lib/humandesign/transitGates';
 import { AUTHORITY_DESCRIPTIONS } from '@/lib/humandesign/interpretations';
 import { ageInYears, polarityFlips } from '@/lib/cycles';
@@ -52,6 +53,7 @@ export async function POST(req: Request) {
   const { aspects } = todaysTransits(bp.natal);
   const top = pickTopAspects(aspects, 3);
   const hd = userTransits(bp, now);
+  const moon = currentMoon(now);
   const recentFlip = polarityFlips(bp.birth.iso, now)
     .filter((f) => f.daysSinceStart <= 14)
     .sort((a, b) => a.daysSinceStart - b.daysSinceStart)[0] ?? null;
@@ -75,12 +77,14 @@ export async function POST(req: Request) {
   ].join('\n');
 
   const todayBody = [
+    `Transiting moon in ${moon.moonSign}, ${moon.name.toLowerCase()}.`,
+    '',
     `Tightest transits:`,
     transitLines || '- (a quiet day for major aspects)',
     litLines ? `\nTransits hitting natal gates:\n${litLines}` : '',
     recentFlip ? `\nPolarity: ${recentFlip.cycle.label} flipped ${Math.round(recentFlip.daysSinceStart)} days ago to ${recentFlip.positive ? 'rising' : 'descending'}.` : '',
     chapter ? `\nLife chapter: '${chapter.label}' (ages ${chapter.startAge}–${chapter.endAge}). ${chapter.description}` : '',
-  ].filter(Boolean).join('');
+  ].filter(Boolean).join('\n');
 
   const prompt = composePrompt({
     task: 'The reader has typed one short context line. Respond with one paragraph of 80 to 120 words from the lens of today\'s transits to their chart. Output only the paragraph — no preamble, no header, no quotation marks.',
