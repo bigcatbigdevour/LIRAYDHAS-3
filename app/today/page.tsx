@@ -138,12 +138,15 @@ export default function TodayPage() {
   }, [todayIso]);
 
   // Read the welcome flag exactly once. SSR-safe via the existing client
-  // boundary.
+  // boundary. Wrap the localStorage call so iOS Private Browsing
+  // (SecurityError on access) doesn't crash the first paint.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.localStorage.getItem('liraydhas.welcome.v1') === '1') {
-      setShowWelcome(true);
-    }
+    try {
+      if (window.localStorage.getItem('liraydhas.welcome.v1') === '1') {
+        setShowWelcome(true);
+      }
+    } catch { /* private browsing — skip the ceremonial banner */ }
   }, []);
 
   // "What changed since last visit" — read the previous timestamp BEFORE
