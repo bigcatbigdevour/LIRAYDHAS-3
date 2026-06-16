@@ -188,8 +188,13 @@ export async function restore(): Promise<
  */
 import { useEffect, useState } from 'react';
 export function useSubState(): SubState {
-  const [state, setState] = useState<SubState>(() => readSubState());
+  // Always start with the "free" baseline so server-rendered HTML
+  // matches the client's first paint. Then read the real state in an
+  // effect — any mismatch (user is actually on Pro) gets corrected in
+  // the next commit without triggering React's hydration warning.
+  const [state, setState] = useState<SubState>({ kind: 'free' });
   useEffect(() => {
+    setState(readSubState());
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent<SubState>).detail;
       if (detail) setState(detail);
