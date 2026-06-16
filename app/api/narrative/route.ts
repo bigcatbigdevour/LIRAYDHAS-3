@@ -86,10 +86,11 @@ export async function POST(req: Request) {
     task: "Write a one-time standalone summary of this person's chart. Output one paragraph of 90 to 130 words. Output only the paragraph — no preamble, no header, no quotation marks.",
     sections: [{ header: 'THE CHART', body: chartBody }],
     rules: [
-      'Name the texture this specific combination creates — not a list of attributes, the actual feel of being them.',
-      'Include exactly one observation that quietly invites the reader to question something they take for granted about their own psyche — a belief about who they are, a pattern they\'ve stopped noticing, a story they\'ve been telling about themselves that this chart suggests might be slightly off.',
-      'If a named life-station applies, acknowledge it in one phrase.',
-      'End on a quiet observation, not a command, not a pep talk.',
+      'Name the SPECIFIC dynamic this combination creates — not a list of attributes, not a category, the actual experiential feel of being them. Pull out a behaviour or inner pattern this exact chart would produce that another chart wouldn\'t.',
+      'Reference at least one concrete inner experience the reader will recognise the moment they read it — a way they relate to a particular kind of decision, a flavour of internal friction, a kind of moment where they reliably show up a certain way. The goal is "huh, how does it know that" — that only comes from being specific, not flattering.',
+      'Include exactly one observation that quietly invites the reader to question a story they\'ve been telling themselves about WHY they are the way they are — a belief their chart suggests might be slightly off. The good version is concrete and chart-specific; the bad version applies to everyone.',
+      'If a named life-station applies, acknowledge it in one phrase — what it\'s actually asking of them, not just its name.',
+      'End on a quiet observation, not a command, not a pep talk, not a forecast.',
     ],
   });
 

@@ -29,13 +29,23 @@ export async function POST(req: Request) {
   const limited = rateLimit(req, 'daily');
   if (limited) return limited;
 
-  const parsed = await readBoundedBody<{ blueprint?: Blueprint; localDate?: string }>(req);
+  const parsed = await readBoundedBody<{
+    blueprint?: Blueprint;
+    localDate?: string;
+    /** Recent paragraphs the client has shown this user, oldest-first
+     *  or newest-first either way — we cap and trim server-side. Used
+     *  for anti-repetition. */
+    recentParagraphs?: string[];
+  }>(req);
   if (!parsed.ok) return parsed.response;
   const body = parsed.body;
   const bp = body.blueprint;
   if (!isWellFormedBlueprint(bp) || !bp.natal || !bp.humanDesign) {
     return withCors(NextResponse.json({ error: 'missing blueprint' }, { status: 400 }), req);
   }
+  const recentParagraphs = Array.isArray(body.recentParagraphs)
+    ? body.recentParagraphs.filter((p): p is string => typeof p === 'string').slice(0, 5)
+    : [];
 
   const now = new Date();
   // Use the client's local date when provided so the daily caches align
@@ -101,20 +111,22 @@ export async function POST(req: Request) {
       { header: 'TODAY', body: todayBody },
     ],
     rules: [
-      'Anchor in at least one of the specific signals above (a tight transit, a lit natal gate, or a temporarily-complete channel). Refer to a gate or channel by its number only ("gate 24", "the 43-23 channel") and translate it plainly into what it MEANS for today.',
-      'Include exactly one observation that quietly invites the reader to question something they take for granted about their own psyche — a belief about themselves, a pattern they\'ve stopped noticing, a story they\'ve been telling themselves.',
-      'Naming one mundane, concrete thing they should pay attention to today is welcome.',
-      'End with a quiet observation — not a command, not a question.',
+      'Anchor the paragraph in at least one of the specific signals above (a tight transit, a lit natal gate, or a temporarily-complete channel). Refer to a gate or channel by its number only ("gate 24", "the 43-23 channel") and translate it plainly into what it MEANS for today — name the actual texture of the day, not the category. "A short fuse this afternoon" is good; "today brings energy" is not.',
+      'Name one concrete, mundane experience this reader is likely to recognise — a moment they could screenshot from their own day. The reader should feel "how did it know that" — that comes from naming a specific behavior, not a trait.',
+      'Include exactly one observation that quietly invites the reader to question something they take for granted about their own psyche — a belief about themselves, a pattern they\'ve stopped noticing, a story they\'ve been telling themselves about WHY they do a thing. The good version is specific to THIS chart; the bad version is generic.',
+      'End with a quiet observation — not a command, not a question, not a forecast.',
     ],
+    recentParagraphs,
   });
 
-  // Server-side cache check. Same blueprint + same local date should
-  // return the same paragraph — opening /today three times in one day
-  // shouldn't cost three Anthropic calls. A cache hit returns plain
-  // JSON; the client's isEventStream() check routes JSON responses
-  // through its non-stream branch automatically, so this works for
-  // both streaming and non-streaming clients without UI changes.
-  const ckey = cacheKey('daily', { bp, date: today });
+  // Server-side cache check. Same blueprint + same local date +
+  // same anti-repetition history should return the same paragraph —
+  // opening /today three times in one day shouldn't cost three
+  // Anthropic calls. A cache hit returns plain JSON; the client's
+  // isEventStream() check routes JSON responses through its
+  // non-stream branch automatically, so this works for both
+  // streaming and non-streaming clients without UI changes.
+  const ckey = cacheKey('daily', { bp, date: today, recentParagraphs });
   const cached = await getCached<DailyReport>(ckey);
   if (cached) {
     return withCors(NextResponse.json(cached), req);

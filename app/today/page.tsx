@@ -209,10 +209,22 @@ export default function TodayPage() {
       // cache only intercepts the plain /api/daily URL), so when online
       // we always get streaming. When offline the fetch fails and we
       // retry the cached non-streaming endpoint below.
+      // Send the last 5 paragraphs as anti-repetition context. The
+      // server treats this as a "DO NOT REPEAT" list inside the prompt
+      // so each day's reading lands on a different angle even when
+      // today's signals overlap with recent days.
+      const recentParagraphs = history
+        .map((h) => h.paragraph)
+        .filter((p): p is string => typeof p === 'string' && p.length > 20)
+        .slice(0, 5);
       const res = await fetch(api('/api/daily?stream=1'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
+        body: JSON.stringify({
+          blueprint: startBlueprint,
+          localDate: localDateStr(),
+          recentParagraphs,
+        }),
         signal,
       });
       if (!res.ok) {
@@ -267,10 +279,18 @@ export default function TodayPage() {
       // Network/transport failure. Fall back to the cached non-streaming
       // path so a returning offline user still sees their last reading.
       try {
+        const recentParagraphs = history
+          .map((h) => h.paragraph)
+          .filter((p): p is string => typeof p === 'string' && p.length > 20)
+          .slice(0, 5);
         const res2 = await fetch(api('/api/daily'), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ blueprint: startBlueprint, localDate: localDateStr() }),
+          body: JSON.stringify({
+            blueprint: startBlueprint,
+            localDate: localDateStr(),
+            recentParagraphs,
+          }),
           signal,
         });
         if (res2.ok) {

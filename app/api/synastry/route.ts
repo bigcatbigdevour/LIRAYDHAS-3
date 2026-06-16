@@ -91,11 +91,11 @@ export async function POST(req: Request) {
       { header: 'CHART CONTACTS', body: contactsBody },
     ],
     rules: [
-      'Open with the CONNECTION between the two charts — pull out 1-2 of the specific tightest aspects above and name what they DO in the relationship. Describe the dynamic plainly; don\'t list aspect names.',
-      'Layer in the LIFE-STAGE context — name what each person is currently moving through (chapter, polarity stack texture) and how the connection lands DIFFERENTLY because of where each is.',
-      'If there are electric channels, mention what they give each other that neither has alone (no jargon — just describe what the channel does).',
-      'Include exactly one observation that invites the reader to question a story they\'ve been telling themselves about this relationship.',
-      'End with a quiet observation, not a prediction.',
+      'Open with the CONNECTION between the two charts — pull out the 1-2 specific tightest aspects above and name what they actually DO in the relationship in concrete behavioural terms. Not "harmonious", not "intense"; name a specific kind of moment that recurs between them. "She finishes his sentences before he\'s sure of them" is good; "deep mental connection" is not.',
+      'Layer in the LIFE-STAGE context — name what each person is currently moving through (chapter, polarity stack texture) and how the connection lands DIFFERENTLY because of where each is RIGHT NOW. The same aspect at 27 vs 47 reads differently; that asymmetry matters.',
+      'If there are electric channels, mention what they specifically give each other that neither has alone (no jargon — describe what the channel actually unlocks in the room together).',
+      'Include exactly one observation that invites the reader to question a story they\'ve been telling themselves about this relationship — a frame they\'ve been holding, a meaning they\'ve attached to a recurring tension, a thing they\'ve been crediting or blaming the other person for that this chart-pair suggests might be a little misread.',
+      'End with a quiet observation, not a prediction, not a verdict.',
     ],
     bans: [
       'Predict whether the relationship works.',

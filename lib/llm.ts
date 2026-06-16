@@ -52,6 +52,14 @@ export interface PromptParts {
    * "- ..." bullets under a DO NOT header.
    */
   bans?: string[];
+  /**
+   * Recent paragraphs this same reader has already seen on this
+   * endpoint. Rendered as a "RECENT PARAGRAPHS — DO NOT REPEAT"
+   * section so the model can avoid recycling phrasings, opening
+   * lines, metaphors, or template observations. Empty/undefined =
+   * unconstrained.
+   */
+  recentParagraphs?: string[];
 }
 
 /** Compose the single user-role prompt sent to Anthropic. */
@@ -69,6 +77,22 @@ export function composePrompt(parts: PromptParts): string {
   if (parts.bans && parts.bans.length > 0) {
     out.push('', 'DO NOT');
     parts.bans.forEach((b) => out.push(`- ${b.trim()}`));
+  }
+  // Anti-repetition: most-recent first, cap to 5 paragraphs so the
+  // context doesn't bloat or push out the task instructions. The cap
+  // is also what makes the cache key stable enough to hit reliably.
+  const recent = (parts.recentParagraphs ?? [])
+    .filter((p): p is string => typeof p === 'string' && p.trim().length > 20)
+    .slice(0, 5);
+  if (recent.length > 0) {
+    out.push(
+      '',
+      'RECENT PARAGRAPHS — DO NOT REPEAT THESE',
+      "Below are the reader's last few readings on this surface. Don't reuse any of the same opening moves, phrasings, metaphors, observations, or self-knowledge nudges. Find a different angle on this chart, even when today's signals overlap with the last few days.",
+    );
+    recent.forEach((p, i) => {
+      out.push('', `[${i + 1}]`, p.trim());
+    });
   }
   return out.join('\n');
 }
@@ -119,19 +143,61 @@ export function splitTakeaway(raw: string): { takeaway: string; paragraph: strin
 }
 
 /**
- * Single-shot LLM call. Returns the text content of the response, or
- * throws on Anthropic failure. The caller is responsible for catching
- * and returning a friendly response — use llmErrorResponse() for that.
+ * Detect transient Anthropic errors worth retrying. Overload (529),
+ * rate-limit (429), and 5xx are all transient. Auth (401), bad
+ * request (400), and context-window (413) are NOT — retrying them
+ * just wastes time + makes the user wait longer for the same error.
+ */
+function isTransientLLMError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : '';
+  if (/overloaded|529/.test(msg)) return true;
+  if (/rate.limit|429|too many requests/i.test(msg)) return true;
+  if (/5\d\d|server error|timeout|ETIMEDOUT|ECONNRESET/i.test(msg)) return true;
+  // Anthropic SDK exposes `.status` on its APIError class.
+  const status = (e as { status?: number })?.status;
+  if (typeof status === 'number' && (status === 429 || status === 529 || (status >= 500 && status < 600))) {
+    return true;
+  }
+  return false;
+}
+
+/** Sleep with jitter so multiple concurrent retries don't sync up. */
+function backoff(attempt: number): Promise<void> {
+  // 400ms, 1.2s, 3s — with ±30% jitter.
+  const base = 400 * Math.pow(3, attempt);
+  const jitter = base * 0.3 * (Math.random() * 2 - 1);
+  return new Promise((res) => setTimeout(res, base + jitter));
+}
+
+/**
+ * Single-shot LLM call with retry on transient failures (overload,
+ * rate limit, 5xx, network timeout). Returns the text content of the
+ * response, or throws after the final retry exhausts. The caller is
+ * responsible for catching and returning a friendly response — use
+ * llmErrorResponse() for that.
  */
 export async function callLLM(prompt: string, opts: CallOptions = {}): Promise<string> {
   const client = getClient();
-  const msg = await client.messages.create({
-    model: MODEL,
-    max_tokens: opts.maxTokens ?? 400,
-    temperature: opts.temperature ?? 0.8,
-    messages: [{ role: 'user', content: prompt }],
-  });
-  return textOf(msg);
+  const MAX_ATTEMPTS = 3;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const msg = await client.messages.create({
+        model: MODEL,
+        max_tokens: opts.maxTokens ?? 400,
+        temperature: opts.temperature ?? 0.8,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      return textOf(msg);
+    } catch (e) {
+      lastError = e;
+      if (attempt === MAX_ATTEMPTS - 1 || !isTransientLLMError(e)) {
+        throw e;
+      }
+      await backoff(attempt);
+    }
+  }
+  throw lastError;
 }
 
 export interface StreamResponseOptions extends CallOptions {
@@ -200,34 +266,56 @@ export function streamLLMResponse(req: Request, opts: StreamResponseOptions): Re
 
       try {
         const client = getClient();
-        const llmStream = client.messages.stream({
-          model: MODEL,
-          max_tokens: opts.maxTokens ?? 400,
-          temperature: opts.temperature ?? 0.8,
-          messages: [{ role: 'user', content: opts.prompt }],
-        });
+        const MAX_ATTEMPTS = 3;
+        let streamErr: unknown;
+        // Retry-on-transient is safe here only as long as we haven't
+        // emitted any paragraph text yet — once the client sees deltas,
+        // restarting would produce a duplicated paragraph. Most
+        // transient errors (529 overloaded, 429 rate limit) surface
+        // before the first token, so the retry catches them cleanly.
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          try {
+            const llmStream = client.messages.stream({
+              model: MODEL,
+              max_tokens: opts.maxTokens ?? 400,
+              temperature: opts.temperature ?? 0.8,
+              messages: [{ role: 'user', content: opts.prompt }],
+            });
+            streamErr = null;
+            for await (const event of llmStream) {
+              if (event.type !== 'content_block_delta') continue;
+              if (event.delta.type !== 'text_delta') continue;
+              const delta = event.delta.text;
+              full += delta;
 
-        for await (const event of llmStream) {
-          if (event.type !== 'content_block_delta') continue;
-          if (event.delta.type !== 'text_delta') continue;
-          const delta = event.delta.text;
-          full += delta;
-
-          if (!splitFound) {
-            // Buffer until we see the blank line, then split + flush.
-            const idx = full.search(/\n\s*\n/);
-            if (idx >= 0) {
-              const takeawayRaw = full.slice(0, idx);
-              const afterSplit = full.slice(idx).replace(/^\n\s*\n/, '');
-              const takeaway = cleanTakeaway(takeawayRaw);
-              if (takeaway) send({ type: 'takeaway', text: takeaway });
-              if (afterSplit) send({ type: 'paragraph', text: afterSplit });
-              splitFound = true;
+              if (!splitFound) {
+                // Buffer until we see the blank line, then split + flush.
+                const idx = full.search(/\n\s*\n/);
+                if (idx >= 0) {
+                  const takeawayRaw = full.slice(0, idx);
+                  const afterSplit = full.slice(idx).replace(/^\n\s*\n/, '');
+                  const takeaway = cleanTakeaway(takeawayRaw);
+                  if (takeaway) send({ type: 'takeaway', text: takeaway });
+                  if (afterSplit) send({ type: 'paragraph', text: afterSplit });
+                  splitFound = true;
+                }
+              } else {
+                send({ type: 'paragraph', text: delta });
+              }
             }
-          } else {
-            send({ type: 'paragraph', text: delta });
+            break; // success
+          } catch (err) {
+            streamErr = err;
+            const alreadyStreamed = full.length > 0;
+            const isLast = attempt === MAX_ATTEMPTS - 1;
+            if (alreadyStreamed || isLast || !isTransientLLMError(err)) throw err;
+            // Reset accumulator and retry from the top.
+            full = '';
+            splitFound = !wantsTakeaway;
+            await backoff(attempt);
           }
         }
+        if (streamErr) throw streamErr;
 
         // If the model never produced a blank-line split, the entire
         // output is the paragraph (and no takeaway is emitted) — matches

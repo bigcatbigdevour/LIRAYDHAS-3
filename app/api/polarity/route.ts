@@ -93,10 +93,10 @@ export async function POST(req: Request) {
     task: "Interpret the reader's current polarity stack. Output one paragraph of 80 to 120 words. Output only the paragraph — no preamble, no header, no quotation marks.",
     sections: [{ header: 'POLARITY STACK', body: stackBody }],
     rules: [
-      'Name what the overall stack tends to feel like as a season of life — not as a forecast, as a texture.',
-      'If a life-station is named above, lean on it. Otherwise lean on the most recent flip.',
-      'Include exactly one observation that quietly invites the reader to question something they take for granted about their own psyche — a belief about themselves, a pattern they\'ve stopped noticing, a story they\'ve been telling themselves about this season.',
-      'End on a quiet observation.',
+      'Name what the SPECIFIC stack of rising and descending cycles tends to feel like — not as a forecast, as a texture. Name a behaviour or inner experience this combination produces ("the projects you started six months ago start asking for closure even though you\'re not done loving them"), not a vague mood.',
+      'If a life-station is named above, lean on it — name what it\'s asking of them, not just its label. Otherwise lean on the most recent flip and what it shifts in how they show up.',
+      'Include exactly one observation that quietly invites the reader to question something they take for granted about THIS season — a belief about themselves they\'ve been holding, a pattern they\'ve stopped noticing, a story they\'ve been telling themselves about why this stretch feels how it feels.',
+      'End on a quiet observation, not a forecast.',
     ],
   });
 

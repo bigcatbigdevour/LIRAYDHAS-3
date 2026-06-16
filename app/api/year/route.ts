@@ -73,9 +73,9 @@ export async function POST(req: Request) {
       { header: 'THE NEXT 12 MONTHS', body: nextBody || '- (a quiet year — no major returns, stations, or imminent flips)' },
     ],
     rules: [
-      'Anchor in one or two of the SPECIFIC events / returns / flips above. Translate plainly into what the year is about to ask, not what it predicts.',
+      'Anchor in one or two of the SPECIFIC events / returns / flips above. Translate plainly into what the year is about to ASK of them — not what it predicts. Name the actual texture of the work, not the category. "A long quiet stretch where the thing that mattered last year stops being interesting" is good; "a year of growth" is not.',
       'Refer to a cycle by its plain name ("Saturn return", "Chiron return", "the nodal flip") and translate what it MEANS, never as specialized jargon.',
-      'Include exactly one observation that quietly invites the reader to question a story they\'ve been telling themselves about the coming year.',
+      'Include exactly one observation that quietly invites the reader to question a story they\'ve been telling themselves about who they\'ll be by the end of this year — something this stack of signals suggests might be slightly off.',
       'End with a quiet observation — not a forecast, not a command, not a question.',
     ],
   });

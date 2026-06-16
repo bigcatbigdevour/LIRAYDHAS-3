@@ -87,8 +87,8 @@ export async function POST(req: Request) {
       { header: 'WHAT THEY ASKED', body: `"${question.replace(/"/g, "'")}"` },
     ],
     rules: [
-      'Reflect what they wrote back through the lens of one or two of the day\'s specific signals above. Do not pretend to know things you can\'t (their relationships, finances, medical situation). Don\'t decide for them.',
-      'Include exactly one observation that quietly invites them to question a story they\'re telling themselves about the thing they asked about.',
+      'Reflect what they wrote back through the lens of one or two of the day\'s specific signals above. Be CONCRETE about the dynamic — name the specific texture of what\'s likely going on in the situation they described, not a category. Do not pretend to know things you can\'t (their relationships, finances, medical situation). Don\'t decide for them.',
+      'Include exactly one observation that quietly invites them to question a story they\'re telling themselves about the thing they asked about — a belief about why it\'s happening, a frame they\'re defaulting into, an assumption about what\'s actually at stake. The good version is specific to what they wrote; the bad version is generic advice that would fit any question.',
       'End with a quiet observation, not a command, not a question, not a prediction.',
       'Do not mention astrology, gates, channels, transits, or "Human Design" by name in the paragraph. Just describe what\'s lit.',
     ],
