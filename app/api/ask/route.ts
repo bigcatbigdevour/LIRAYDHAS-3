@@ -67,6 +67,9 @@ export async function POST(req: Request) {
   const personBody = [
     `- Sun in ${bp.natal.sun.sign} (gate ${bp.natal.sun.gate}.${bp.natal.sun.line})`,
     `- Moon in ${bp.natal.moon.sign}`,
+    `- Mercury in ${bp.natal.mercury.sign} (how they think and talk)`,
+    `- Venus in ${bp.natal.venus.sign} (how they want to be met)`,
+    `- Mars in ${bp.natal.mars.sign} (how they push)`,
     `- Type: ${bp.humanDesign.type} · Profile: ${bp.humanDesign.profile}`,
     `- Inner-decision style (translate into how they should approach decisions today — do NOT use the labels "authority", "Sacral", "Splenic", "Emotional", "Ego", "Self-projected", "Mental", or "Lunar" verbatim): ${AUTHORITY_DESCRIPTIONS[bp.humanDesign.authority]}`,
   ].join('\n');

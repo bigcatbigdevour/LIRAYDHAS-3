@@ -64,13 +64,13 @@ export async function POST(req: Request) {
 
   const peopleBody = [
     `- ${aName.toUpperCase()} (use second person — "you"):`,
-    `  · Sun ${self.natal.sun.sign}, Moon ${self.natal.moon.sign}, Mars ${self.natal.mars.sign}`,
+    `  · Sun ${self.natal.sun.sign}, Moon ${self.natal.moon.sign}, Mercury ${self.natal.mercury.sign}, Venus ${self.natal.venus.sign}, Mars ${self.natal.mars.sign}, Saturn ${self.natal.saturn.sign}`,
     `  · Type ${self.humanDesign.type} · Profile ${self.humanDesign.profile}`,
     `  · Currently age ${stage.ageA.toFixed(1)}`,
     stage.chapterA ? `  · In '${stage.chapterA.label}' (ages ${stage.chapterA.startAge}-${stage.chapterA.endAge}). ${stage.chapterA.description}` : '',
     `  · Polarity stack: ${polarityA} (${stage.risingA} rising, ${7 - stage.risingA} descending)`,
     `- ${bName.toUpperCase()}:`,
-    `  · Sun ${other.natal.sun.sign}, Moon ${other.natal.moon.sign}, Mars ${other.natal.mars.sign}`,
+    `  · Sun ${other.natal.sun.sign}, Moon ${other.natal.moon.sign}, Mercury ${other.natal.mercury.sign}, Venus ${other.natal.venus.sign}, Mars ${other.natal.mars.sign}, Saturn ${other.natal.saturn.sign}`,
     `  · Type ${other.humanDesign.type} · Profile ${other.humanDesign.profile}`,
     `  · Currently age ${stage.ageB.toFixed(1)} (${stage.ageGapYears} year${stage.ageGapYears === 1 ? '' : 's'} ${stage.ageA > stage.ageB ? 'younger than you' : 'older than you'})`,
     stage.chapterB ? `  · In '${stage.chapterB.label}' (ages ${stage.chapterB.startAge}-${stage.chapterB.endAge}). ${stage.chapterB.description}` : '',
