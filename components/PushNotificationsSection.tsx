@@ -7,6 +7,7 @@ import {
   unsubscribePush,
   readClientPrefs,
   writeClientPrefs,
+  DEFAULT_CLIENT_PREFS,
   type PushState,
   type ClientPrefs,
 } from '@/lib/push';
@@ -41,7 +42,11 @@ export default function PushNotificationsSection() {
   );
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [prefs, setPrefs] = useState<ClientPrefs>(() => readClientPrefs());
+  // Initialise to DEFAULT_CLIENT_PREFS so SSR + client first paint
+  // match. The real (localStorage-backed) prefs load in the effect
+  // below; mismatch corrects in the next commit without a hydration
+  // warning.
+  const [prefs, setPrefs] = useState<ClientPrefs>(DEFAULT_CLIENT_PREFS);
 
   const isSubscribed =
     state.kind === 'subscribed' || nativeState.kind === 'registered';
@@ -66,6 +71,9 @@ export default function PushNotificationsSection() {
   }
 
   useEffect(() => {
+    // Pull the real prefs from localStorage on mount — see useState
+    // init above for the rationale (SSR/CSR match).
+    setPrefs(readClientPrefs());
     void refresh();
   }, []);
 
