@@ -46,6 +46,11 @@ export function upcomingEventsFeed(
 
   const out: UpcomingEvent[] = [];
   const birth = new Date(birthIso);
+  // Guard: a malformed birthIso produces NaN .getTime(), which makes
+  // every comparison in the FLIPS loop false (NaN < x and NaN > x are
+  // both false), so `break` never fires and we infinite-loop. Bail
+  // early instead of locking the JS thread.
+  if (Number.isNaN(birth.getTime())) return [];
   const horizon = now.getTime() + horizonYears * 365.2425 * 86400 * 1000;
   const currentAge = ageInYears(birthIso, now);
 
