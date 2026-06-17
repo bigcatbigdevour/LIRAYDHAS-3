@@ -713,9 +713,10 @@ export default function TodayPage() {
               </p>
               <ul className="space-y-1">
                 {todayHd.lit.map((l, i) => (
-                  <li key={i} className="flex justify-between text-[13px] border-b border-hairline py-1">
-                    <span className="text-ink-dim">
-                      transiting <span className="text-ink">{l.planet}</span> in
+                  <li key={i} className="flex justify-between items-center text-[13px] border-b border-hairline py-1.5">
+                    <span className="flex items-center gap-1.5 text-ink-dim">
+                      <PlanetGlyph name={l.planet} size={12} className="text-ink shrink-0" />
+                      <span className="text-ink">{l.planet}</span> in
                     </span>
                     <span className="tabular-nums text-ink">
                       gate {l.gate}.{l.line}
@@ -772,13 +773,15 @@ export default function TodayPage() {
           <p className="small-label caps mb-3">the week ahead</p>
           <ul className="space-y-1">
             {forecast.map((f, i) => (
-              <li key={i} className="flex justify-between items-baseline text-[13px] border-b border-hairline py-1.5">
-                <span className="text-ink-dim">
-                  <span className="text-ink">{f.aspect.transitPlanet}</span>{' '}
-                  {PRETTY_ASPECT[f.aspect.aspect]}{' '}
-                  natal <span className="text-ink">{f.aspect.natalPlanet}</span>
+              <li key={i} className="flex justify-between items-center text-[13px] border-b border-hairline py-1.5 gap-2">
+                <span className="flex items-center gap-1.5 min-w-0 text-ink-dim">
+                  <PlanetGlyph name={f.aspect.transitPlanet} size={12} className="text-ink shrink-0" />
+                  <span className="text-ink">{f.aspect.transitPlanet}</span>
+                  <span className="text-ink-faint">{PRETTY_ASPECT[f.aspect.aspect]}</span>
+                  <PlanetGlyph name={f.aspect.natalPlanet} size={12} className="text-ink-dim shrink-0" />
+                  <span className="text-ink">{f.aspect.natalPlanet}</span>
                 </span>
-                <span className="tabular-nums text-ink-faint text-[11px]">
+                <span className="tabular-nums text-ink-faint text-[11px] shrink-0">
                   {f.daysAhead === 0 ? 'today' : `in ${f.daysAhead}d`}
                 </span>
               </li>
