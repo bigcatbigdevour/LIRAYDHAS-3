@@ -386,12 +386,18 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const halfStroke = (isHalfActive: boolean) => {
           if (isTapped) return '#d44343';
           if (isHalfActive) return '#999';
-          return '#1c1c1c';
+          // Bumped from #1c1c1c — the previous value was barely
+          // distinguishable from the page background (#0a0a0a), so
+          // inactive channels essentially vanished and the body
+          // chart's centres looked disconnected from each other
+          // (especially the Head-Ajna gap where there's nothing else
+          // in the visual space).
+          return '#3a3a3a';
         };
         const halfWidth = (isHalfActive: boolean) => {
           if (isTapped) return 2.4;
           if (isHalfActive) return 1.4;
-          return 0.7;
+          return 0.9;
         };
         return (
           <g
