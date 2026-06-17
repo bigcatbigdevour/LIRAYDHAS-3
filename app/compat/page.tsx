@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore, useStoreHydrated } from '@/lib/store';
 import PlaceAutocomplete from '@/components/PlaceAutocomplete';
+import PlanetGlyph from '@/components/PlanetGlyph';
 import {
   addPartner,
   listPartners,
@@ -360,11 +361,15 @@ export default function CompatPage() {
                     key={i}
                     className="border-b border-hairline pb-2"
                   >
-                    <div className="flex justify-between items-baseline text-[12.5px]">
-                      <span className="text-ink-dim">
-                        your {a.aBody} {a.kind} their {a.bBody}
+                    <div className="flex justify-between items-center text-[12.5px] gap-2">
+                      <span className="flex items-center gap-1.5 text-ink-dim min-w-0">
+                        <PlanetGlyph name={a.aBody} size={12} className="text-ink shrink-0" />
+                        <span className="text-ink">your {a.aBody}</span>
+                        <span className="text-ink-faint">{a.kind}</span>
+                        <PlanetGlyph name={a.bBody} size={12} className="text-ink-dim shrink-0" />
+                        <span className="text-ink">their {a.bBody}</span>
                       </span>
-                      <span className="text-ink-faint tabular-nums">
+                      <span className="text-ink-faint tabular-nums shrink-0">
                         {a.orb.toFixed(1)}°
                       </span>
                     </div>
