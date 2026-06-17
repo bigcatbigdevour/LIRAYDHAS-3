@@ -132,8 +132,16 @@ export default function ChartPage() {
         <h1 className="h-display serif mt-3">
           {hd.type}.
         </h1>
-        <p className="text-ink-dim text-[13px] mt-2 italic">
-          Born {new Date(blueprint.birth.iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: blueprint.birth.timeUnknown ? undefined : 'short' })} · {blueprint.birth.place}
+        <p
+          className="small-label caps text-ink-faint mt-2 text-[10.5px]"
+          style={{ letterSpacing: '0.18em' }}
+        >
+          {hd.profile} · {profileName(hd.profile)}
+        </p>
+        <p className="text-ink-dim text-[13px] mt-3 italic leading-relaxed">
+          Born {new Date(blueprint.birth.iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: blueprint.birth.timeUnknown ? undefined : 'short' })}
+          <br className="sm:hidden" />
+          {' · '}{blueprint.birth.place}
           {' '}
           <Link href="/onboarding?edit=1" className="not-italic small-label caps text-ink-faint hover:text-accent ml-1" style={{ letterSpacing: '0.16em' }}>
             edit
