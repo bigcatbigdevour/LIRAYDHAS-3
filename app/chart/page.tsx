@@ -235,9 +235,12 @@ export default function ChartPage() {
         <ActivationColumns blueprint={blueprint} />
       </section>
 
-      {/* Deterministic glance summary — always present, copy-friendly */}
+      {/* Deterministic glance summary — always present, copy-friendly.
+          Display uses serif body styling for legibility; the share
+          handler still emits plain text via chartGlanceText so what
+          the user copies is unstyled and pasteable anywhere. */}
       <section className="mt-2 mb-8">
-        <div className="flex items-baseline justify-between mb-1">
+        <div className="flex items-baseline justify-between mb-2">
           <p className="small-label caps">at a glance</p>
           <button
             type="button"
@@ -258,9 +261,11 @@ export default function ChartPage() {
             share
           </button>
         </div>
-        <pre className="text-[12.5px] text-ink-dim font-mono whitespace-pre-wrap leading-relaxed">
-{chartGlanceText(blueprint)}
-        </pre>
+        <ul className="space-y-1.5 text-[13px] text-ink-dim serif leading-relaxed">
+          {chartGlanceText(blueprint).split('\n').map((line, i) => (
+            <li key={i} className="border-l-2 border-hairline pl-3">{line}</li>
+          ))}
+        </ul>
         <div id="chart-glance-toast" className="small-label caps text-accent text-right" style={{ opacity: 0, transition: 'opacity 300ms ease', height: '1em' }}>copied</div>
       </section>
 
