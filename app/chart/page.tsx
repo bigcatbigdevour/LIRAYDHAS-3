@@ -327,7 +327,7 @@ export default function ChartPage() {
         <Row k="Channels" v={hd.activeChannels.length === 0 ? 'none' : hd.activeChannels.map(([a, b]) => `${a}-${b}`).join(' · ')} small />
       </dl>
 
-      <section className="mt-12">
+      <section className="mt-12 border-t border-hairline pt-6">
         <p className="small-label caps mb-3">natal sky</p>
 
         {/* Headline trio — Sun · Moon · Rising. The three pieces every
