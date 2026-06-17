@@ -37,6 +37,7 @@ import { localDateStr, useToday } from '@/lib/localDate';
 import { api } from '@/lib/apiBase';
 import { readSseStream, isEventStream } from '@/lib/streamRead';
 import { useAbortableAction, isAbortError } from '@/lib/useAbortableAction';
+import PlanetGlyph from '@/components/PlanetGlyph';
 import { getLastVisit, markVisited, changesSince, prettyGap, type ChangedBit } from '@/lib/lastVisit';
 import { buildWeeklyDigest, shouldShowWeeklyDigest, markWeeklyShown, type WeeklyDigest } from '@/lib/weeklyDigest';
 import type { DailyReport } from '@/lib/types';
@@ -672,15 +673,17 @@ export default function TodayPage() {
                   <li key={i} className="border-b border-hairline">
                     <button
                       onClick={() => setExpandedAspect(open ? null : i)}
-                      className="w-full flex justify-between items-baseline text-[13px] text-ink-dim py-2 text-left"
+                      className="w-full flex justify-between items-center text-[13px] text-ink-dim py-2.5 text-left gap-2"
                     >
-                      <span>
-                        <span className="text-ink">{t.transitPlanet}</span>{' '}
-                        {PRETTY_ASPECT[t.aspect]}{' '}
-                        natal <span className="text-ink">{t.natalPlanet}</span>
-                        {isExact && <span className="text-accent ml-1.5 caps small-label">exact</span>}
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <PlanetGlyph name={t.transitPlanet} size={13} className="text-ink shrink-0" />
+                        <span className="text-ink">{t.transitPlanet}</span>
+                        <span className="text-ink-faint">{PRETTY_ASPECT[t.aspect]}</span>
+                        <PlanetGlyph name={t.natalPlanet} size={13} className="text-ink-dim shrink-0" />
+                        <span className="text-ink">{t.natalPlanet}</span>
+                        {isExact && <span className="text-accent ml-1 caps small-label text-[10px]" style={{ letterSpacing: '0.16em' }}>exact</span>}
                       </span>
-                      <span className={`tabular-nums ${isExact ? 'text-accent' : ''}`}>{t.orb.toFixed(1)}°</span>
+                      <span className={`tabular-nums shrink-0 ${isExact ? 'text-accent' : ''}`}>{t.orb.toFixed(1)}°</span>
                     </button>
                     {open && (
                       <p className="text-[12.5px] text-ink-dim pb-2 serif italic">
