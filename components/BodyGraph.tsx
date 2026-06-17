@@ -39,14 +39,23 @@ const CENTERS: Record<CenterName, CenterDef> = {
 
 const GATE_ANCHORS: Record<number, { x: number; y: number }> = {
   // === HEAD ===
-  64: { x: 142, y: 88 },
-  61: { x: 160, y: 90 },
-  63: { x: 178, y: 88 },
+  // Pulled up to sit at the bottom edge of the head triangle
+  // (cy=55, size=38, bottom edge y ≈ 75.9). Gate dots straddle the
+  // edge — half inside the triangle, half outside — so the channel
+  // line down to Ajna visually originates from the head itself, not
+  // from a floating dot in the gap.
+  64: { x: 142, y: 76 },
+  61: { x: 160, y: 76 },
+  63: { x: 178, y: 76 },
 
   // === AJNA ===
-  47: { x: 142, y: 102 },
-  24: { x: 160, y: 100 },
-  4:  { x: 178, y: 102 },
+  // Top gates pulled down to sit at the top edge of the Ajna
+  // triangle (cy=130, size=38, top edge y ≈ 109.1). Symmetric with
+  // the head fix above; the channel from head bottom to Ajna top
+  // now spans the full gap between centres without dot-floating.
+  47: { x: 142, y: 109 },
+  24: { x: 160, y: 109 },
+  4:  { x: 178, y: 109 },
   17: { x: 145, y: 156 },
   43: { x: 160, y: 162 },
   11: { x: 175, y: 156 },
