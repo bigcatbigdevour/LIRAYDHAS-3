@@ -58,20 +58,30 @@ export default function NatalWheel({ blueprint }: { blueprint: Blueprint }) {
   const [showTransits, setShowTransits] = useState(false);
   const [selected, setSelected] = useState<PlanetName | null>(null);
   const n = blueprint.natal;
-  const bodies: Body[] = [
-    { name: 'Sun', lon: n.sun.longitude },
-    { name: 'Moon', lon: n.moon.longitude },
-    { name: 'Mercury', lon: n.mercury.longitude },
-    { name: 'Venus', lon: n.venus.longitude },
-    { name: 'Mars', lon: n.mars.longitude },
-    { name: 'Jupiter', lon: n.jupiter.longitude },
-    { name: 'Saturn', lon: n.saturn.longitude },
-    { name: 'Uranus', lon: n.uranus.longitude },
-    { name: 'Neptune', lon: n.neptune.longitude },
-    { name: 'Pluto', lon: n.pluto.longitude },
-    { name: 'NorthNode', lon: n.northNode.longitude },
-  ];
-  if (n.chiron) bodies.push({ name: 'Chiron', lon: n.chiron.longitude });
+  // Defensive: a stale stored blueprint from a pre-enrichment version
+  // of the app could be missing some planet objects. Filter undefined
+  // longitudes out so the wheel renders the planets it has rather
+  // than crashing on a missing dereference.
+  const bodies: Body[] = (
+    [
+      { name: 'Sun' as const,       pos: n.sun },
+      { name: 'Moon' as const,      pos: n.moon },
+      { name: 'Mercury' as const,   pos: n.mercury },
+      { name: 'Venus' as const,     pos: n.venus },
+      { name: 'Mars' as const,      pos: n.mars },
+      { name: 'Jupiter' as const,   pos: n.jupiter },
+      { name: 'Saturn' as const,    pos: n.saturn },
+      { name: 'Uranus' as const,    pos: n.uranus },
+      { name: 'Neptune' as const,   pos: n.neptune },
+      { name: 'Pluto' as const,     pos: n.pluto },
+      { name: 'NorthNode' as const, pos: n.northNode },
+    ]
+      .filter((e) => e.pos && typeof e.pos.longitude === 'number')
+      .map((e) => ({ name: e.name, lon: e.pos.longitude }))
+  );
+  if (n.chiron && typeof n.chiron.longitude === 'number') {
+    bodies.push({ name: 'Chiron', lon: n.chiron.longitude });
+  }
 
   const transits = useMemo(() => {
     const t = todaysTransits(blueprint.natal);

@@ -56,20 +56,24 @@ function angularDelta(a: number, b: number): number {
 
 function bodyLon(bp: Blueprint, name: PlanetName): number | null {
   const n = bp.natal;
-  const map: Partial<Record<PlanetName, number>> = {
-    Sun: n.sun.longitude,
-    Moon: n.moon.longitude,
-    Mercury: n.mercury.longitude,
-    Venus: n.venus.longitude,
-    Mars: n.mars.longitude,
-    Jupiter: n.jupiter.longitude,
-    Saturn: n.saturn.longitude,
-    Uranus: n.uranus.longitude,
-    Neptune: n.neptune.longitude,
-    Pluto: n.pluto.longitude,
+  // Defensive: a stale stored blueprint from a pre-enrichment version
+  // of the app could be missing some planet objects. Guard each
+  // access so this never throws on render; missing planets just drop
+  // out of the aspect computation.
+  const map: Partial<Record<PlanetName, number | undefined>> = {
+    Sun: n.sun?.longitude,
+    Moon: n.moon?.longitude,
+    Mercury: n.mercury?.longitude,
+    Venus: n.venus?.longitude,
+    Mars: n.mars?.longitude,
+    Jupiter: n.jupiter?.longitude,
+    Saturn: n.saturn?.longitude,
+    Uranus: n.uranus?.longitude,
+    Neptune: n.neptune?.longitude,
+    Pluto: n.pluto?.longitude,
   };
   const v = map[name];
-  return typeof v === 'number' ? v : null;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
 /**
