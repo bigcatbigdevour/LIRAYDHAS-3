@@ -49,6 +49,28 @@ export async function POST(req: Request) {
   const bName = (body.otherName || 'they').toLowerCase();
   const relation = body.relation || '';
 
+  // Identical blueprints (user accidentally saved themselves as a
+  // partner, or two test charts collided). The math returns empty
+  // aspects + identical life stages, and the model would invent
+  // dynamics between two byte-identical charts. Short-circuit with
+  // a friendly explanation pointing them at /chart.
+  if (
+    self.birth.iso === other.birth.iso &&
+    Math.abs(self.birth.lat - other.birth.lat) < 0.001 &&
+    Math.abs(self.birth.lon - other.birth.lon) < 0.001
+  ) {
+    return withCors(
+      NextResponse.json(
+        {
+          error: 'identical charts',
+          message: "That's the same chart on both sides. Use /chart to explore your own dynamics, or pick a different partner.",
+        },
+        { status: 400 },
+      ),
+      req,
+    );
+  }
+
   const aspects = computeSynastryAspects(self, other);
   const electric = computeElectricChannels(self, other).slice(0, 6);
   const stage = computeLifeStageDiff(self, other);

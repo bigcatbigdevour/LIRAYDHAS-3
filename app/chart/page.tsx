@@ -323,10 +323,24 @@ export default function ChartPage() {
       </dl>
 
       <section className="mt-12">
-        <p className="small-label caps mb-2">natal sky</p>
+        <p className="small-label caps mb-3">natal sky</p>
+
+        {/* Headline trio — Sun · Moon · Rising. The three pieces every
+            astrology-literate reader looks for first, surfaced as large
+            glyphs so the page has an instant focal point above the
+            denser wheel + placement grid below. */}
+        <div className="flex items-stretch justify-between gap-2 border border-hairline divide-x divide-hairline mb-6">
+          <SignHeadline label="Sun"  sign={n.sun.sign} />
+          <SignHeadline label="Moon" sign={n.moon.sign} />
+          <SignHeadline
+            label="Rising"
+            sign={n.asc !== null ? signFromLon(n.asc) : null}
+          />
+        </div>
+
         <NatalWheel blueprint={blueprint} />
 
-        <div className="mt-4 space-y-3 text-[13.5px] text-ink-dim">
+        <div className="mt-6 space-y-3 text-[13.5px] text-ink-dim">
           <SignLine label="Sun" sign={n.sun.sign} meaning={SUN_BY_SIGN[n.sun.sign as ZodiacSign]} />
           <SignLine label="Moon" sign={n.moon.sign} meaning={MOON_BY_SIGN[n.moon.sign as ZodiacSign]} />
           {n.asc !== null && (
@@ -489,6 +503,44 @@ function ExpandRow({
   );
 }
 
+/**
+ * Three-up headline at the top of the natal sky section. Big glyph as
+ * the visual anchor, label above, sign name below. Each tile is equal
+ * width via flex-1, divided by hairlines that subtly group them as
+ * one composition without boxing them in.
+ *
+ * When rising sign isn't known (time-unknown birth), the third tile
+ * renders a faint em-dash where the glyph would be — keeps the visual
+ * rhythm of three but doesn't fake an answer.
+ */
+function SignHeadline({ label, sign }: { label: string; sign: string | null }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center py-4 px-2">
+      <p
+        className="small-label caps text-ink-faint text-[9px] mb-2"
+        style={{ letterSpacing: '0.22em' }}
+      >
+        {label}
+      </p>
+      {sign ? (
+        <>
+          <SignGlyph sign={sign} size={28} className="text-ink mb-1.5" strokeWidth={1.3} />
+          <p className="serif text-[12px] text-ink-dim lowercase tracking-wide">
+            {sign.toLowerCase()}
+          </p>
+        </>
+      ) : (
+        <>
+          <span className="text-ink-faint text-[28px] leading-none" aria-hidden>—</span>
+          <p className="serif text-[10.5px] text-ink-faint italic mt-1.5 text-center leading-tight">
+            time<br/>unknown
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SignLine({ label, sign, meaning }: { label: string; sign: string; meaning: string }) {
   return (
     <div>
@@ -512,13 +564,13 @@ function Placement({
   house?: number | null;
 }) {
   return (
-    <li className="flex justify-between border-b border-hairline py-1">
-      <span className="text-ink">{label}</span>
-      <span className="tabular-nums flex items-center gap-1">
-        <SignGlyph sign={pos.sign} size={12} className="text-ink-dim" />
-        <span>{pos.sign} {pos.degree.toFixed(1)}°</span>
-        {house ? <span>· H{house}</span> : null}
-        <span>· {pos.gate}.{pos.line}</span>
+    <li className="flex justify-between items-center border-b border-hairline py-2 gap-2">
+      <span className="text-ink text-[13px]">{label}</span>
+      <span className="tabular-nums flex items-center gap-1.5 text-[12px]">
+        <SignGlyph sign={pos.sign} size={13} className="text-ink-dim" />
+        <span className="text-ink-dim">{pos.degree.toFixed(1)}°</span>
+        {house ? <span className="text-ink-faint">· H{house}</span> : null}
+        <span className="text-ink-faint">· {pos.gate}.{pos.line}</span>
       </span>
     </li>
   );

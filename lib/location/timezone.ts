@@ -46,22 +46,33 @@ export function localCivilToUtc(localIso: string, tz: string): Date {
 
 /** UTC offset of `tz` at instant `date`, in minutes east of UTC. */
 export function tzOffsetMinutes(date: Date, tz: string): number {
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  });
-  const parts = fmt.formatToParts(date);
+  // Intl.DateTimeFormat throws RangeError on a malformed timezone
+  // identifier. tzFromLatLon falls back to 'UTC' for unknown inputs,
+  // but a future tz-lookup change could leak a bad string through —
+  // fall back to UTC (offset 0) rather than crashing.
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).formatToParts(date);
+  } catch {
+    return 0;
+  }
   const lookup: Record<string, string> = {};
   for (const p of parts) lookup[p.type] = p.value;
-  const asUtc = Date.UTC(
-    Number(lookup.year),
-    Number(lookup.month) - 1,
-    Number(lookup.day),
-    Number(lookup.hour === '24' ? 0 : lookup.hour),
-    Number(lookup.minute),
-    Number(lookup.second),
-  );
+  // formatToParts should always return year/month/day/hour/minute/second,
+  // but guard the Number() coercions defensively — a missing field would
+  // become NaN and silently corrupt every downstream age / chart calc.
+  const y = Number(lookup.year);
+  const mo = Number(lookup.month);
+  const d = Number(lookup.day);
+  const h = Number(lookup.hour === '24' ? 0 : lookup.hour);
+  const mi = Number(lookup.minute);
+  const se = Number(lookup.second);
+  if ([y, mo, d, h, mi, se].some((n) => !Number.isFinite(n))) return 0;
+  const asUtc = Date.UTC(y, mo - 1, d, h, mi, se);
   return Math.round((asUtc - date.getTime()) / 60_000);
 }
