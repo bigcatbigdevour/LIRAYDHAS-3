@@ -23,8 +23,23 @@ export default function ArcsPage() {
   // them on unmount — otherwise a 1.2s animation kicked off right
   // before navigation keeps firing setState on a dead component.
   const activeIntervals = useRef<Set<number>>(new Set());
+  // rAF-throttle the scrubber's input event. iOS WebKit dispatches
+  // 100-200 input events per second on a fast finger drag; without
+  // throttling, React's state queue + the entire arcs page tree
+  // re-render that many times per second. Even with React 18's
+  // automatic batching, the synthetic-event firing itself + the
+  // ArcDiagram prop diff was enough to crash WebKit on sustained
+  // rapid back-and-forth.
+  //
+  // Pattern: stash the latest pending value in a ref; schedule one
+  // rAF callback that commits the latest value. Subsequent input
+  // events within the same frame just update the ref; only one
+  // setFocusAge call lands per paint.
+  const scrubRafRef = useRef<number | null>(null);
+  const pendingScrubValue = useRef<number | null>(null);
   useEffect(() => {
     return () => {
+      if (scrubRafRef.current !== null) cancelAnimationFrame(scrubRafRef.current);
       activeIntervals.current.forEach((id) => window.clearInterval(id));
       activeIntervals.current.clear();
     };
@@ -316,9 +331,18 @@ export default function ArcsPage() {
                 value={focusAge ?? age}
                 onChange={(e) => {
                   if (playing) setPlaying(false);
-                  const v = parseFloat(e.currentTarget.value);
-                  if (Math.abs(v - age) < 0.15) setFocusAge(null);
-                  else setFocusAge(v);
+                  // Stash the latest value; commit at most once per
+                  // animation frame. See the scrubRafRef declaration
+                  // above for the iOS rationale.
+                  pendingScrubValue.current = parseFloat(e.currentTarget.value);
+                  if (scrubRafRef.current !== null) return;
+                  scrubRafRef.current = requestAnimationFrame(() => {
+                    scrubRafRef.current = null;
+                    const v = pendingScrubValue.current;
+                    if (v === null) return;
+                    if (Math.abs(v - age) < 0.15) _setFocusAge(null);
+                    else _setFocusAge(v);
+                  });
                 }}
                 className="w-full age-scrubber"
                 aria-label="Scrub through your life to explore any age"
