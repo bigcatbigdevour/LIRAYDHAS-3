@@ -2,6 +2,7 @@
 
 import type { CyclePosition } from '@/lib/cycles';
 import { CYCLES, ageInYears, positionInCycles } from '@/lib/cycles';
+import CycleGlyph from './CycleGlyph';
 
 interface Props {
   birthIso: string;
@@ -83,7 +84,7 @@ export default function PolarityForecast({ birthIso, months = 12, anchorPrefix }
           return (
             <div key={c.key} className="contents">
               <div className="flex items-center gap-1.5 text-[10.5px] text-ink-dim py-0.5">
-                <span className="serif text-[12px] text-ink-dim" aria-hidden>{c.glyph}</span>
+                <CycleGlyph cycleKey={c.key} size={12} className="text-ink-dim" />
                 <span className="inline-block w-2 h-px" style={{ background: c.color }} />
                 <span>{c.label}</span>
               </div>

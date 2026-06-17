@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
 import PolarityForecast from '@/components/PolarityForecast';
+import CycleGlyph from '@/components/CycleGlyph';
 import { ageInYears } from '@/lib/cycles';
 import { upcomingEventsFeed } from '@/lib/upcomingEvents';
 import { currentChapter } from '@/lib/lifeChapters';
@@ -241,7 +242,7 @@ export default function YearPage() {
                 style={{ borderLeftColor: e.color }}
               >
                 <p className="serif text-[15px] text-ink">
-                  {e.cycle && <span className="text-ink-dim serif text-[13px] mr-1.5" aria-hidden>{e.cycle.glyph}</span>}
+                  {e.cycle && <CycleGlyph cycleKey={e.cycle.key} size={13} className="text-ink-dim inline-block mr-1.5 align-baseline" />}
                   {e.kind === 'station' && <span className="text-accent text-[10px] mr-1.5">◆</span>}
                   {e.title}
                 </p>
@@ -291,7 +292,7 @@ export default function YearPage() {
                         style={{ borderLeftColor: e.color }}
                       >
                         <span className="text-ink-dim">
-                          {e.cycle && <span className="serif text-[12px] text-ink-dim mr-1.5" aria-hidden>{e.cycle.glyph}</span>}
+                          {e.cycle && <CycleGlyph cycleKey={e.cycle.key} size={12} className="text-ink-dim inline-block mr-1.5 align-baseline" />}
                           {e.kind === 'station' && <span className="text-accent text-[10px] mr-1">◆</span>}
                           <span className="text-ink">{e.title}</span>
                           <span className="text-ink-faint text-[11px] ml-1.5">{e.detail}</span>

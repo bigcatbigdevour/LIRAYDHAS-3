@@ -6,6 +6,7 @@ import { CYCLES, ageInYears } from '@/lib/cycles';
 import { LIFE_STATIONS } from '@/lib/lifeStations';
 import { LIFE_CHAPTERS } from '@/lib/lifeChapters';
 import { CYCLE_PLAIN_LABELS } from '@/lib/cyclePlainLabels';
+import CycleGlyph from './CycleGlyph';
 
 export interface ArcSelection {
   cycleKey: string;
@@ -444,7 +445,7 @@ export default function ArcDiagram({ birthIso, maxAge = 92, selected, onSelect, 
               });
             }}
           >
-            <span className="serif text-[11px] text-ink-dim" aria-hidden>{c.glyph}</span>
+            <CycleGlyph cycleKey={c.key} size={11} className="text-ink-dim shrink-0" />
             <span className="inline-block w-3 h-px" style={{ background: c.color }} />
             <span className={`flex-1 min-w-0 ${selected?.cycleKey === c.key ? 'text-ink' : 'text-ink-dim'}`}>
               {c.label}

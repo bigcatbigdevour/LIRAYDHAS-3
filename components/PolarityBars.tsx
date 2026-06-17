@@ -6,6 +6,7 @@ import { polarityFlips, positionInCycles, ageInYears } from '@/lib/cycles';
 import { POLARITY_HALVES } from '@/lib/polarityHalves';
 import { CYCLE_PLAIN_LABELS } from '@/lib/cyclePlainLabels';
 import { tap as hapticTap } from '@/lib/haptics';
+import CycleGlyph from './CycleGlyph';
 
 interface Props {
   positions: CyclePosition[];
@@ -186,7 +187,7 @@ export default function PolarityBars({ positions, flips, birthIso }: Props) {
             >
               <div className="flex items-baseline justify-between mb-1 gap-2">
                 <span className="small-label caps flex items-baseline gap-1.5">
-                  <span className="serif text-[13px] text-ink-dim" aria-hidden>{p.cycle.glyph}</span>
+                  <CycleGlyph cycleKey={p.cycle.key} size={13} className="text-ink-dim self-center" />
                   {p.cycle.label}
                   {CYCLE_PLAIN_LABELS[p.cycle.key] && (
                     <span className="serif italic text-[10.5px] text-ink-faint normal-case" style={{ letterSpacing: '0.02em' }}>
