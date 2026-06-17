@@ -338,26 +338,51 @@ export default function TodayPage() {
             today is {dailyVibe(daily?.transits ?? liveTransits, positionInCycles(ageInYears(blueprint.birth.iso)))}.
           </p>
         ) : null}
-        {isSolarReturnToday && (
-          <p className="text-accent text-[11px] mt-2 caps" style={{ letterSpacing: '0.2em' }}>
-            ✦ solar return — your year begins
-          </p>
-        )}
-        {!isSolarReturnToday && lunation && lunation.daysUntil < 8 && (
-          <p className="small-label caps text-ink-faint mt-2">
-            {lunation.phase} moon in {Math.max(1, Math.round(lunation.daysUntil))} day{Math.round(lunation.daysUntil) === 1 ? '' : 's'}
-          </p>
-        )}
-        {moonShift && moonShift.hours < 18 && (
-          <p className="small-label caps text-ink-faint mt-1">
-            moon enters {moonShift.nextSign.toLowerCase()} in {Math.max(1, Math.round(moonShift.hours))}h
-          </p>
-        )}
-        {retrogrades.length > 0 && (
-          <p className="small-label caps text-ink-faint mt-2">
-            ℞ {retrogrades.join(' · ')}
-          </p>
-        )}
+        {/* Atmospheric strip — solar return, upcoming lunation, moon
+            sign shift, current retrogrades. Folded into one row that
+            wraps gracefully instead of four stacked lines that pile
+            up visually. Each chip is sized small-caps; the dividers
+            give the strip rhythm. */}
+        {(() => {
+          const chips: { label: string; tone: 'accent' | 'faint' }[] = [];
+          if (isSolarReturnToday) {
+            chips.push({ label: '✦ solar return', tone: 'accent' });
+          }
+          if (!isSolarReturnToday && lunation && lunation.daysUntil < 8) {
+            const d = Math.max(1, Math.round(lunation.daysUntil));
+            chips.push({
+              label: `${lunation.phase.toLowerCase()} in ${d}d`,
+              tone: 'faint',
+            });
+          }
+          if (moonShift && moonShift.hours < 18) {
+            const h = Math.max(1, Math.round(moonShift.hours));
+            chips.push({
+              label: `moon → ${moonShift.nextSign.toLowerCase()} ${h}h`,
+              tone: 'faint',
+            });
+          }
+          if (retrogrades.length > 0) {
+            chips.push({ label: `℞ ${retrogrades.join(' · ')}`, tone: 'faint' });
+          }
+          if (chips.length === 0) return null;
+          return (
+            <p
+              className="flex flex-wrap items-center gap-x-2.5 gap-y-1 small-label caps text-[10px] mt-3"
+              style={{ letterSpacing: '0.18em' }}
+            >
+              {chips.map((c, i) => (
+                <span
+                  key={i}
+                  className={c.tone === 'accent' ? 'text-accent' : 'text-ink-faint'}
+                >
+                  {i > 0 && <span className="text-ink-faint mr-2.5" aria-hidden>·</span>}
+                  {c.label}
+                </span>
+              ))}
+            </p>
+          );
+        })()}
         <FirstTimeIntro storeKey="liraydhas.today.intro.dismissed.v1" learnHref="/learn#astrology">
           <p>
             The reading below is written from{' '}
