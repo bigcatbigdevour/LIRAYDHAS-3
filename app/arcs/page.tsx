@@ -37,6 +37,21 @@ export default function ArcsPage() {
   // setFocusAge call lands per paint.
   const scrubRafRef = useRef<number | null>(null);
   const pendingScrubValue = useRef<number | null>(null);
+  // The range input is UNCONTROLLED (defaultValue + ref, not value=).
+  // Fourth pass on the scrub crash: with a controlled input, every
+  // rAF-committed focusAge change made React write .value back into
+  // the input WHILE the user's finger was still mid-drag on it.
+  // Programmatically assigning a range input's value during an active
+  // touch gesture is a known WebKit crash vector — that's the piece
+  // the previous three fixes (SMIL once-only, D3 rAF coalesce, input
+  // rAF throttle) didn't cover. Uncontrolled means the browser owns
+  // the thumb during gestures; React never touches it. When WE move
+  // the age programmatically (play animation, reset, ?age= deep link)
+  // we write through this ref — safe, because no gesture is active.
+  const scrubInputRef = useRef<HTMLInputElement | null>(null);
+  const syncScrubThumb = (v: number) => {
+    if (scrubInputRef.current) scrubInputRef.current.value = String(v);
+  };
   useEffect(() => {
     return () => {
       if (scrubRafRef.current !== null) cancelAnimationFrame(scrubRafRef.current);
@@ -81,7 +96,11 @@ export default function ArcsPage() {
     const a = new URLSearchParams(window.location.search).get('age');
     if (a !== null) {
       const n = parseFloat(a);
-      if (Number.isFinite(n) && n >= 0 && n <= 92) _setFocusAge(n);
+      if (Number.isFinite(n) && n >= 0 && n <= 92) {
+        _setFocusAge(n);
+        // Uncontrolled input won't follow state — move the thumb too.
+        syncScrubThumb(n);
+      }
     }
   }, []);
 
@@ -109,11 +128,14 @@ export default function ArcsPage() {
         // Write the final age to the URL too so the play-finished
         // state is shareable, not stuck on whatever ?age= was before.
         setFocusAge(92);
+        syncScrubThumb(92);
         setPlaying(false);
         window.clearInterval(id);
         return;
       }
       _setFocusAge(a);
+      // Move the (uncontrolled) thumb along with the animation.
+      syncScrubThumb(a);
     }, stepMs);
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,7 +267,11 @@ export default function ArcsPage() {
                 <>
                   <button
                     className="ml-2 text-ink-faint hover:text-ink underline"
-                    onClick={() => setFocusAge(null)}
+                    onClick={() => {
+                      setFocusAge(null);
+                      // Snap the uncontrolled thumb back to today.
+                      syncScrubThumb(age);
+                    }}
                     type="button"
                   >
                     reset
@@ -296,6 +322,7 @@ export default function ArcsPage() {
                 } else {
                   // start from age 0 to 92
                   _setFocusAge(0);
+                  syncScrubThumb(0);
                   setPlaying(true);
                 }
               }}
@@ -324,11 +351,14 @@ export default function ArcsPage() {
                 />
               </div>
               <input
+                ref={scrubInputRef}
                 type="range"
                 min={0}
                 max={92}
                 step={0.1}
-                value={focusAge ?? age}
+                // UNCONTROLLED on purpose — see scrubInputRef comment.
+                // React must never write .value during a touch drag.
+                defaultValue={focusAge ?? age}
                 onChange={(e) => {
                   if (playing) setPlaying(false);
                   // Stash the latest value; commit at most once per

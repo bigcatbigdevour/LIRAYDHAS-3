@@ -385,19 +385,18 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const isTapped = !!tappedChannel && tappedChannel.a === a && tappedChannel.b === b;
         const halfStroke = (isHalfActive: boolean) => {
           if (isTapped) return '#d44343';
-          if (isHalfActive) return '#999';
-          // Bumped from #1c1c1c — the previous value was barely
-          // distinguishable from the page background (#0a0a0a), so
-          // inactive channels essentially vanished and the body
-          // chart's centres looked disconnected from each other
-          // (especially the Head-Ajna gap where there's nothing else
-          // in the visual space).
-          return '#3a3a3a';
+          if (isHalfActive) return '#a8a8a8';
+          // Third bump (user report: still invisible on a real iPhone
+          // panel at typical brightness). #4a4a4a is ~29% grey — far
+          // enough from the #0a0a0a background to survive OLED black
+          // crush + antialiasing at thin widths, while staying clearly
+          // quieter than the half-active (#a8a8a8) and active states.
+          return '#4a4a4a';
         };
         const halfWidth = (isHalfActive: boolean) => {
           if (isTapped) return 2.4;
-          if (isHalfActive) return 1.4;
-          return 0.9;
+          if (isHalfActive) return 1.6;
+          return 1.2;
         };
         return (
           <g
@@ -466,8 +465,11 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
         const isTappedGate = tappedGate === gate;
         const highlight = isInTappedChannel || isTappedGate;
         const radius = highlight ? 6.5 : lit ? 5.5 : 5;
-        const ringStroke = highlight ? '#d44343' : lit ? '#0a0a0a' : '#2a2a2a';
-        const ringWidth = highlight ? 1.3 : lit ? 0.7 : 0.5;
+        // Unlit ring bumped #2a2a2a → #4f4f4f + width 0.5 → 0.9 (same
+        // visibility pass as the channel lines — the old values were
+        // getting crushed to invisible on OLED iPhone panels).
+        const ringStroke = highlight ? '#d44343' : lit ? '#0a0a0a' : '#4f4f4f';
+        const ringWidth = highlight ? 1.3 : lit ? 0.7 : 0.9;
         return (
           <g key={`node-${gate}`} pointerEvents="none" filter={lit ? 'url(#bg-node-shadow)' : undefined}>
             {isBoth ? (
@@ -485,7 +487,7 @@ export default function BodyGraph({ blueprint }: { blueprint: Blueprint }) {
             ) : (
               <circle
                 cx={p.x} cy={p.y} r={radius}
-                fill={isP ? '#f4f1ea' : isD ? '#b22a2a' : '#0a0a0a'}
+                fill={isP ? '#f4f1ea' : isD ? '#b22a2a' : '#161616'}
                 stroke={ringStroke}
                 strokeWidth={ringWidth}
               />
