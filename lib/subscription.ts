@@ -1,12 +1,13 @@
 /**
- * Subscription / IAP scaffold for the iOS App Store version.
+ * Subscription / IAP for the iOS App Store version.
  *
- * Status: scaffold. Real native purchase calls require a Capacitor IAP
- * plugin (RevenueCat is the simplest; @capacitor-community/in-app-
- * purchases is the open-source path). This module abstracts the surface
- * so swapping in the real plugin later is a one-file change. Until then,
- * subscribe() / restore() write a local "subscribed" flag and the rest
- * of the app gates features on it.
+ * Status: LIVE. purchase() / restore() route through the real StoreKit
+ * bridge in lib/iap/storekit.ts (cordova-plugin-purchase → Apple's
+ * payment sheet), and every entitlement is confirmed against Apple's
+ * App Store Server API by /api/iap/validate before Pro is granted.
+ * Renewals and lapses reconcile automatically at each app boot via
+ * revalidateNative(). See resources/IAP-SETUP.md for the App Store
+ * Connect + Vercel configuration checklist.
  *
  * On the web (Capacitor.isNativePlatform() is false), IAP is N/A —
  * Apple forbids alternate payment for digital goods on iOS, and we
@@ -137,10 +138,15 @@ export function trialUsed(): boolean {
 }
 
 /**
- * Trigger a purchase. On a native iOS shell this routes through the
- * StoreKit plugin; on web it's a no-op that returns false. Real
- * implementation replaces the inner block with a plugin call (RevenueCat
- * or @capacitor-community/in-app-purchases).
+ * Trigger a purchase. On the native iOS shell this routes through the
+ * real StoreKit bridge (lib/iap/storekit.ts → cordova-plugin-purchase
+ * → Apple's payment sheet → our /api/iap/validate). On web it returns
+ * a friendly refusal — Apple forbids alternate payment for digital
+ * goods, and we don't ship a web checkout.
+ *
+ * The storekit module is loaded dynamically so the web bundle never
+ * pulls in native-only code paths, and so there's no static import
+ * cycle (storekit imports setSubState/PRODUCT_IDS from this file).
  */
 export async function purchase(productId: ProductId): Promise<
   { ok: true } | { ok: false; reason: string }
@@ -148,21 +154,13 @@ export async function purchase(productId: ProductId): Promise<
   if (!Capacitor.isNativePlatform()) {
     return { ok: false, reason: 'Subscribe inside the iOS app to unlock Pro.' };
   }
-  // TODO replace stub with the chosen plugin's `purchase(productId)`.
-  // Recommended: RevenueCat. Installation:
-  //   npm install @revenuecat/purchases-capacitor
-  //   import { Purchases } from '@revenuecat/purchases-capacitor';
-  //   await Purchases.configure({ apiKey: 'PUBLIC_REVENUECAT_KEY' });
-  //   const offerings = await Purchases.getOfferings();
-  //   await Purchases.purchasePackage({ aPackage: pkg });
-  //   const info = await Purchases.getCustomerInfo();
-  //   if (info.customerInfo.entitlements.active['pro']) {
-  //     setSubState({ kind: 'pro', productId });
-  //     return { ok: true };
-  //   }
-  console.warn('[iap] purchase() stubbed — wire RevenueCat or community plugin');
-  setSubState({ kind: 'pro', productId });
-  return { ok: true };
+  try {
+    const sk = await import('./iap/storekit');
+    return await sk.purchaseNative(productId);
+  } catch (e) {
+    console.error('[iap] purchase failed:', e);
+    return { ok: false, reason: 'The App Store could not start this purchase.' };
+  }
 }
 
 /**
@@ -176,10 +174,13 @@ export async function restore(): Promise<
   if (!Capacitor.isNativePlatform()) {
     return { ok: false, reason: 'Restore is only available in the iOS app.' };
   }
-  // TODO: RevenueCat -- await Purchases.restorePurchases();
-  // Then read customerInfo.entitlements and call setSubState.
-  console.warn('[iap] restore() stubbed — wire RevenueCat or community plugin');
-  return { ok: true, restored: false };
+  try {
+    const sk = await import('./iap/storekit');
+    return await sk.restoreNative();
+  } catch (e) {
+    console.error('[iap] restore failed:', e);
+    return { ok: false, reason: 'Restore failed — try again.' };
+  }
 }
 
 /**

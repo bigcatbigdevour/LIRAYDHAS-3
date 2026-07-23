@@ -438,6 +438,10 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   year:      { capacity: 4, refillPerMinute: 4 },
   ask:       { capacity: 8, refillPerMinute: 16 },
   synastry:  { capacity: 4, refillPerMinute: 6 },
+  // IAP validation fans out to Apple's API (up to 4 upstream calls per
+  // request in the worst case). Legit clients hit it a handful of
+  // times per session — purchase, restore, boot revalidation.
+  iap:       { capacity: 6, refillPerMinute: 10 },
 };
 
 /**

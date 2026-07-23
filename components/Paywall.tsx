@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   PRODUCT_IDS,
   purchase,
@@ -36,21 +36,44 @@ const DEFAULT_FEATURES = [
 /**
  * Paywall sheet — used inside ProGate and the /pro page. Renders a
  * voice-matched panel listing the Pro features, two SKU buttons
- * (annual + monthly), a "Restore" link, and an optional 7-day soft
- * trial that doesn't go through StoreKit (deliberately not Apple's
- * "Free Trial" subscription perk — that requires native purchase first).
+ * (annual + monthly, with the App Store's localized prices once the
+ * catalog loads), a "Restore" link, and an optional 7-day soft trial
+ * that doesn't go through StoreKit (deliberately not Apple's "Free
+ * Trial" subscription perk — that requires native purchase first).
  *
- * Calls into lib/subscription.ts. Real StoreKit wiring (RevenueCat or
- * @capacitor-community/in-app-purchases) goes inside purchase() —
- * this UI doesn't need to change when the plugin is added.
+ * Purchases route through lib/subscription.ts → lib/iap/storekit.ts →
+ * Apple's payment sheet, with server-side validation before Pro is
+ * granted.
  */
 export default function Paywall({ headline, features, onUnlocked }: Props) {
   const sub = useSubState();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [prices, setPrices] = useState<{ annual?: string; monthly?: string }>({});
   const items = features ?? DEFAULT_FEATURES;
   const native = Capacitor.isNativePlatform();
   const canTrial = !trialUsed() && sub.kind === 'free';
+
+  // On native, warm up the StoreKit catalog so the buttons can show
+  // Apple's localized prices ("$39.99", "€44,99", …). Web skips this
+  // entirely — the module is dynamically imported so it never lands
+  // in the web bundle's critical path.
+  useEffect(() => {
+    if (!native) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const sk = await import('@/lib/iap/storekit');
+        await sk.initStoreKit();
+        if (cancelled) return;
+        setPrices({
+          annual: sk.getDisplayPrice(PRODUCT_IDS.annual) ?? undefined,
+          monthly: sk.getDisplayPrice(PRODUCT_IDS.monthly) ?? undefined,
+        });
+      } catch { /* catalog stays priceless; buttons still work */ }
+    })();
+    return () => { cancelled = true; };
+  }, [native]);
 
   async function onBuy(productId: string) {
     if (busy) return;
@@ -149,7 +172,11 @@ export default function Paywall({ headline, features, onUnlocked }: Props) {
           disabled={!!busy}
           className="btn-primary w-full"
         >
-          {busy === PRODUCT_IDS.annual ? 'opening App Store…' : 'subscribe yearly · best value'}
+          {busy === PRODUCT_IDS.annual
+            ? 'opening App Store…'
+            : prices.annual
+              ? `subscribe yearly · ${prices.annual} · best value`
+              : 'subscribe yearly · best value'}
         </button>
         <button
           type="button"
@@ -157,7 +184,11 @@ export default function Paywall({ headline, features, onUnlocked }: Props) {
           disabled={!!busy}
           className="btn-ghost w-full"
         >
-          {busy === PRODUCT_IDS.monthly ? 'opening App Store…' : 'subscribe monthly'}
+          {busy === PRODUCT_IDS.monthly
+            ? 'opening App Store…'
+            : prices.monthly
+              ? `subscribe monthly · ${prices.monthly}`
+              : 'subscribe monthly'}
         </button>
       </div>
 

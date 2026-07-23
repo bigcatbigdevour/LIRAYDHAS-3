@@ -27,6 +27,21 @@ export default function RegisterServiceWorker() {
       // Reschedule on every launch so the OS-held schedule stays
       // current. Cheap (early-returns when the toggle is off).
       void rescheduleAnniversaries();
+      // StoreKit: initialize the product catalog + transaction
+      // listeners (catches unfinished purchases and renewals that
+      // StoreKit replays at launch), then reconcile the stored
+      // subscription against the server — renewals extend Pro,
+      // lapses downgrade it. Dynamic import keeps this out of the
+      // web bundle.
+      void (async () => {
+        try {
+          const sk = await import('@/lib/iap/storekit');
+          await sk.initStoreKit();
+          await sk.revalidateNative();
+        } catch (e) {
+          console.warn('[iap] boot init failed:', e);
+        }
+      })();
       return;
     }
 
