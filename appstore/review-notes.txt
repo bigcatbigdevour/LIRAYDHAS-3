@@ -1,0 +1,30 @@
+App Review notes
+
+NO LOGIN REQUIRED
+The app does not have user accounts. There are no demo credentials to provide. The first launch shows an onboarding flow that asks for birth date, time, and place. You can enter any reasonable values to proceed; the app will work with any birth data.
+
+WHAT THE APP DOES
+Liraydhas computes a natal astrology chart and a Human Design body chart from the birth data you enter, then watches the live sky and generates a short paragraph each day about how the current planetary positions relate to that chart. The paragraph is written by Anthropic's Claude API.
+
+USER DATA
+All persistent user data (birth blueprint, journal entries, notes, tags, photos, voice notes) lives in the WebView's local storage and IndexedDB on the device. The server-side push subscription store holds only an opaque push token plus a preferred local hour; it does not hold any birth data.
+
+NETWORK ACTIVITY DURING REVIEW
+The app will make the following requests:
+  · POST https://liraydhas-3.vercel.app/api/daily — to generate the daily paragraph.
+  · POST https://liraydhas-3.vercel.app/api/polarity — for the polarity-tab interpretation.
+  · POST https://liraydhas-3.vercel.app/api/narrative — for the chart-tab paragraph.
+  · POST https://liraydhas-3.vercel.app/api/push/subscribe — if the reviewer enables daily reminders.
+  · GET  https://geocoding-api.open-meteo.com/v1/search?name=...  — during onboarding, to resolve a city name to a latitude/longitude.
+
+PERMISSIONS THE APP MAY ASK FOR
+  · Notifications — for the daily reminder. Optional from the About page.
+  · Camera — only if the user taps "+ photo" on a journal entry.
+  · Photo library — only if the user picks "Choose Photo" in that prompt.
+  · Microphone — only if the user taps "● record" on a journal entry to attach a voice note.
+
+ACCOUNT DELETION
+A single "delete all my data" button on the About tab removes the blueprint, every journal entry, every attached photo and voice note, every preference flag, and unregisters notifications.
+
+REVIEWER CONTACT
+[YOUR EMAIL HERE]

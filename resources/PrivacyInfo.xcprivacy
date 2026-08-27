@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Apple Privacy Manifest for Liraydhas (App Store mandatory since 2024-05-01).
+  Source-of-truth lives here; scripts/patch-ios-privacy.js copies it into
+  ios/App/App/PrivacyInfo.xcprivacy and inserts the project.pbxproj
+  reference so Xcode bundles it.
+
+  Three declarations:
+
+  1. NSPrivacyTracking = false
+     We do not link any collected data to third-party data for advertising
+     or tracking purposes, and we do not use third-party tracking SDKs.
+
+  2. NSPrivacyCollectedDataTypes
+     The only piece of user-linked data that leaves the device is the
+     push subscription endpoint (a per-device URL we store in Vercel KV
+     so we can send the optional daily reading reminder). It's not used
+     for tracking and not linked to a personal identifier — strictly
+     "app functionality" per Apple's taxonomy.
+
+     Birth data is sent to /api/* endpoints for LLM-generated paragraphs
+     but is never stored server-side (the endpoints are stateless). Per
+     Apple's guidance ("data is not collected if it is only used to
+     generate a response and is not retained"), it doesn't need a
+     declaration here.
+
+  3. NSPrivacyAccessedAPITypes
+     - NSUserDefaults (reason CA92.1): Capacitor's iOS shell uses
+       UserDefaults to store its own preferences (last-known WebView URL,
+       plugin state). This reason covers "access user defaults to read
+       and write information that is only accessible to the app itself."
+
+     No other required-reason APIs are used by our code or by the
+     installed Capacitor plugins (push-notifications, local-notifications,
+     status-bar, haptics, splash-screen, app, ios).
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

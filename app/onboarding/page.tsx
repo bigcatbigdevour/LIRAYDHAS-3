@@ -1,0 +1,373 @@
+'use client';
+
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import PlaceAutocomplete from '@/components/PlaceAutocomplete';
+import { buildBlueprint } from '@/lib/blueprint';
+import { useStore, useStoreHydrated } from '@/lib/store';
+import { success as hapticSuccess, warn as hapticWarn } from '@/lib/haptics';
+import { localDateStr } from '@/lib/localDate';
+import { friendlyError } from '@/lib/friendlyError';
+import type { GeocodeResult } from '@/lib/types';
+
+type Step = 'intro' | 'disclaim' | 'form';
+
+export default function Onboarding() {
+  // useSearchParams requires a Suspense boundary in the App Router; the
+  // inner component reads it, this outer one wraps.
+  return (
+    <Suspense fallback={null}>
+      <OnboardingInner />
+    </Suspense>
+  );
+}
+
+function OnboardingInner() {
+  const router = useRouter();
+  const search = useSearchParams();
+  const isEdit = search?.get('edit') === '1';
+  // Wait for Zustand to finish reading localStorage before we render
+  // anything. Without this gate, a returning user can briefly see the
+  // /onboarding intro on a cold start while the blueprint is loading.
+  const hydrated = useStoreHydrated();
+  const blueprint = useStore((s) => s.blueprint);
+  const setBlueprint = useStore((s) => s.setBlueprint);
+
+  // In edit mode, pre-fill the form with the existing blueprint values and
+  // jump straight to the form step. The user can change any field and submit
+  // to overwrite their stored chart.
+  const initialDate = isEdit && blueprint?.birth.iso ? blueprint.birth.iso.slice(0, 10) : '';
+  const initialTime = isEdit && blueprint?.birth.iso && !blueprint.birth.timeUnknown
+    ? blueprint.birth.iso.slice(11, 16)
+    : '';
+  const initialTimeUnknown = isEdit ? !!blueprint?.birth.timeUnknown : false;
+  const initialPicked: { r: GeocodeResult; label: string } | null = isEdit && blueprint
+    ? {
+        r: {
+          name: blueprint.birth.place.split(',')[0]?.trim() ?? blueprint.birth.place,
+          latitude: blueprint.birth.lat,
+          longitude: blueprint.birth.lon,
+        } as GeocodeResult,
+        label: blueprint.birth.place,
+      }
+    : null;
+
+  const [step, setStep] = useState<Step>(isEdit ? 'form' : 'intro');
+  const [date, setDate] = useState(initialDate);
+  const [time, setTime] = useState(initialTime);
+  const [timeUnknown, setTimeUnknown] = useState(initialTimeUnknown);
+  const [placeQuery, setPlaceQuery] = useState(isEdit ? (blueprint?.birth.place ?? '') : '');
+  const [picked, setPicked] = useState<{ r: GeocodeResult; label: string } | null>(initialPicked);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [maxDate, setMaxDate] = useState('');
+
+  useEffect(() => {
+    // set after mount so SSR/CSR agree on the initial render
+    setMaxDate(localDateStr());
+  }, []);
+
+  const checked = useRef(false);
+  useEffect(() => {
+    if (isEdit) return; // never auto-bounce when editing
+    if (!hydrated) return; // wait for localStorage to load
+    if (blueprint && !checked.current) {
+      checked.current = true;
+      router.replace('/today');
+    }
+  }, [hydrated, blueprint, router, isEdit]);
+
+  const canSubmit =
+    date.length === 10 &&
+    (timeUnknown || time.length >= 4) &&
+    !!picked;
+
+  async function submit() {
+    setError(null);
+    if (!picked || !date) return;
+    setBusy(true);
+    try {
+      const effectiveTime = timeUnknown ? '12:00' : time;
+      const localIso = `${date}T${effectiveTime}`;
+      const bp = buildBlueprint({
+        localIso,
+        lat: picked.r.latitude,
+        lon: picked.r.longitude,
+        place: picked.label,
+        timeUnknown,
+      });
+      setBlueprint(bp);
+      hapticSuccess();
+      // Only set the welcome flag on a FIRST-TIME onboarding, never when
+      // someone is just editing their birth data. Otherwise the "your
+      // first reading" ceremony would re-fire every time they tweak
+      // their birth time.
+      if (!isEdit) {
+        try { window.localStorage.setItem('liraydhas.welcome.v1', '1'); } catch { /* ignore */ }
+        router.replace('/today');
+      } else {
+        router.replace('/chart');
+      }
+    } catch (e: unknown) {
+      setError(friendlyError(e instanceof Error ? e.message : null));
+      hapticWarn();
+      setBusy(false);
+    }
+  }
+
+  // Don't render ANYTHING until Zustand has read localStorage. Otherwise a
+  // returning user with a stored blueprint sees the intro flash for one
+  // frame before the redirect fires — feels like the app forgot them.
+  // Edit mode bypasses this gate because it intentionally re-displays
+  // the form even when the blueprint exists.
+  if (!isEdit && !hydrated) {
+    return (
+      <main className="page flex items-center justify-center min-h-screen">
+        <p className="caps small-label text-ink-faint">liraydhas</p>
+      </main>
+    );
+  }
+
+  // Returning user with a blueprint? The redirect effect above is already
+  // running — render the splash, not the intro, during the redirect tick.
+  if (!isEdit && hydrated && blueprint) {
+    return (
+      <main className="page flex items-center justify-center min-h-screen">
+        <p className="caps small-label text-ink-faint">liraydhas</p>
+      </main>
+    );
+  }
+
+  if (step === 'intro') {
+    return (
+      <main className="page max-w-md mx-auto fade-in min-h-screen flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-10">
+          <div>
+            <svg viewBox="0 0 80 80" className="w-20 h-20 mx-auto" aria-hidden>
+              <g style={{ transformOrigin: '40px 40px' }}>
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#f4f1ea" strokeWidth="0.6" opacity="0.5">
+                  <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="360 40 40" dur="120s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="40" cy="40" r="22" fill="none" stroke="#f4f1ea" strokeWidth="0.5" opacity="0.7">
+                  <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="-360 40 40" dur="90s" repeatCount="indefinite" />
+                </circle>
+              </g>
+              <circle cx="40" cy="40" r="10" fill="none" stroke="#f4f1ea" strokeWidth="0.5"/>
+              <circle cx="40" cy="40" r="3"  fill="#8b3a3a">
+                <animate attributeName="opacity" values="1;0.55;1" dur="4.5s" repeatCount="indefinite" />
+              </circle>
+              {/* a tiny diamond orbiting the inner ring */}
+              <g style={{ transformOrigin: '40px 40px' }}>
+                <animateTransform attributeName="transform" type="rotate" from="0 40 40" to="360 40 40" dur="40s" repeatCount="indefinite" />
+                <rect x="38" y="6" width="4" height="4" fill="#8b3a3a" transform="rotate(45 40 8)" opacity="0.6" />
+              </g>
+            </svg>
+            <p className="caps small-label mt-6">liraydhas</p>
+          </div>
+          <h1 className="h-display serif" style={{ fontSize: 'clamp(2rem, 7vw, 2.6rem)', lineHeight: 1.15 }}>
+            A daily reading<br />of the sky,<br />and your design.
+          </h1>
+          <p className="serif italic text-ink-dim text-[15px] max-w-sm leading-relaxed">
+            Real astrology. A full body chart. Every major life cycle
+            drawn from age zero to ninety-two.
+          </p>
+          <p className="text-ink-faint text-[12px] max-w-xs caps" style={{ letterSpacing: '0.16em' }}>
+            Enter your birth data once · the math runs on your phone · nothing is stored anywhere but here
+          </p>
+        </div>
+        <div className="pb-10">
+          <button className="btn-primary" onClick={() => setStep('disclaim')}>
+            Begin
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (step === 'disclaim') {
+    // A small "what this is and isn't" interstitial before the form.
+    // Heads off App Review concerns about astrology / spirituality apps
+    // making health, financial, or predictive claims. Also sets honest
+    // expectations for the user before they invest birth data.
+    return (
+      <main className="page max-w-md mx-auto fade-in min-h-screen flex flex-col">
+        <header className="pt-2 pb-4">
+          <button
+            onClick={() => setStep('intro')}
+            className="small-label caps text-ink-faint hover:text-ink"
+          >
+            ← back
+          </button>
+        </header>
+        <div className="flex-1 flex flex-col gap-6 justify-center max-w-sm mx-auto">
+          <div>
+            <p
+              className="small-label caps text-accent mb-3"
+              style={{ letterSpacing: '0.22em' }}
+            >
+              before you enter your birth data
+            </p>
+            <h2
+              className="serif text-ink"
+              style={{ fontSize: 'clamp(1.4rem, 5vw, 1.7rem)', lineHeight: 1.25 }}
+            >
+              What this is, and isn't.
+            </h2>
+          </div>
+          <ul className="space-y-3 text-[14px] text-ink-dim serif leading-relaxed">
+            <li className="flex gap-2">
+              <span className="text-accent" aria-hidden>·</span>
+              <span>
+                <span className="text-ink">An observational tool</span> for
+                pairing your natal astrology with your body chart and
+                watching where the sky moves through them.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-accent" aria-hidden>·</span>
+              <span>
+                <span className="text-ink">Your data lives on this device.</span>{' '}
+                Birth blueprint and journal stay in this app's local
+                storage. The math runs locally; only the day's prompt
+                goes to the language model that writes the paragraph.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-ink-faint" aria-hidden>×</span>
+              <span className="text-ink-faint">
+                Not a medical, mental-health, financial, or legal service.
+                Not a prediction. Not a substitute for professional support.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-ink-faint" aria-hidden>×</span>
+              <span className="text-ink-faint">
+                Not "your sign means…" — readings are computed from your
+                full chart and today's transits, not a sun-sign blanket.
+              </span>
+            </li>
+          </ul>
+          <p className="text-[12px] text-ink-faint serif italic leading-relaxed">
+            By continuing you confirm you understand this is for personal
+            reflection, not advice.
+          </p>
+        </div>
+        <div className="pb-10 flex flex-col gap-3 max-w-sm mx-auto w-full">
+          <button className="btn-primary" onClick={() => setStep('form')}>
+            I understand · continue
+          </button>
+          <a
+            href="/privacy"
+            className="small-label caps text-ink-faint hover:text-ink text-center"
+            style={{ letterSpacing: '0.18em' }}
+          >
+            read the full privacy policy →
+          </a>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="page max-w-md mx-auto fade-in">
+      <header className="pt-2 pb-10">
+        <button
+          onClick={() => {
+            if (isEdit) router.replace('/chart');
+            else setStep('disclaim');
+          }}
+          className="small-label caps text-ink-faint hover:text-ink"
+        >
+          ← {isEdit ? 'cancel' : 'back'}
+        </button>
+        <h1 className="h-display serif mt-6">
+          {isEdit ? <>Edit your<br />birth data.</> : <>Tell me where<br />you started.</>}
+        </h1>
+        <p className="text-ink-dim text-[14px] mt-3 max-w-sm leading-relaxed">
+          Date, time, and place of birth. Your time matters most — without
+          it the rising sign and houses go soft. Place determines the
+          timezone, so a city that's close to where you were born is fine.
+        </p>
+      </header>
+
+      <section className="space-y-8">
+        <Field label="Date of birth">
+          <input
+            type="date"
+            className="input"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            max={maxDate || undefined}
+            min="1900-01-01"
+          />
+        </Field>
+
+        <Field
+          label="Time of birth"
+          aside={
+            <button
+              type="button"
+              onClick={() => setTimeUnknown((v) => !v)}
+              className="text-[10px] caps text-ink-dim hover:text-ink"
+            >
+              {timeUnknown ? '✓ unknown' : 'I don’t know'}
+            </button>
+          }
+        >
+          <input
+            type="time"
+            className="input"
+            value={timeUnknown ? '12:00' : time}
+            onChange={(e) => setTime(e.target.value)}
+            disabled={timeUnknown}
+          />
+          {timeUnknown && (
+            <p className="text-[12px] text-ink-dim mt-1 italic">
+              Defaulting to noon. Rising sign, houses, and profile will be soft.
+            </p>
+          )}
+        </Field>
+
+        <Field label="Place of birth">
+          <PlaceAutocomplete
+            value={placeQuery}
+            onChange={(v) => {
+              setPlaceQuery(v);
+              if (picked && v !== picked.label) setPicked(null);
+            }}
+            onPick={(r, label) => setPicked({ r, label })}
+            placeholder="City, region, country"
+          />
+        </Field>
+      </section>
+
+      {error && <p className="text-accent mt-6 text-[13px]">{error}</p>}
+
+      <div className="mt-12">
+        <button className="btn-primary" disabled={!canSubmit || busy} onClick={submit}>
+          {busy ? 'computing…' : isEdit ? 'Update my blueprint' : 'Compute my blueprint'}
+        </button>
+      </div>
+    </main>
+  );
+}
+
+function Field({
+  label,
+  children,
+  aside,
+}: {
+  label: string;
+  children: React.ReactNode;
+  aside?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1">
+        <label className="serif text-[20px] leading-tight">{label}</label>
+        {aside}
+      </div>
+      {children}
+    </div>
+  );
+}
